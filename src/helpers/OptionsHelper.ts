@@ -72,7 +72,7 @@ export class OptionsHelper {
         type: 'list',
         name: 'task',
         message: 'Which command do you want to execute?',
-        choices: ['build', 'publish'],
+        choices: ['publish']
       });
     }
     
