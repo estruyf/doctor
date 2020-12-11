@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "forceConsistentCasingInFileNames": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "declaration": true,
+    "sourceMap": true,
+    "experimentalDecorators": true,
+    "skipLibCheck": true,
+    "outDir": "dist",
+    "inlineSources": false,
+    "strictNullChecks": false,
+    "noUnusedLocals": false,
+    "lib": [
+      "DOM",
+      "ES2015"
+    ]
+  },
+  "include": [
+    "src/**/*.ts"   
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
