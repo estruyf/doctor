@@ -7,7 +7,7 @@ import showdown = require('showdown');
 import kleur = require('kleur');
 import { JSDOM } from 'jsdom';
 import { FileHelpers } from '../helpers/FileHelpers';
-import { execScript } from '../helpers/execScript';
+import { execScript, getM365Command } from '../helpers/execScript';
 import { Observable } from 'rxjs';
 import { FolderHelpers } from '../helpers/FolderHelpers';
 import { NavigationHelper } from '../helpers/NavigationHelper';
@@ -22,6 +22,10 @@ export class Publish {
    * @param options 
    */
   public static async start(options: CommandArguments) {
+    if (!fs.existsSync(options.startFolder)) {
+      return Promise.reject(new Error(`The provided folder location doesn't exist.`));
+    }
+
     if (!options.webUrl) {
       return Promise.reject(new Error(`In order to run the publish command, you need to specify the '--url' property.`));
     }
@@ -50,7 +54,9 @@ export class Publish {
         title: `Updating navigation`,
         task: async () => await NavigationHelper.update(webUrl, ouput.navigation)
       }
-    ]).run();
+    ]).run().catch(err => {
+      console.error(err);
+    });
 
     console.log('');
     console.info(kleur.bold().bgYellow().black(` Publishing stats `));
@@ -110,6 +116,12 @@ export class Publish {
                 }
 
                 let { title, slug, draft } = markup.data;
+
+                if (!slug) {
+                  slug = `${title}.aspx`
+                } else if (!(slug as string).endsWith('.aspx')) {
+                  slug = `${slug}.aspx`
+                }
 
                 if (imgElms && imgElms.length > 0) {
                   observer.next(`Uploading images referenced in ${filename}`);

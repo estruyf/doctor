@@ -8,6 +8,7 @@ export interface CommandArguments {
   webPartTitle: string;
   webUrl: string;
   overwriteImages: boolean;
+  skipPrecheck: boolean;
 
   menu?: Menu;
 

@@ -1,5 +1,5 @@
 import Listr = require("listr");
-import { execScript } from "../helpers/execScript";
+import { execScript, getM365Command } from "../helpers/execScript";
 import { CommandArguments } from "../models/CommandArguments";
 
 

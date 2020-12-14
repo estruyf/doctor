@@ -1,7 +1,8 @@
 import { Publish } from './commands/publish';
 import * as kleur from 'kleur';
-import * as fs from 'fs';
 import { CommandArguments } from './models/CommandArguments';
+import { Init } from './commands/init';
+import { execScript } from './helpers/execScript';
 
 
 export class Commands {
@@ -19,14 +20,21 @@ export class Commands {
       console.log(kleur.bold().bgMagenta().white(` START: `), `${options.task} job`);
       console.log('');
 
-      if (!fs.existsSync(options.startFolder)) {
-        return Promise.reject(new Error(`The provided folder location doesn't exist.`));
+      if (!options.skipPrecheck) {
+        try {
+          await execScript("m365");
+        } catch (e) {
+          console.error(kleur.bold().bgRed().white(` Error: `), kleur.red(`It seems the CLI for Microsoft 365 is not installed. Please install the Microsoft 365 CLI by executing: $ npm i -g @pnp/cli-microsoft365@3`));
+          return;
+        }
       }
 
       if (options.task === "build") {
         console.log(kleur.green('Starting build'));
       } else if (options.task === "publish") {
         await Publish.start(options);
+      } else if (options.task === "init") {
+        await Init.start(options);
       }
 
 

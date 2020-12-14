@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://raw.githubusercontent.com/ValoIntranet/doctor/dev/schema/1.0.0.json",
+  "type": "object",
+  "title": "Doctor configuration",
+  "description": "The configuration schema for doctor.json.",
+  "default": {},
+  "examples": [
+    {
+      "url": "https://tenant.sharepoint.com/sites/documentation",
+      "auth": "deviceCode",
+      "overwriteImages": false,
+      "folder": "./src",
+      "library": "Shared Documents"
+    }
+  ],
+  "required": [
+    "url"
+  ],
+  "properties": {
+    "auth": {
+      "$id": "#/properties/auth",
+      "type": "string",
+      "title": "auth",
+      "description": "Specify the authentication type to use. Values can be `deviceCode` (default) or `password`.",
+      "default": "deviceCode",
+      "enum": [
+        "deviceCode",
+        "password"
+      ]
+    },
+    "password": {
+      "$id": "#/properties/password",
+      "type": "string",
+      "title": "password",
+      "description": "When using `password` authentication, you need to pass the `username` and `password`.",
+      "default": ""
+    },
+    "username": {
+      "$id": "#/properties/username",
+      "type": "string",
+      "title": "username",
+      "description": "When using `password` authentication, you need to pass the `username` and `password`.",
+      "default": ""
+    },
+    "overwriteImages": {
+      "$id": "#/properties/overwriteImages",
+      "type": "boolean",
+      "title": "overwriteImages",
+      "description": "Specifies if you allow `doctor` to overwrite the images in the SharePoint library that are referenced in the markdown files.",
+      "default": false
+    },
+    "url": {
+      "$id": "#/properties/url",
+      "type": "string",
+      "title": "url",
+      "description": "The URL of the site collection to use.",
+      "default": "",
+      "examples": ["https://tenant.sharepoint.com/sites/documentation"]
+    },
+    "folder": {
+      "$id": "#/properties/folder",
+      "type": "string",
+      "title": "folder",
+      "description": "The folder location in where you will create your markdown files.",
+      "default": "./src",
+      "examples": ["./src"]
+    },
+    "library": {
+      "$id": "#/properties/library",
+      "type": "string",
+      "title": "library",
+      "description": "Specified the library which you want to use in SharePoint to store your referenced images.",
+      "default": "Shared Documents"
+    },
+    "wpInternalTitle": {
+      "$id": "#/properties/wpInternalTitle",
+      "type": "string",
+      "title": "The wpInternalTitle schema",
+      "description": "This defined the title of the markdown web part to be created/updated on the page. Default value is: `doctor-placeholder`.",
+      "default": "doctor-placeholder"
+    }
+  },
+  "additionalProperties": true
+}

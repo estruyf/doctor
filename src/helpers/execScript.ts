@@ -6,7 +6,7 @@ export const execScript = async <T>(command: string, args: string[] = [], should
       const execution = spawn(command, [...args]);
 
       execution.stdout.on('data', (data) => {
-        console.log(`stdout: ${data}`);
+        console.log(`${data}`);
       });
 
       execution.stdout.on('close', (data) => {
@@ -27,4 +27,12 @@ export const execScript = async <T>(command: string, args: string[] = [], should
       });
     }
   });
+}
+
+/**
+ * Retrieve the m365 command to execute
+ * @param options 
+ */
+export const getM365Command = (m365Installed: boolean): string[] => {
+  return m365Installed ? ["m365" ] : ["npx", "@pnp/cli-microsoft365@3"];
 }

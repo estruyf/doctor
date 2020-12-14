@@ -11,7 +11,7 @@ export class OptionsHelper {
    * Fetch the config stored in the current project
    */
   public static fetchConfig(): any {
-    const configPath = path.join(process.cwd(), 'config.json');
+    const configPath = path.join(process.cwd(), 'doctor.json');
     if (fs.existsSync(configPath)) {
       const config = fs.readFileSync(configPath, { encoding: "utf-8" });
       if (config) {
@@ -37,6 +37,7 @@ export class OptionsHelper {
         '--library': String,
         '--wpInternalTitle': String,
         '--overwriteImages': Boolean,
+        '--skipPrecheck': Boolean,
         '-a': '--auth',
         '-f': '--folder',
         '-u': '--url'
@@ -53,10 +54,11 @@ export class OptionsHelper {
       username: args["--username"] || options["username"] || null,
       password: args["--password"] || options["password"] || null,
       webUrl: args["--url"] || options["url"] || null,
-      startFolder: args["--folder"] || options["folder"] || null,
+      startFolder: args["--folder"] || options["folder"] || './src',
       assetLibrary: args["--library"] || options["library"] || 'Shared Documents',
       webPartTitle: args["--wpInternalTitle"] || options["wpInternalTitle"] || 'doctor-placeholder',
-      menu: options["menu"] || null
+      skipPrecheck: args["--skipPrecheck"] as any || options["skipPrecheck"] || false,
+      menu: options["menu"] || null,
     };
   }
 
@@ -72,7 +74,7 @@ export class OptionsHelper {
         type: 'list',
         name: 'task',
         message: 'Which command do you want to execute?',
-        choices: ['publish']
+        choices: ['init', 'publish']
       });
     }
     

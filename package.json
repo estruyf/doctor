@@ -13,7 +13,8 @@
     "start": "npm run build",
     "build": "npm run clean && tsc",
     "watch": "tsc -w",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "postinstall": "npm i -g @pnp/cli-microsoft365@3"
   },
   "keywords": [
     "cli",

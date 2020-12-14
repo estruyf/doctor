@@ -6,6 +6,7 @@ export async function cli(args: string[]) {
   let options = OptionsHelper.fetchConfig();
   options = OptionsHelper.parseArguments(options, args);
   options = await OptionsHelper.promptForMissingArgs(options);
+  
   try {
     await Commands.start(options);
   } catch (e) {
