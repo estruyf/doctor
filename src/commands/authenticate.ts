@@ -17,9 +17,9 @@ export class Authenticate {
         title: `Authenticate to M365 with ${auth}`,
         task: async () => {
           if (auth === "deviceCode") {
-            await execScript(`m365`, [`login`], true);
+            await execScript(`localm365`, [`login`], true);
           } else {
-            await execScript(`m365`, [`login`, `--authType password`, `--userName '${username}'`, `--password '${password}'`]);
+            await execScript(`localm365`, [`login`, `--authType password`, `--userName '${username}'`, `--password '${password}'`]);
           }
         }
       }

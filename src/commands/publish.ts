@@ -216,7 +216,7 @@ export class Publish {
    */
   private static async createPageIfNotExists(webUrl: string, slug: string, title: string): Promise<void> {
     try {
-      await execScript(`m365`, [`spo`, `page`, `get`, `--webUrl`, `"${webUrl}"`, `--name`, `"${slug}"`]);
+      await execScript(`localm365`, [`spo`, `page`, `get`, `--webUrl`, `"${webUrl}"`, `--name`, `"${slug}"`]);
     } catch (e) {
       // Check if folders for the file need to be created
       if (slug.split('/').length > 1) {
@@ -224,7 +224,7 @@ export class Publish {
         await FolderHelpers.create('sitepages', folders.slice(0, folders.length - 1), webUrl);
       }
       // File doesn't exist
-      await execScript(`m365`, [`spo`, `page`, `add`, `--webUrl`, `"${webUrl}"`, `--name`, `"${slug}"`, `--title`, `"${title}"`]);
+      await execScript(`localm365`, [`spo`, `page`, `add`, `--webUrl`, `"${webUrl}"`, `--name`, `"${slug}"`, `--title`, `"${title}"`]);
     }
   }
 
@@ -234,7 +234,7 @@ export class Publish {
    * @param slug 
    */
   private static async getPageControls(webUrl: string, slug: string): Promise<string> {
-    return await execScript(`m365`, [`spo`, `page`, `control`, `list`, `--webUrl`, `"${webUrl}"`, `--name`, `"${slug}"`, `-o`, `json`, `|`, `jq`]);
+    return await execScript(`localm365`, [`spo`, `page`, `control`, `list`, `--webUrl`, `"${webUrl}"`, `--name`, `"${slug}"`, `-o`, `json`, `|`, `jq`]);
   }
 
   /**
@@ -247,10 +247,10 @@ export class Publish {
     
     if (wpId) {
       // Web part needs to be updated
-      await execScript(`m365`, [`spo`, `page`, `control`, `set`, `--webUrl`, `"${webUrl}"`, `--name`, `"${slug}"`, `--id`, `${wpId}`, `--webPartData`, wpData]);
+      await execScript(`localm365`, [`spo`, `page`, `control`, `set`, `--webUrl`, `"${webUrl}"`, `--name`, `"${slug}"`, `--id`, `${wpId}`, `--webPartData`, wpData]);
     } else {
       // Add new markdown web part
-      await execScript(`m365`, [`spo`, `page`, `clientsidewebpart`, `add`, `--webUrl`, `"${webUrl}"`, `--pageName`, `"${slug}"`, `--webPartId`, `1ef5ed11-ce7b-44be-bc5e-4abd55101d16`, `--webPartData`, wpData]);
+      await execScript(`localm365`, [`spo`, `page`, `clientsidewebpart`, `add`, `--webUrl`, `"${webUrl}"`, `--pageName`, `"${slug}"`, `--webPartId`, `1ef5ed11-ce7b-44be-bc5e-4abd55101d16`, `--webPartData`, wpData]);
     }
   }
 
@@ -261,7 +261,7 @@ export class Publish {
    */
   private static async publishPageIfNeeded(webUrl: string, slug: string) {
     const relativeUrl = FileHelpers.getRelUrl(webUrl, `sitepages/${slug}`);
-    await execScript(`m365`, [`spo`, `file`, `checkin`, `--webUrl`, `"${webUrl}"`, `--fileUrl`, relativeUrl]);
-    await execScript(`m365`, [`spo`, `page`, `set`, `--name`, `"${slug}"`, `--webUrl`, `"${webUrl}"`, `--publish`]);
+    await execScript(`localm365`, [`spo`, `file`, `checkin`, `--webUrl`, `"${webUrl}"`, `--fileUrl`, relativeUrl]);
+    await execScript(`localm365`, [`spo`, `page`, `set`, `--name`, `"${slug}"`, `--webUrl`, `"${webUrl}"`, `--publish`]);
   }
 }
