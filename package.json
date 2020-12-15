@@ -1,8 +1,9 @@
 {
   "name": "@valo/doctor",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "The static site generator for SharePoint",
   "main": "dist/main.js",
+  "homepage": "https://github.com/ValoIntranet/doctor",
   "bin": {
     "doctor": "bin/doctor",
     "localm365": "bin/localm365"
@@ -23,6 +24,20 @@
   ],
   "author": "Elio Struyf",
   "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ValoIntranet/doctor/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ValoIntranet/doctor.git"
+  },
+  "contributors": [
+    {
+      "name": "Elio Struyf",
+      "email": "elio@struyfconsulting.be",
+      "url": "https://www.eliostruyf.com"
+    }
+  ],
   "devDependencies": {
     "@types/inquirer": "7.3.1",
     "@types/jsdom": "16.2.5",

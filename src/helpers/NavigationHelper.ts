@@ -143,14 +143,14 @@ export class NavigationHelper {
     const args = [`spo`, `navigation`, `node`, `list`, `--webUrl`, `'${webUrl}'`, `--location`, type, `-o`, `json`, `|`, `jq`];
     if (type === "QuickLaunch") {
       if (!this.qlElms) {
-        this.qlElms = await execScript<NavigationItem[]>('m365', [...args]);
+        this.qlElms = await execScript<NavigationItem[]>('localm365', [...args]);
       }
       return typeof this.qlElms === "string" ? JSON.parse(this.qlElms) : this.qlElms;
     }
     
     if (type === "TopNavigationBar") {
       if (!this.tnElms) {
-        this.tnElms = await execScript<NavigationItem[]>('m365', [...args]);
+        this.tnElms = await execScript<NavigationItem[]>('localm365', [...args]);
       }
       return typeof this.tnElms === "string" ? JSON.parse(this.tnElms) : this.tnElms;
     }
@@ -166,7 +166,7 @@ export class NavigationHelper {
    */
   private static async removeNavigationElm(webUrl: string, type: LocationType, id: number) {
     if (id) {
-      await execScript('m365', [`spo`, `navigation`, `node`, `remove`, `--webUrl`, `'${webUrl}'`, `--location`, type, `--id`, `${id}`, '--confirm']);
+      await execScript('localm365', [`spo`, `navigation`, `node`, `remove`, `--webUrl`, `'${webUrl}'`, `--location`, type, `--id`, `${id}`, '--confirm']);
     }
   }
 
@@ -180,7 +180,7 @@ export class NavigationHelper {
   private static async createNavigationElm(webUrl: string, type: LocationType, name: string, url: string, id: number = null): Promise<NavigationItem | null> {
     const rootElm = id ? [`--parentNodeId`, `${id}`] : [];
     if (name) {
-      const item = await execScript('m365', [`spo`, `navigation`, `node`, `add`, `--webUrl`, `'${webUrl}'`, `--location`, type, `--title`, `'${name}'`, `--url`, `'${url}'`, ...rootElm, `-o`, `json`, `|`, `jq`]);
+      const item = await execScript('localm365', [`spo`, `navigation`, `node`, `add`, `--webUrl`, `'${webUrl}'`, `--location`, type, `--title`, `'${name}'`, `--url`, `'${url}'`, ...rootElm, `-o`, `json`, `|`, `jq`]);
 
       return typeof item === "string" ? JSON.parse(item) : item;
     }
