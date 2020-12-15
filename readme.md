@@ -126,6 +126,14 @@ Write here the Doctor page content.
 
 ## Commands
 
+### Version
+
+This command returns the installed version number of the tool.
+
+```sh
+doctor version
+```
+
 ### Init
 
 This command creates the initial folder structure for your documentation project (Check [#Options](#Options) to see which arguments you can pass to the command).
