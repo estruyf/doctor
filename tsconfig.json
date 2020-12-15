@@ -11,7 +11,7 @@
     "outDir": "dist",
     "inlineSources": false,
     "strictNullChecks": false,
-    "noUnusedLocals": false,
+    "noUnusedLocals": true,
     "lib": [
       "DOM",
       "ES2015"

@@ -2,7 +2,7 @@
   "name": "@valo/doctor",
   "version": "1.0.0",
   "description": "The static site generator for SharePoint",
-  "main": "index.js",
+  "main": "dist/main.js",
   "bin": {
     "doctor": "bin/doctor",
     "localm365": "bin/localm365"

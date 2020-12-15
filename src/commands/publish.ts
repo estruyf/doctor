@@ -7,7 +7,7 @@ import showdown = require('showdown');
 import kleur = require('kleur');
 import { JSDOM } from 'jsdom';
 import { FileHelpers } from '../helpers/FileHelpers';
-import { execScript, getM365Command } from '../helpers/execScript';
+import { execScript } from '../helpers/execScript';
 import { Observable } from 'rxjs';
 import { FolderHelpers } from '../helpers/FolderHelpers';
 import { NavigationHelper } from '../helpers/NavigationHelper';

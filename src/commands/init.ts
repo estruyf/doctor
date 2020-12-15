@@ -37,6 +37,7 @@ export class Init {
 
     if (!fs.existsSync(configFile)) {
       const jsonContents = JSON.stringify({
+        "$schema": "https://raw.githubusercontent.com/ValoIntranet/doctor/dev/schema/1.0.0.json",
         auth: options.auth,
         username: options.username,
         password: options.password,

@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as kleur from 'kleur';
 import * as inquirer from 'inquirer';
 import { CommandArguments } from "../models/CommandArguments";
+import { Command } from '../commands/Command';
 
 export class OptionsHelper {
 
@@ -74,7 +75,7 @@ export class OptionsHelper {
         type: 'list',
         name: 'task',
         message: 'Which command do you want to execute?',
-        choices: ['init', 'publish']
+        choices: [...Object.keys(Command)]
       });
     }
     
