@@ -39,6 +39,7 @@ export class OptionsHelper {
         '--wpInternalTitle': String,
         '--overwriteImages': Boolean,
         '--skipPrecheck': Boolean,
+        '--debug': Boolean,
         '-a': '--auth',
         '-f': '--folder',
         '-u': '--url'
@@ -60,6 +61,7 @@ export class OptionsHelper {
       webPartTitle: args["--wpInternalTitle"] || options["wpInternalTitle"] || 'doctor-placeholder',
       skipPrecheck: args["--skipPrecheck"] as any || options["skipPrecheck"] || false,
       menu: options["menu"] || null,
+      debug: args["--debug"] || false
     };
   }
 

@@ -9,6 +9,7 @@ export interface CommandArguments {
   webUrl: string;
   overwriteImages: boolean;
   skipPrecheck: boolean;
+  debug: boolean;
 
   menu?: Menu;
 

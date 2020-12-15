@@ -10,6 +10,8 @@ As we understand that it is not the best experience for developers to write docu
 
 Under the hood, it makes use of the [CLI for Microsoft 365](https://pnp.github.io/cli-microsoft365/).
 
+> **Important**: Currently only tested on macOS and Linux.
+
 ## Installation
 
 Thank you for your interest in the `doctor`. The following information will help you install `doctor`.
@@ -53,12 +55,15 @@ Optional Front Matter properties are:
 The menu property allows you to create a navigation structure for you static content. The `Menu` object has the following properties:
 
 - menu
-  - "QuickLaunch" OR "TopNavigationBar" - Default is `QuickLaunch`
+  - `QuickLaunch` OR `TopNavigationBar` - Default is `QuickLaunch`
     - **id**: `string` (required) - Navigation id. This can be used to create a hierarchy in your navigation.
+    - **name**: `string` (optional) - When this property is defined, it will be used for the navigation item title, otherwise the page title will be used.
     - **weight**: `number` (optional) - The weight of the navigation item. If you want to have it first or last.
     - **parent**: `string` (optional) - Defines the hierarchy of you page in the menu. If not provided, the items will be added to the root of the navigation. When defined, it should contain the `id` value of the parent page. You can also add multi-level navigation like: `<parent-id>/<sub-parent-id>`.
 
-> **Important**: During the publishing process, the navigation will be re-created each time.
+> **Important 1**: During the publishing process, the navigation will be re-created each time.
+
+> **Important 2**: When using `QuickLaunch` you can only have three levels of navigation: `Root/sub/sub-sub`.
 
 #### Example 1
 
@@ -190,13 +195,15 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 
 > **Important**: if you would change this value, be sure to keep this in the `doctor.json` file. 
 
-
 `--overwriteImages`
 : Specifies if you allow `doctor` to overwrite the images in the SharePoint library that are referenced in the markdown files.
 
 
 `--skipPrecheck`
 : Skips the pre-checks when running the commands. This validates if you have the right dependencies installed in your environment.
+
+`--debug`
+: Provides more information of what is happening during command execution.
 
 ### `doctor.json`
 
@@ -232,10 +239,11 @@ The menu property can contain a `QuickLaunch` and/or `TopNavigationBar` elment w
 
 ## Todo
 
-- []: Easier command usage
+- []: Update links to the actual pages in SharePoint
 - []: Support for metadata in Front Matter
 - []: Create static build output of the updated markdown files
 - []: Cross-platform support
+- []: Specify which parts of the publish process needs to run (`skipAuth`, `skipPages`, `skipNavigation`)
 
 ## Found an issue?
 

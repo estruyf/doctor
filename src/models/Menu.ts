@@ -20,4 +20,9 @@ export interface MenuItem {
   parent?: string;
 
   items?: MenuItem[];
+
+  /**
+   * Property which is only used during the update of the navigation
+   */
+  updated?: boolean;
 }

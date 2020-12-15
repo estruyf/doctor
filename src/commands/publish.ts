@@ -14,6 +14,7 @@ import { NavigationHelper } from '../helpers/NavigationHelper';
 import { CommandArguments } from '../models/CommandArguments';
 import { Authenticate } from './authenticate';
 import { PublishOutput } from '../models/PublishOutput';
+import { Logger } from '../helpers/logger';
 
 export class Publish {
 
@@ -22,6 +23,8 @@ export class Publish {
    * @param options 
    */
   public static async start(options: CommandArguments) {
+    Logger.debug(`Running with the following options: ${JSON.stringify(options)}`);
+
     if (!fs.existsSync(options.startFolder)) {
       return Promise.reject(new Error(`The provided folder location doesn't exist.`));
     }
@@ -118,7 +121,7 @@ export class Publish {
                 let { title, slug, draft } = markup.data;
 
                 if (!slug) {
-                  slug = `${title}.aspx`
+                  slug = `${title.replace(/ /g, '-')}.aspx`
                 } else if (!(slug as string).endsWith('.aspx')) {
                   slug = `${slug}.aspx`
                 }
@@ -158,6 +161,8 @@ export class Publish {
 
                 // Check if the file contains a menu element to add too
                 if (output.navigation && markup && markup.data && markup.data.menu) {
+                  Logger.debug(`Adding item to the navigation: ${slug} - ${title} - ${JSON.stringify(markup.data.menu)} `);
+
                   output.navigation = NavigationHelper.hierarchy(webUrl, output.navigation, markup.data.menu, slug, title);
                 }
               }

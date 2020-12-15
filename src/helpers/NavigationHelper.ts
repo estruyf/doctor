@@ -1,5 +1,6 @@
 import { Menu, MenuItem, MenuType } from "../models/Menu";
 import { execScript } from "./execScript";
+import { Logger } from "./logger";
 
 type LocationType = "QuickLaunch" | "TopNavigationBar";
 
@@ -17,6 +18,8 @@ export class NavigationHelper {
       return;
     }
 
+    Logger.debug(`Start update with the following navigation:`);
+    Logger.debug(JSON.stringify(navigation, null, 2));
     for (const location in navigation) {
       if (location as LocationType === "QuickLaunch" || location as LocationType === "TopNavigationBar") {
         const menu: MenuType = navigation[location];
@@ -102,12 +105,20 @@ export class NavigationHelper {
     }
 
     // Check if item exists, and need to be updated
-    let navItem = (crntItem ? crntItem.items : items).find(i => i.id === item.id);
-    if (navItem) {
-      navItem = {
-        ...crntItem,
-        ...item
+    const navItems = (crntItem ? crntItem.items : items);
+    let navItemIdx = navItems.findIndex(i => i.id === item.id);
+    if (navItemIdx !== -1 && navItems[navItemIdx] && !navItems[navItemIdx].updated) {
+      Logger.debug(`Navigation Item BEFORE update: ${JSON.stringify(navItems[navItemIdx])}`);
+
+      navItems[navItemIdx] = {
+        ...navItems[navItemIdx],
+        name: item.name || title,
+        url: slug ? `${webUrl}${webUrl.endsWith('/') ? '' : '/'}sitepages/${slug}` : '',
+        weight: item.weight || 99999,
+        updated: true
       };
+      
+      Logger.debug(`Navigation Item AFTER update: ${JSON.stringify(navItems[navItemIdx])}`);
     } else {
       // Add the new item to the menu
       (crntItem ? crntItem.items : items).push({
@@ -118,6 +129,7 @@ export class NavigationHelper {
         items: []
       });
     }
+    Logger.debug(`Updated navigation structure: ${JSON.stringify(items)}`);
 
     return items;
   }
