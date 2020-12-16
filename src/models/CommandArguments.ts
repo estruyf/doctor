@@ -4,6 +4,7 @@ export interface CommandArguments {
   task: string;
   auth: "deviceCode" | "password";
   startFolder: string;
+  startFolderRel: string;
   assetLibrary: string;
   webPartTitle: string;
   webUrl: string;
@@ -15,4 +16,5 @@ export interface CommandArguments {
 
   username?: string;
   password?: string;
+  outputFolder?: string;
 }

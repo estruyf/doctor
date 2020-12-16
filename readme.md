@@ -1,4 +1,18 @@
-# Doctor (The static site generator for SharePoint)
+<h1 align="center">Doctor</h1>
+
+<h2 align="center">The static site generator for SharePoint</h2>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@valo/doctor">
+    <img src="https://img.shields.io/npm/v/@valo/doctor/latest?style=flat-square"
+      alt="npm @valo/doctor@latest" />
+  </a>
+  
+  <a href="https://www.npmjs.com/package/@valointranet/doctor">
+    <img src="https://img.shields.io/npm/v/@valo/doctor/next?style=flat-square"
+      alt="npm @valo/doctor@next" />
+  </a>
+</p>
 
 `Doctor` is a tool created and provided by Valo. Initially, we started `doctor` as an internal tool to dogfood our products and keep documentation in one place. For our team, this is SharePoint.
 
@@ -40,15 +54,19 @@ title: <title>
 Your article content starts here.
 ```
 
-- **Title**: `string` - The title of the page.
+- **title**: `string` - The title of the page.
 
 > **Info**: Front Matter is the page its metadata.
 
 Optional Front Matter properties are:
 
-- **Slug**: `string` - If a slug is not defined, the title will be used. You can add the slug with our without `.aspx` file extension. The tool will automatically add it.
-- **Draft**: `boolean` - defines if you want to publish the article during the publishing phase.
-- **Menu**: `Menu`- defines where the page gets added to the navigation structure. Check: [menu section](#Menu).
+- **slug**: `string` - If a slug is not defined, the title will be used. You can add the slug with our without `.aspx` file extension. The tool will automatically add it.
+- **draft**: `boolean` - defines if you want to publish the article during the publishing phase.
+- **menu**: `Menu`- defines where the page gets added to the navigation structure. Check: [menu section](#Menu).
+
+When you want to create page to page links, you can provide the relative path from the current markdown file to the other markdown file (with or without the `.md` extension).
+
+> **Info**: To quickly get started, we provided a sample repository which allows you to test out all the functionalities of `Doctor`.
 
 ### Menu
 
@@ -213,6 +231,9 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 `--debug`
 : Provides more information of what is happening during command execution.
 
+`--outputFolder`
+: When providing this option, the processed markdown files will be generated in this folder.
+
 ### `doctor.json`
 
 You can provide the same flags and values like in the parameters. Parameters can override what is defined in the `doctor.json`. Be sure to use the whole argument names, and not the shortcodes.
@@ -247,7 +268,7 @@ The menu property can contain a `QuickLaunch` and/or `TopNavigationBar` elment w
 
 ## Todo
 
-- []: Update links to the actual pages in SharePoint
+- [x]: Update links to the actual pages in SharePoint
 - []: Support for metadata in Front Matter
 - []: Create static build output of the updated markdown files
 - []: Cross-platform support
@@ -261,4 +282,14 @@ Please add all your issues to the project [issue list](https://github.com/ValoIn
 
 If you want to contribute to the project, feel free to do so. Best is to start a discussion in the [discussion list](https://github.com/ValoIntranet/doctor/discussions) and let us know what you want to implement.
 
-Feedback can also be provided to the [discussion list](https://github.com/ValoIntranet/doctor/discussions). 
+Feedback can also be provided to the [discussion list](https://github.com/ValoIntranet/doctor/discussions).
+
+## Disclaimer
+
+**THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.**
+
+<p align="center">
+  <a href="#">
+      <img src="http://estruyf-github.azurewebsites.net/api/VisitorHit?user=valointranet&repo=doctor&countColor=%23ffc100" />
+   </a>
+</p>

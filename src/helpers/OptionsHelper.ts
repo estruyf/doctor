@@ -37,6 +37,7 @@ export class OptionsHelper {
         '--url': String,
         '--library': String,
         '--wpInternalTitle': String,
+        '--outputFolder': String,
         '--overwriteImages': Boolean,
         '--skipPrecheck': Boolean,
         '--debug': Boolean,
@@ -57,11 +58,13 @@ export class OptionsHelper {
       password: args["--password"] || options["password"] || null,
       webUrl: args["--url"] || options["url"] || null,
       startFolder: args["--folder"] || options["folder"] || './src',
+      startFolderRel: args["--folder"] || options["folder"] || './src',
       assetLibrary: args["--library"] || options["library"] || 'Shared Documents',
       webPartTitle: args["--wpInternalTitle"] || options["wpInternalTitle"] || 'doctor-placeholder',
       skipPrecheck: args["--skipPrecheck"] as any || options["skipPrecheck"] || false,
       menu: options["menu"] || null,
-      debug: args["--debug"] || false
+      debug: args["--debug"] || false,
+      outputFolder: args["--outputFolder"] || ""
     };
   }
 
