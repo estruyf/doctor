@@ -24,7 +24,7 @@ export class Commands {
       console.log(kleur.bold().bgMagenta().white(` START: `), `${options.task} job`);
       console.log('');
 
-      if (!options.skipPrecheck) {
+      if (!options.skipPrecheck && options.task !== Command.version) {
         try {
           await execScript("localm365");
         } catch (e) {
@@ -33,9 +33,7 @@ export class Commands {
         }
       }
 
-      if (options.task === "build") {
-        console.log(kleur.green('Starting build'));
-      } else if (options.task === Command.publish) {
+      if (options.task === Command.publish) {
         await Publish.start(options);
       } else if (options.task === Command.init) {
         await Init.start(options);

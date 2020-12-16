@@ -15,6 +15,7 @@ import { CommandArguments } from '../models/CommandArguments';
 import { Authenticate } from './authenticate';
 import { PublishOutput } from '../models/PublishOutput';
 import { Logger } from '../helpers/logger';
+import { FrontMatterHelper } from '../helpers/FrontMatterHelper';
 
 export class Publish {
 
@@ -107,29 +108,45 @@ export class Publish {
                 const htmlMarkup = converter.makeHtml(contents);
                 const htmlElm = new JSDOM(htmlMarkup);
                 const imgElms = [...htmlElm.window.document.querySelectorAll('img') as any] as HTMLImageElement[];
+                const anchorElms = [...htmlElm.window.document.querySelectorAll('a') as any] as HTMLAnchorElement[];
 
                 // Check if the required data for the article is present
                 if (markup && markup.data) {
                   if (!markup.data.title) {
                     return Promise.reject(new Error(`The ${filename} has no 'title' defined`));
                   }
-                  if (!markup.data.slug) {
-                    return Promise.reject(new Error(`The ${filename} has no 'slug' defined`));
-                  }
                 }
 
-                let { title, slug, draft } = markup.data;
+                let { title, draft } = markup.data;
+                let slug = FrontMatterHelper.getSlug(markup.data)
 
-                if (!slug) {
-                  slug = `${title.replace(/ /g, '-')}.aspx`
-                } else if (!(slug as string).endsWith('.aspx')) {
-                  slug = `${slug}.aspx`
-                }
-
+                // Image processing
                 if (imgElms && imgElms.length > 0) {
                   observer.next(`Uploading images referenced in ${filename}`);
 
-                  markup = await this.processImages(imgElms, filename, contents, options, output);
+                  markup = await this.processImages(imgElms, file, contents, options, output);
+                }
+
+                // Anchor processing
+                if (anchorElms && anchorElms.length > 0) {
+                  observer.next(`Processing links in ${filename}`);
+
+                  Logger.debug(`Number of links in ${filename}: ${anchorElms.length}`)
+
+                  try {
+                    markup.content = this.processLinks(anchorElms, file, markup.content, options);
+                  } catch (e) {
+                    console.error(`ERROR: ${e.message}`);
+                  }
+                }
+
+                // Checks if output needs to be generated
+                if (options.outputFolder) {
+                  const { outputFolder, startFolder } = options;
+                  const processedFilePath = file.replace(startFolder, path.join(process.cwd(), outputFolder));
+                  const dirPath = path.dirname(processedFilePath);
+                  fs.mkdirSync(dirPath, { recursive: true });
+                  fs.writeFileSync(processedFilePath, markup.content, { encoding: "utf-8" });
                 }
 
                 if (markup && markup.content) {
@@ -181,17 +198,17 @@ export class Publish {
   /**
    * Process images referenced in the file
    * @param imgElms 
-   * @param filename 
+   * @param filePath 
    * @param contents 
    * @param options 
    * @param output 
    */
-  private static async processImages(imgElms: HTMLImageElement[], filename: string, contents: string, options: CommandArguments, output: PublishOutput) {
+  private static async processImages(imgElms: HTMLImageElement[], filePath: string, contents: string, options: CommandArguments, output: PublishOutput) {
     const { startFolder, assetLibrary, webUrl, overwriteImages } = options;
 
     for (const img of imgElms.filter(i => !i.src.startsWith(`http`))) {
-      const imgDirectory = path.join(startFolder, path.dirname(filename), path.dirname(img.src));
-      const imgPath = path.join(startFolder, path.dirname(filename), img.src);
+      const imgDirectory = path.join(path.dirname(filePath), path.dirname(img.src));
+      const imgPath = path.join(path.dirname(filePath), img.src);
 
       const folders = imgDirectory.replace(startFolder, '').split('/');
       let crntFolder = assetLibrary;
@@ -211,6 +228,63 @@ export class Publish {
         return Promise.reject(new Error(`Something failed while uploading the image asset. ${e.message}`));
       }
     }
+  }
+
+  /**
+   * Process the links referenced in the markdown files
+   * @param linkElms 
+   * @param filePath 
+   * @param content 
+   * @param options 
+   */
+  private static processLinks(linkElms: HTMLAnchorElement[], filePath: string, content: string, options: CommandArguments) {
+    const { webUrl } = options;
+
+    for (const link of linkElms.filter(i => !i.href.startsWith(`http`))) {
+
+      const fileLink = link.href;
+      let mdFile = "";
+
+      Logger.debug(`Processing link: ${fileLink} for ${filePath}`);
+
+      if (fileLink.endsWith(`.md`)) {
+        mdFile = link.href;
+      } else if (fileLink === ".") {
+        mdFile = path.basename(filePath);
+      } else {
+        mdFile = `${link.href}.md`;
+      }
+
+      const mdFilePath = path.join(path.dirname(filePath), mdFile);
+
+      Logger.debug(`File path for link: ${mdFilePath}`);
+
+      if (fs.existsSync(mdFilePath)) {
+        // Get the contents of the file
+        const mdContents = fs.readFileSync(mdFilePath, { encoding: 'utf-8' });
+        if (!mdContents) {
+          return;
+        } 
+
+        // Get the slug
+        const mdData = parseMarkdown(mdContents);
+        if (!mdData || !mdData.data) {
+          return;
+        }
+
+        const slug = FrontMatterHelper.getSlug(mdData.data);
+        const spUrl = `${webUrl}${webUrl.endsWith('/') ? '' : '/'}sitepages/${slug}`;
+        Logger.debug(`Referenced file slug: ${spUrl}`);
+
+        // Update the link in the markdown
+        debugger
+        content = content.replace(`(${fileLink})`, `(${spUrl})`);
+      } else {
+        Logger.debug(`Referenced file not found`);
+      }
+    }
+
+    return content;
   }
 
   /**

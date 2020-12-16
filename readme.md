@@ -40,15 +40,19 @@ title: <title>
 Your article content starts here.
 ```
 
-- **Title**: `string` - The title of the page.
+- **title**: `string` - The title of the page.
 
 > **Info**: Front Matter is the page its metadata.
 
 Optional Front Matter properties are:
 
-- **Slug**: `string` - If a slug is not defined, the title will be used. You can add the slug with our without `.aspx` file extension. The tool will automatically add it.
-- **Draft**: `boolean` - defines if you want to publish the article during the publishing phase.
-- **Menu**: `Menu`- defines where the page gets added to the navigation structure. Check: [menu section](#Menu).
+- **slug**: `string` - If a slug is not defined, the title will be used. You can add the slug with our without `.aspx` file extension. The tool will automatically add it.
+- **draft**: `boolean` - defines if you want to publish the article during the publishing phase.
+- **menu**: `Menu`- defines where the page gets added to the navigation structure. Check: [menu section](#Menu).
+
+When you want to create page to page links, you can provide the relative path from the current markdown file to the other markdown file (with or without the `.md` extension).
+
+> **Info**: To quickly get started, we provided a sample repository which allows you to test out all the functionalities of `Doctor`.
 
 ### Menu
 
@@ -213,6 +217,9 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 `--debug`
 : Provides more information of what is happening during command execution.
 
+`--outputFolder`
+: When providing this option, the processed markdown files will be generated in this folder.
+
 ### `doctor.json`
 
 You can provide the same flags and values like in the parameters. Parameters can override what is defined in the `doctor.json`. Be sure to use the whole argument names, and not the shortcodes.
@@ -247,7 +254,7 @@ The menu property can contain a `QuickLaunch` and/or `TopNavigationBar` elment w
 
 ## Todo
 
-- []: Update links to the actual pages in SharePoint
+- [x]: Update links to the actual pages in SharePoint
 - []: Support for metadata in Front Matter
 - []: Create static build output of the updated markdown files
 - []: Cross-platform support
