@@ -1,4 +1,18 @@
-# Doctor (The static site generator for SharePoint)
+<h1 align="center">Doctor</h1>
+
+<h2 align="center">The static site generator for SharePoint</h2>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@valo/doctor">
+    <img src="https://img.shields.io/npm/v/@valo/doctor/latest?style=flat-square"
+      alt="npm @valo/doctor@latest" />
+  </a>
+  
+  <a href="https://www.npmjs.com/package/@valointranet/doctor">
+    <img src="https://img.shields.io/npm/v/@valo/doctor/next?style=flat-square"
+      alt="npm @valo/doctor@next" />
+  </a>
+</p>
 
 `Doctor` is a tool created and provided by Valo. Initially, we started `doctor` as an internal tool to dogfood our products and keep documentation in one place. For our team, this is SharePoint.
 
@@ -268,4 +282,16 @@ Please add all your issues to the project [issue list](https://github.com/ValoIn
 
 If you want to contribute to the project, feel free to do so. Best is to start a discussion in the [discussion list](https://github.com/ValoIntranet/doctor/discussions) and let us know what you want to implement.
 
-Feedback can also be provided to the [discussion list](https://github.com/ValoIntranet/doctor/discussions). 
+Feedback can also be provided to the [discussion list](https://github.com/ValoIntranet/doctor/discussions).
+
+![](http://estruyf-github.azurewebsites.net/api/VisitorHit?user=estruyf&repo=github-visitors-badge&countColorcountColor&countColor=%237B1E7A)
+
+## Disclaimer
+
+**THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.**
+
+<p align="center">
+  <a href="#">
+      <img src="http://estruyf-github.azurewebsites.net/api/VisitorHit?user=valointranet&repo=doctor&countColor=%23ffc100" />
+   </a>
+</p>
