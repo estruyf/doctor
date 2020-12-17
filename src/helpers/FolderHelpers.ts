@@ -11,7 +11,11 @@ export class FolderHelpers {
       if (folder) {
         if (this.checkedFolders.indexOf(folderToProcess) === -1) {
           try {
-            const scriptData: any = await execScript(`localm365`, [`spo`, `folder`, `get`, `--webUrl`, `'${webUrl}'`, `--folderUrl`, `'${folderToProcess}'`, `-o`, `json`, `|`, `jq`]);
+            let scriptData: any = await execScript(`localm365`, [`spo`, `folder`, `get`, `--webUrl`, `'${webUrl}'`, `--folderUrl`, `'${folderToProcess}'`, `-o`, `json`]);
+
+            if (scriptData && typeof scriptData === "string") {
+              scriptData = JSON.parse(scriptData);
+            }
 
             if (!scriptData && !scriptData.Exists) {
               throw "Folder doesn't seem to exist yet";

@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.2.0] 2020-12-16
+
+- [#9](https://github.com/ValoIntranet/doctor/issues/9): Removed the `jq` dependency with a fallback to JSON parsing in the tool itself.
+- [#11](https://github.com/ValoIntranet/doctor/issues/11): Unknown arguments do not blow up the command execution + `--help` added to the main command.
+
 ## [1.1.0] 2020-12-16
 
 - [#2](https://github.com/ValoIntranet/doctor/issues/2): Added support for linking pages in Markdown.

@@ -9,7 +9,7 @@ export const execScript = async <T>(command: string, args: string[] = [], should
         console.log(`${data}`);
       });
 
-      execution.stdout.on('close', (data) => {
+      execution.stdout.on('close', (data: any) => {
         resolve(data);
       });
 
