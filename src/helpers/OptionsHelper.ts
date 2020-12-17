@@ -47,11 +47,12 @@ export class OptionsHelper {
       },
       {
         argv: rawArgs.slice(2),
+        permissive: true
       }
     );
     
     return {
-      task: args._[0],
+      task: args._[0].startsWith('--help') ? 'help' : args._[0],
       auth: args["--auth"] as any || options["auth"] || "deviceCode",
       overwriteImages: args["--overwriteImages"] as any || options["overwriteImages"] || false,
       username: args["--username"] || options["username"] || null,
@@ -116,14 +117,20 @@ export class OptionsHelper {
         message: 'What is the password?'
       });
     }
-   
-    const answers = await inquirer.prompt(questions);
-    return {
-      ...options,
-      task: options.task || answers.task,
-      username: options.username || answers.username,
-      password: options.password || answers.password,
-      startFolder: path.join(process.cwd(), options.startFolder || answers.startFolder)
-    };
+    
+    try {
+      const answers = await inquirer.prompt(questions);
+
+      return {
+        ...options,
+        task: options.task || answers.task,
+        username: options.username || answers.username,
+        password: options.password || answers.password,
+        startFolder: path.join(process.cwd(), options.startFolder || answers.startFolder)
+      };
+    } catch (e) {
+      console.log(kleur.bgRed().white("ERROR:"), e.message);
+      return null;
+    }
   }
 }
