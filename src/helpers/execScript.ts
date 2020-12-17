@@ -4,7 +4,7 @@ import { spawn } from 'cross-spawn';
 export const execScript = async <T>(command: string, args: string[] = [], shouldSpawn: boolean = false): Promise<T> => {
   return new Promise<T>((resolve, reject) => {
     if (shouldSpawn) {
-      const execution = spawn(command, [...args], { stdio: 'inherit' });
+      const execution = spawn(command, [...args]);
 
       execution.stdout.on('data', (data) => {
         console.log(`${data}`);
