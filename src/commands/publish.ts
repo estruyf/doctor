@@ -327,7 +327,7 @@ export class Publish {
     
     if (wpId) {
       // Web part needs to be updated
-      await execScript(`localm365`, [`spo`, `page`, `control`, `set`, `--webUrl`, `"${webUrl}"`, `--name`, `"${slug}"`, `--id`, `${wpId}`, `--webPartData`, wpData]);
+      await execScript(`localm365`, [`spo`, `page`, `control`, `set`, `--webUrl`, `"${webUrl}"`, `--name`, `"${slug}"`, `--id`, `"${wpId}"`, `--webPartData`, wpData]);
     } else {
       // Add new markdown web part
       await execScript(`localm365`, [`spo`, `page`, `clientsidewebpart`, `add`, `--webUrl`, `"${webUrl}"`, `--pageName`, `"${slug}"`, `--webPartId`, `1ef5ed11-ce7b-44be-bc5e-4abd55101d16`, `--webPartData`, wpData]);
@@ -341,7 +341,7 @@ export class Publish {
    */
   private static async publishPageIfNeeded(webUrl: string, slug: string) {
     const relativeUrl = FileHelpers.getRelUrl(webUrl, `sitepages/${slug}`);
-    await execScript(`localm365`, [`spo`, `file`, `checkin`, `--webUrl`, `"${webUrl}"`, `--fileUrl`, relativeUrl]);
+    await execScript(`localm365`, [`spo`, `file`, `checkin`, `--webUrl`, `"${webUrl}"`, `--fileUrl`, `"${relativeUrl}"`]);
     await execScript(`localm365`, [`spo`, `page`, `set`, `--name`, `"${slug}"`, `--webUrl`, `"${webUrl}"`, `--publish`]);
   }
 }
