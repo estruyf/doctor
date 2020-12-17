@@ -3,7 +3,7 @@ import { exec, spawn } from 'child_process';
 export const execScript = async <T>(command: string, args: string[] = [], shouldSpawn: boolean = false): Promise<T> => {
   return new Promise<T>((resolve, reject) => {
     if (shouldSpawn) {
-      const execution = spawn(command, [...args]);
+      const execution = spawn(command, [...args], { shell: process.platform === "win32" });
 
       execution.stdout.on('data', (data) => {
         console.log(`${data}`);
