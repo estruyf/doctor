@@ -74,7 +74,7 @@ export class Publish {
    * @param startFolder 
    */
   private static async fetchMDFiles(ctx: any, startFolder: string) {
-    const files = await fg(`${startFolder}/**/*.md`);
+    const files = await fg((`${startFolder}/**/*.md`).replace(/\\/g, '/'));
 
     if (files && files.length > 0) {
       ctx.files = files;
@@ -210,7 +210,7 @@ export class Publish {
       const imgDirectory = path.join(path.dirname(filePath), path.dirname(img.src));
       const imgPath = path.join(path.dirname(filePath), img.src);
 
-      const folders = imgDirectory.replace(startFolder, '').split('/');
+      const folders = imgDirectory.replace(startFolder, '').replace(/\\/g, '/').split('/');
       let crntFolder = assetLibrary;
 
       // Start folder creation process
