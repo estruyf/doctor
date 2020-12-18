@@ -19,7 +19,7 @@ export class Authenticate {
           if (auth === "deviceCode") {
             await execScript(`localm365`, [`login`], true);
           } else {
-            await execScript(`localm365`, [`login`, `--authType password`, `--userName '${username}'`, `--password '${password}'`]);
+            await execScript(`localm365`, [`login`, `--authType password`, `--userName "${username}"`, `--password "${password}"`]);
           }
         }
       }
