@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.2.0] 2020-12-16
+## [1.2.0] 2020-12-18
 
 - [#9](https://github.com/ValoIntranet/doctor/issues/9): Removed the `jq` dependency with a fallback to JSON parsing in the tool itself.
 - [#11](https://github.com/ValoIntranet/doctor/issues/11): Unknown arguments do not blow up the command execution + `--help` added to the main command.
