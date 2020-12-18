@@ -29,9 +29,10 @@ export class MarkdownHelper {
    * @param isWin 
    */
   private static parseMarkdown(markdown: string, isWin: boolean = false) {
+    markdown = markdown.replace(/\r/g, '\\r').replace(/\n/g, '\\n')
     if (isWin) {
-      return markdown.replace(/\r\n/g, '\\n').replace(/\"/g, `\\\\""`);
+      return markdown.replace(/\"/g, `\\\\""`);
     }
-    return markdown.replace(/\n/g, '\\n').replace(/"/g, `\\"`);
+    return markdown.replace(/"/g, `\\"`);
   }
 }
