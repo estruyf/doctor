@@ -20,13 +20,13 @@ jobs:
         include:
           - node: 12
             os: macos-latest
-            siteUrl: ${{ secrets.SITEURL_MACOS }}
+            siteUrl: SITEURL_MACOS
           - node: 12
             os: windows-latest
-            siteUrl: ${{ secrets.SITEURL_WINDOWS }}
+            siteUrl: SITEURL_WINDOWS
           - node: 12
             os: ubuntu-latest
-            siteUrl: ${{ secrets.SITEURL_LINUX }}
+            siteUrl: SITEURL_LINUX
 
     steps:
     - uses: actions/checkout@v2
@@ -44,4 +44,4 @@ jobs:
     - run: | 
         git clone https://github.com/ValoIntranet/doctor-sample
         cd doctor-sample
-        doctor publish -a password --username ${{ secrets.USERNAME }} --password ${{ secrets.PASSWORD }} -f ./src -u ${{ matrix.siteUrl }}
+        doctor publish -a password --username ${{ secrets.USERNAME }} --password ${{ secrets.PASSWORD }} -f ./src -u ${{ secrets[matrix.siteUrl] }}
