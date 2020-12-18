@@ -14,7 +14,7 @@ on:
 
 jobs:
   build:
-    name: Build ${{ matrix.os }}
+    name: Build ${{ matrix.os }} - Bash
     runs-on: ${{ matrix.os }}
     continue-on-error: true
 
@@ -24,9 +24,6 @@ jobs:
           - node: 12
             os: macos-latest
             siteUrl: SITEURL_MACOS
-          - node: 12
-            os: windows-latest
-            siteUrl: SITEURL_WINDOWS
           - node: 12
             os: ubuntu-latest
             siteUrl: SITEURL_LINUX
