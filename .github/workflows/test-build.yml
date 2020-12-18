@@ -15,6 +15,8 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    continue-on-error: true
+
     strategy:
       matrix:
         include:
@@ -44,4 +46,4 @@ jobs:
     - run: | 
         git clone https://github.com/ValoIntranet/doctor-sample
         cd doctor-sample
-        doctor publish -a password --username ${{ secrets.USERNAME }} --password ${{ secrets.PASSWORD }} -f ./src -u ${{ secrets[matrix.siteUrl] }}
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}"
