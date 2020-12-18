@@ -1,4 +1,8 @@
-<h1 align="center">Doctor</h1>
+<h1 align="center">
+  <a href="hhttps://github.com/ValoIntranet/doctor">
+    <img alt="Doctor" src="./assets/valo-doctor.svg" height="200">
+  </a>
+</h1>
 
 <h2 align="center">The static site generator for SharePoint</h2>
 
