@@ -46,16 +46,16 @@ jobs:
         registry-url: https://registry.npmjs.org/
   
     - run: npm i
-      shell: ${{ matrix.useShell }}
+      shell: matrix.useShell
       
     - run: npm start
-      shell: ${{ matrix.useShell }}
+      shell: matrix.useShell
 
     - run: npm link
-      shell: ${{ matrix.useShell }}
+      shell: matrix.useShell
 
     - run: | 
         git clone https://github.com/ValoIntranet/doctor-sample
         cd doctor-sample
         doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}"
-      shell: ${{ matrix.useShell }}
+      shell: matrix.useShell
