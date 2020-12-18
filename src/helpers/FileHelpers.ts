@@ -49,6 +49,6 @@ export class FileHelpers {
    * @param imgPath 
    */
   private static async upload(webUrl: string, crntFolder: string, imgPath: string) {
-    await execScript(`localm365`, [`spo`, `file`, `add`, `--webUrl`, `"${webUrl}"`, `--folder`, `'${crntFolder}'`, `--path`, `'${imgPath}'`]);
+    await execScript(`localm365`, [`spo`, `file`, `add`, `--webUrl`, `"${webUrl}"`, `--folder`, `"${crntFolder}"`, `--path`, `"${imgPath}"`]);
   }
 }

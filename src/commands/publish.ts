@@ -16,6 +16,7 @@ import { Authenticate } from './authenticate';
 import { PublishOutput } from '../models/PublishOutput';
 import { Logger } from '../helpers/logger';
 import { FrontMatterHelper } from '../helpers/FrontMatterHelper';
+import { MarkdownHelper } from '../helpers/MarkdownHelper';
 
 export class Publish {
 
@@ -160,9 +161,8 @@ export class Publish {
                   
                   if (controlData) {
                     const webparts = JSON.parse(controlData);
-                    const markdownWp = webparts.find((c: any) => c.title === webPartTitle);
-                    const updatedMarkdown = markup.content.replace(/\n/g, '\\n').replace(/"/g, `\\"`);                    
-                    await this.insertOrCreateControl(webPartTitle, updatedMarkdown, slug, webUrl, markdownWp ? markdownWp.id : null);
+                    const markdownWp = webparts.find((c: any) => c.title === webPartTitle);   
+                    await this.insertOrCreateControl(webPartTitle, markup.content, slug, webUrl, markdownWp ? markdownWp.id : null);
                   }
 
                   // Check if page needs to be published
@@ -210,7 +210,8 @@ export class Publish {
       const imgDirectory = path.join(path.dirname(filePath), path.dirname(img.src));
       const imgPath = path.join(path.dirname(filePath), img.src);
 
-      const folders = imgDirectory.replace(startFolder, '').replace(/\\/g, '/').split('/');
+      const uniStartPath = startFolder.replace(/\\/g, '/');
+      const folders = imgDirectory.replace(/\\/g, '/').replace(uniStartPath, '').split('/');
       let crntFolder = assetLibrary;
 
       // Start folder creation process
@@ -320,10 +321,10 @@ export class Publish {
   /**
    * Inserts or create the control
    * @param webPartTitle 
-   * @param updatedMarkdown 
+   * @param markdown 
    */
-  private static async insertOrCreateControl(webPartTitle: string, updatedMarkdown: string, slug: string, webUrl: string, wpId: string = null) {
-    const wpData = `'{"title":"${webPartTitle}","serverProcessedContent": {"searchablePlainTexts": {"code": "${updatedMarkdown}"}},"dataVersion": "2.0","properties": {"displayPreview": true,"lineWrapping": true,"miniMap": {"enabled": false},"previewState": "Show","theme": "Monokai"}}'`;
+  private static async insertOrCreateControl(webPartTitle: string, markdown: string, slug: string, webUrl: string, wpId: string = null) {
+    const wpData = MarkdownHelper.getJsonData(webPartTitle, markdown);
     
     if (wpId) {
       // Web part needs to be updated
