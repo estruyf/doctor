@@ -5,6 +5,7 @@
 - [#9](https://github.com/ValoIntranet/doctor/issues/9): Removed the `jq` dependency with a fallback to JSON parsing in the tool itself.
 - [#11](https://github.com/ValoIntranet/doctor/issues/11): Unknown arguments do not blow up the command execution + `--help` added to the main command.
 - [#12](https://github.com/ValoIntranet/doctor/issues/12): Added cross-platform support.
+- [#14](https://github.com/ValoIntranet/doctor/issues/14): Cross-platform builds and publishing setup on GitHub Actions.
 - Updated the CLI for Microsoft 365 to 3.4.0 as this has huge performance improvements
 
 ## [1.1.0] 2020-12-16
