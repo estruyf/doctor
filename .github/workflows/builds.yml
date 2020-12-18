@@ -5,6 +5,11 @@ name: Does it build?
 # events but only for the master branch
 on:
   workflow_dispatch:
+    inputs:
+      name:
+        description: 'Why are you triggering me?'
+        required: false
+        default: 'Test run'
   pull_request:
     branches:
       - main
