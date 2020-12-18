@@ -16,6 +16,7 @@ import { Authenticate } from './authenticate';
 import { PublishOutput } from '../models/PublishOutput';
 import { Logger } from '../helpers/logger';
 import { FrontMatterHelper } from '../helpers/FrontMatterHelper';
+import { MarkdownHelper } from '../helpers/MarkdownHelper';
 
 export class Publish {
 
@@ -74,7 +75,7 @@ export class Publish {
    * @param startFolder 
    */
   private static async fetchMDFiles(ctx: any, startFolder: string) {
-    const files = await fg(`${startFolder}/**/*.md`);
+    const files = await fg((`${startFolder}/**/*.md`).replace(/\\/g, '/'));
 
     if (files && files.length > 0) {
       ctx.files = files;
@@ -160,9 +161,8 @@ export class Publish {
                   
                   if (controlData) {
                     const webparts = JSON.parse(controlData);
-                    const markdownWp = webparts.find((c: any) => c.title === webPartTitle);
-                    const updatedMarkdown = markup.content.replace(/\n/g, '\\n').replace(/"/g, `\\"`);                    
-                    await this.insertOrCreateControl(webPartTitle, updatedMarkdown, slug, webUrl, markdownWp ? markdownWp.id : null);
+                    const markdownWp = webparts.find((c: any) => c.title === webPartTitle);   
+                    await this.insertOrCreateControl(webPartTitle, markup.content, slug, webUrl, markdownWp ? markdownWp.id : null);
                   }
 
                   // Check if page needs to be published
@@ -210,7 +210,8 @@ export class Publish {
       const imgDirectory = path.join(path.dirname(filePath), path.dirname(img.src));
       const imgPath = path.join(path.dirname(filePath), img.src);
 
-      const folders = imgDirectory.replace(startFolder, '').split('/');
+      const uniStartPath = startFolder.replace(/\\/g, '/');
+      const folders = imgDirectory.replace(/\\/g, '/').replace(uniStartPath, '').split('/');
       let crntFolder = assetLibrary;
 
       // Start folder creation process
@@ -313,20 +314,21 @@ export class Publish {
    * @param slug 
    */
   private static async getPageControls(webUrl: string, slug: string): Promise<string> {
-    return await execScript(`localm365`, [`spo`, `page`, `control`, `list`, `--webUrl`, `"${webUrl}"`, `--name`, `"${slug}"`, `-o`, `json`, `|`, `jq`]);
+    const output = await execScript<string>(`localm365`, [`spo`, `page`, `control`, `list`, `--webUrl`, `"${webUrl}"`, `--name`, `"${slug}"`, `-o`, `json`]);
+    return output;
   }
 
   /**
    * Inserts or create the control
    * @param webPartTitle 
-   * @param updatedMarkdown 
+   * @param markdown 
    */
-  private static async insertOrCreateControl(webPartTitle: string, updatedMarkdown: string, slug: string, webUrl: string, wpId: string = null) {
-    const wpData = `'{"title":"${webPartTitle}","serverProcessedContent": {"searchablePlainTexts": {"code": "${updatedMarkdown}"}},"dataVersion": "2.0","properties": {"displayPreview": true,"lineWrapping": true,"miniMap": {"enabled": false},"previewState": "Show","theme": "Monokai"}}'`;
+  private static async insertOrCreateControl(webPartTitle: string, markdown: string, slug: string, webUrl: string, wpId: string = null) {
+    const wpData = MarkdownHelper.getJsonData(webPartTitle, markdown);
     
     if (wpId) {
       // Web part needs to be updated
-      await execScript(`localm365`, [`spo`, `page`, `control`, `set`, `--webUrl`, `"${webUrl}"`, `--name`, `"${slug}"`, `--id`, `${wpId}`, `--webPartData`, wpData]);
+      await execScript(`localm365`, [`spo`, `page`, `control`, `set`, `--webUrl`, `"${webUrl}"`, `--name`, `"${slug}"`, `--id`, `"${wpId}"`, `--webPartData`, wpData]);
     } else {
       // Add new markdown web part
       await execScript(`localm365`, [`spo`, `page`, `clientsidewebpart`, `add`, `--webUrl`, `"${webUrl}"`, `--pageName`, `"${slug}"`, `--webPartId`, `1ef5ed11-ce7b-44be-bc5e-4abd55101d16`, `--webPartData`, wpData]);
@@ -340,7 +342,11 @@ export class Publish {
    */
   private static async publishPageIfNeeded(webUrl: string, slug: string) {
     const relativeUrl = FileHelpers.getRelUrl(webUrl, `sitepages/${slug}`);
-    await execScript(`localm365`, [`spo`, `file`, `checkin`, `--webUrl`, `"${webUrl}"`, `--fileUrl`, relativeUrl]);
+    try {
+      await execScript(`localm365`, [`spo`, `file`, `checkin`, `--webUrl`, `"${webUrl}"`, `--fileUrl`, `"${relativeUrl}"`]);
+    } catch (e) {
+      // Might be that the file doesn't need to be checked in
+    }
     await execScript(`localm365`, [`spo`, `page`, `set`, `--name`, `"${slug}"`, `--webUrl`, `"${webUrl}"`, `--publish`]);
   }
 }

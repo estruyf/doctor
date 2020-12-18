@@ -1,6 +1,6 @@
 {
   "name": "@valo/doctor",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "The static site generator for SharePoint",
   "main": "dist/main.js",
   "homepage": "https://github.com/ValoIntranet/doctor",
@@ -39,6 +39,7 @@
     }
   ],
   "devDependencies": {
+    "@types/cross-spawn": "6.0.2",
     "@types/inquirer": "7.3.1",
     "@types/jsdom": "16.2.5",
     "@types/listr": "0.14.2",
@@ -46,8 +47,9 @@
     "@types/showdown": "1.9.3"
   },
   "dependencies": {
-    "@pnp/cli-microsoft365": "3.3.0",
+    "@pnp/cli-microsoft365": "3.4.0-beta.1b7b59c",
     "arg": "4.1.3",
+    "cross-spawn": "7.0.3",
     "esm": "3.2.25",
     "fast-glob": "3.2.4",
     "frontmatter": "0.0.3",

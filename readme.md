@@ -1,4 +1,8 @@
-<h1 align="center">Doctor</h1>
+<h1 align="center">
+  <a href="hhttps://github.com/ValoIntranet/doctor">
+    <img alt="Doctor" src="./assets/valo-doctor.svg" height="200">
+  </a>
+</h1>
 
 <h2 align="center">The static site generator for SharePoint</h2>
 
@@ -269,10 +273,10 @@ The menu property can contain a `QuickLaunch` and/or `TopNavigationBar` elment w
 ## Todo
 
 - [x]: Update links to the actual pages in SharePoint
-- []: Support for metadata in Front Matter
-- []: Create static build output of the updated markdown files
-- []: Cross-platform support
-- []: Specify which parts of the publish process needs to run (`skipAuth`, `skipPages`, `skipNavigation`)
+- [x]: Create static build output of the updated markdown files
+- [ ]: Support for metadata in Front Matter
+- [ ]: Cross-platform support
+- [ ]: Specify which parts of the publish process needs to run (`skipAuth`, `skipPages`, `skipNavigation`)
 
 ## Found an issue?
 

@@ -140,7 +140,11 @@ export class NavigationHelper {
    * @param type 
    */
   private static async getNavigationElms(webUrl: string, type: LocationType) {
-    const args = [`spo`, `navigation`, `node`, `list`, `--webUrl`, `'${webUrl}'`, `--location`, type, `-o`, `json`, `|`, `jq`];
+    let args = [`spo`, `navigation`, `node`, `list`, `--webUrl`, `'${webUrl}'`, `--location`, type, `-o`, `json`];
+    if (args && typeof args === "string") {
+      args = JSON.parse(args);
+    }
+
     if (type === "QuickLaunch") {
       if (!this.qlElms) {
         this.qlElms = await execScript<NavigationItem[]>('localm365', [...args]);
@@ -180,7 +184,7 @@ export class NavigationHelper {
   private static async createNavigationElm(webUrl: string, type: LocationType, name: string, url: string, id: number = null): Promise<NavigationItem | null> {
     const rootElm = id ? [`--parentNodeId`, `${id}`] : [];
     if (name) {
-      const item = await execScript('localm365', [`spo`, `navigation`, `node`, `add`, `--webUrl`, `'${webUrl}'`, `--location`, type, `--title`, `'${name}'`, `--url`, `'${url}'`, ...rootElm, `-o`, `json`, `|`, `jq`]);
+      const item = await execScript('localm365', [`spo`, `navigation`, `node`, `add`, `--webUrl`, `'${webUrl}'`, `--location`, type, `--title`, `'${name}'`, `--url`, `'${url}'`, ...rootElm, `-o`, `json`]);
 
       return typeof item === "string" ? JSON.parse(item) : item;
     }

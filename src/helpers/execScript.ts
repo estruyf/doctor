@@ -1,7 +1,11 @@
-import { exec, spawn } from 'child_process';
+import { exec } from 'child_process';
+import { spawn } from 'cross-spawn';
+import { Logger } from './logger';
 
 export const execScript = async <T>(command: string, args: string[] = [], shouldSpawn: boolean = false): Promise<T> => {
   return new Promise<T>((resolve, reject) => {
+    Logger.debug(`Command: ${command} ${args.join(' ')}`);
+    
     if (shouldSpawn) {
       const execution = spawn(command, [...args]);
 
@@ -9,7 +13,7 @@ export const execScript = async <T>(command: string, args: string[] = [], should
         console.log(`${data}`);
       });
 
-      execution.stdout.on('close', (data) => {
+      execution.stdout.on('close', (data: any) => {
         resolve(data);
       });
 
