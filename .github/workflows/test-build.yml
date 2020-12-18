@@ -14,7 +14,7 @@ on:
 
 jobs:
   build:
-    name: Build ${{ matrix.os }} - ${{ matrix.shell }}
+    name: Build ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     continue-on-error: true
 
@@ -24,19 +24,12 @@ jobs:
           - node: 12
             os: macos-latest
             siteUrl: SITEURL_MACOS
-            useShell: bash
           - node: 12
             os: windows-latest
             siteUrl: SITEURL_WINDOWS
-            useShell: cmd
-          - node: 12
-            os: windows-latest
-            siteUrl: SITEURL_WINDOWS_POWERSHELL
-            useShell: powershell
           - node: 12
             os: ubuntu-latest
             siteUrl: SITEURL_LINUX
-            useShell: bash
 
     steps:
     - uses: actions/checkout@v2
@@ -46,16 +39,66 @@ jobs:
         registry-url: https://registry.npmjs.org/
   
     - run: npm i
-      shell: matrix.useShell
       
     - run: npm start
-      shell: matrix.useShell
 
     - run: npm link
-      shell: matrix.useShell
 
     - run: | 
         git clone https://github.com/ValoIntranet/doctor-sample
         cd doctor-sample
         doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}"
-      shell: matrix.useShell
+
+  build_pwsh:
+    name: Build windows-latest - powershell
+    runs-on: windows-latest
+    continue-on-error: true
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+      with:
+        node-version: 12
+        registry-url: https://registry.npmjs.org/
+  
+    - run: npm i
+      shell: powershell
+      
+    - run: npm start
+      shell: powershell
+
+    - run: npm link
+      shell: powershell
+
+    - run: | 
+        git clone https://github.com/ValoIntranet/doctor-sample
+        cd doctor-sample
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}"
+      shell: powershell
+
+  build_cmd:
+    name: Build windows-latest - cmd
+    runs-on: windows-latest
+    continue-on-error: true
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+      with:
+        node-version: 12
+        registry-url: https://registry.npmjs.org/
+  
+    - run: npm i
+      shell: cmd
+      
+    - run: npm start
+      shell: cmd
+
+    - run: npm link
+      shell: cmd
+
+    - run: | 
+        git clone https://github.com/ValoIntranet/doctor-sample
+        cd doctor-sample
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS }}"
+      shell: cmd
