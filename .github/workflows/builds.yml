@@ -9,22 +9,36 @@ on:
       - main
       - dev
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - node: 12
+            os: macos-latest
+            siteUrl: ${{ secrets.SITEURL_MACOS }}
+          - node: 12
+            os: windows-latest
+            siteUrl: ${{ secrets.SITEURL_WINDOWS }}
+          - node: 12
+            os: ubuntu-latest
+            siteUrl: ${{ secrets.SITEURL_LINUX }}
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v2
     - uses: actions/setup-node@v1
       with:
-        node-version: '12'
+        node-version: ${{ matrix.node }}
         registry-url: https://registry.npmjs.org/
   
     - run: npm i
       
     - run: npm start
+
+    - run: npm link
+
+    - run: | 
+        git clone https://github.com/ValoIntranet/doctor-sample
+        cd doctor-sample
+        doctor publish -a password --username ${{ secrets.USERNAME }} --password ${{ secrets.PASSWORD }} -f ./src -u ${{ matrix.siteUrl }}
