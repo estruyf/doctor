@@ -14,6 +14,7 @@ on:
 
 jobs:
   build:
+    name: Build ${{ matrix.os }} - ${{ matrix.shell }}
     runs-on: ${{ matrix.os }}
     continue-on-error: true
 
@@ -23,12 +24,19 @@ jobs:
           - node: 12
             os: macos-latest
             siteUrl: SITEURL_MACOS
+            shell: bash
           - node: 12
             os: windows-latest
             siteUrl: SITEURL_WINDOWS
+            shell: cmd
+          - node: 12
+            os: windows-latest
+            siteUrl: SITEURL_WINDOWS_POWERSHELL
+            shell: powershell
           - node: 12
             os: ubuntu-latest
             siteUrl: SITEURL_LINUX
+            shell: bash
 
     steps:
     - uses: actions/checkout@v2
@@ -38,12 +46,16 @@ jobs:
         registry-url: https://registry.npmjs.org/
   
     - run: npm i
+      shell: ${{ matrix.shell }}
       
     - run: npm start
+      shell: ${{ matrix.shell }}
 
     - run: npm link
+      shell: ${{ matrix.shell }}
 
     - run: | 
         git clone https://github.com/ValoIntranet/doctor-sample
         cd doctor-sample
         doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}"
+      shell: ${{ matrix.shell }}
