@@ -1,0 +1,47 @@
+name: Does it build?
+
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: 'Why are you triggering me?'
+        required: false
+        default: 'Test run'
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - node: 12
+            os: macos-latest
+            siteUrl: SITEURL_MACOS
+          - node: 12
+            os: windows-latest
+            siteUrl: SITEURL_WINDOWS
+          - node: 12
+            os: ubuntu-latest
+            siteUrl: SITEURL_LINUX
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node }}
+        registry-url: https://registry.npmjs.org/
+  
+    - run: npm i
+      
+    - run: npm start
+
+    - run: npm link
+
+    - run: | 
+        git clone https://github.com/ValoIntranet/doctor-sample
+        cd doctor-sample
+        doctor publish -a password --username ${{ secrets.USERNAME }} --password ${{ secrets.PASSWORD }} -f ./src -u ${{ secrets[matrix.siteUrl] }}
