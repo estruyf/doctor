@@ -1,4 +1,4 @@
-name: Does it build?
+name: Does it build and publish?
 
 on:
   workflow_dispatch:
