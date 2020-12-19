@@ -16,7 +16,6 @@ jobs:
   build:
     name: Build ${{ matrix.os }} - Bash
     runs-on: ${{ matrix.os }}
-    continue-on-error: true
 
     strategy:
       matrix:

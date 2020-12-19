@@ -6,8 +6,10 @@ name: Publish to NPM
 on:
   push:
     branches:
-      - main
       - dev
+  release:
+    types:
+      - published
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
