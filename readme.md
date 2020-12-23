@@ -28,8 +28,6 @@ As we understand that it is not the best experience for developers to write docu
 
 Under the hood, it makes use of the [CLI for Microsoft 365](https://pnp.github.io/cli-microsoft365/).
 
-> **Important**: Currently only tested on macOS and Linux.
-
 ## Installation
 
 Thank you for your interest in the `doctor`. The following information will help you install `doctor`.
