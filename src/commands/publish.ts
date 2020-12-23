@@ -18,6 +18,7 @@ import { Logger } from '../helpers/logger';
 import { FrontMatterHelper } from '../helpers/FrontMatterHelper';
 import { MarkdownHelper } from '../helpers/MarkdownHelper';
 import { ArgumentsHelper } from '../helpers/ArgumentsHelper';
+import { Page } from '../models/Page';
 
 export class Publish {
 
@@ -127,7 +128,7 @@ export class Publish {
                   }
                 }
 
-                let { title, draft } = markup.data;
+                let { title, draft, layout } = markup.data;
                 let slug = FrontMatterHelper.getSlug(markup.data)
 
                 // Image processing
@@ -163,7 +164,7 @@ export class Publish {
                   observer.next(`Creating or updating the page in SharePoint for ${filename}`);
 
                   // Check if the page already exists
-                  await this.createPageIfNotExists(webUrl, slug, title);
+                  await this.createPageIfNotExists(webUrl, slug, title, layout);
       
                   // Retrieving all the controls from the page, so that we can start replacing the 
                   const controlData: string = await this.getPageControls(webUrl, slug);
@@ -302,9 +303,16 @@ export class Publish {
    * @param slug 
    * @param title 
    */
-  private static async createPageIfNotExists(webUrl: string, slug: string, title: string): Promise<void> {
+  private static async createPageIfNotExists(webUrl: string, slug: string, title: string, layout: string = "Article"): Promise<void> {
     try {
-      await execScript(`localm365`, ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}"`));
+      let pageData = await execScript(`localm365`, ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --output json`));
+      if (pageData && typeof pageData === "string") {
+        pageData = JSON.parse(pageData);
+      }
+
+      if (pageData && (pageData as Page).layoutType !== layout) {
+        await execScript(`localm365`, ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" --layoutType "${layout}"`));
+      }
     } catch (e) {
       // Check if folders for the file need to be created
       if (slug.split('/').length > 1) {
@@ -312,7 +320,7 @@ export class Publish {
         await FolderHelpers.create('sitepages', folders.slice(0, folders.length - 1), webUrl);
       }
       // File doesn't exist
-      await execScript(`localm365`, ArgumentsHelper.parse(`spo page add --webUrl "${webUrl}" --name "${slug}" --title "${title}"`));
+      await execScript(`localm365`, ArgumentsHelper.parse(`spo page add --webUrl "${webUrl}" --name "${slug}" --title "${title}" --layoutType "${layout}"`));
     }
   }
 

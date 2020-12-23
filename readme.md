@@ -67,6 +67,7 @@ Optional Front Matter properties are:
 
 - **slug**: `string` - If a slug is not defined, the title will be used. You can add the slug with our without `.aspx` file extension. The tool will automatically add it.
 - **draft**: `boolean` - defines if you want to publish the article during the publishing phase.
+- **layout**: `Article` | `Home` - defines which page layout you want to use. Default layout type is `Article`.
 - **menu**: `Menu`- defines where the page gets added to the navigation structure. Check: [menu section](#Menu).
 
 When you want to create page to page links, you can provide the relative path from the current markdown file to the other markdown file (with or without the `.md` extension).
