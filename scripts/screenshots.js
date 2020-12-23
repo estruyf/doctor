@@ -40,9 +40,9 @@ const testSite = async (page, siteUrl, type) => {
     await testSite(page, SITEURL_WINDOWS, 'windows');
 
     await browser.close();
-
+    process.exit(0);
   } catch (err) {
     console.log(err);
-    return;
+    process.exit(1);
   }
 })();
