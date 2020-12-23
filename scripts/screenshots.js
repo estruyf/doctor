@@ -23,9 +23,6 @@ const testSite = async (page, siteUrl, type) => {
 
     const { USER_NAME, PASSWORD, SITEURL_WINDOWS_POWERSHELL, SITEURL_WINDOWS, SITEURL_LINUX, SITEURL_MACOS } = process.env;
 
-    console.log('');
-    console.log(USER);
-
     const browser = await chromium.launch();
 
     const authData = await spauth.getAuth(SITEURL_MACOS, {
