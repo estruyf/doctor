@@ -43,7 +43,7 @@ jobs:
     - run: | 
         git clone https://github.com/ValoIntranet/doctor-sample
         cd doctor-sample
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}"
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}--cleanStart --confirm"
 
   build_pwsh:
     name: Build windows-latest - powershell
@@ -68,7 +68,7 @@ jobs:
     - run: | 
         git clone https://github.com/ValoIntranet/doctor-sample
         cd doctor-sample
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}"
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }} --cleanStart --confirm"
       shell: powershell
 
   build_cmd:
@@ -94,7 +94,7 @@ jobs:
     - run: | 
         git clone https://github.com/ValoIntranet/doctor-sample
         cd doctor-sample
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS }}"
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS }}--cleanStart --confirm"
       shell: cmd
 
   screenshots:
