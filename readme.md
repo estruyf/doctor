@@ -229,7 +229,6 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 `--overwriteImages`
 : Specifies if you allow `doctor` to overwrite the images in the SharePoint library that are referenced in the markdown files.
 
-
 `--skipPrecheck`
 : Skips the pre-checks when running the commands. This validates if you have the right dependencies installed in your environment.
 
@@ -238,6 +237,12 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 
 `--outputFolder`
 : When providing this option, the processed markdown files will be generated in this folder.
+
+`--cleanStart`
+: Removes all pages before creation. This ensures that you that all changes made to your documentation get removed.
+
+`--confirm`
+: Don't prompt for confirming removing the files when you specified to clean up pages and assets before publishing.
 
 ### `doctor.json`
 

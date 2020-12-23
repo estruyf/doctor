@@ -1,7 +1,8 @@
 # Changelog
 
-## [1.3.0] 
+## [1.3.0]
 
+- [#7](https://github.com/ValoIntranet/doctor/issues/21): Added parameter to clean up all pages and assets before publishing
 - [#21](https://github.com/ValoIntranet/doctor/issues/21): Implemented easier command execution from within the tool
 - [#22](https://github.com/ValoIntranet/doctor/issues/22): Enhanced the test actions with screenshots
 

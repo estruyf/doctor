@@ -11,6 +11,8 @@ export interface CommandArguments {
   overwriteImages: boolean;
   skipPrecheck: boolean;
   debug: boolean;
+  cleanStart: boolean;
+  confirm: boolean;
 
   menu?: Menu;
 

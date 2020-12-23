@@ -49,6 +49,14 @@ export class Publish {
 
     await new Listr([
       {
+        title: `Clean up all the files`,
+        task: async () => {
+          await FileHelpers.cleanUp(options, 'sitepages');
+          await FileHelpers.cleanUp(options, options.assetLibrary)
+        },
+        enabled: () => options.cleanStart && options.confirm
+      },
+      {
         title: `Fetch all markdown files`,
         task: async (ctx: any) => await this.fetchMDFiles(ctx, startFolder)
       },

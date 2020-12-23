@@ -41,6 +41,8 @@ export class OptionsHelper {
         '--overwriteImages': Boolean,
         '--skipPrecheck': Boolean,
         '--debug': Boolean,
+        '--cleanStart': Boolean,
+        '--confirm': Boolean,
         '-a': '--auth',
         '-f': '--folder',
         '-u': '--url'
@@ -65,6 +67,8 @@ export class OptionsHelper {
       skipPrecheck: args["--skipPrecheck"] as any || options["skipPrecheck"] || false,
       menu: options["menu"] || null,
       debug: args["--debug"] || false,
+      cleanStart: args["--cleanStart"] || false,
+      confirm: args["--confirm"] || false,
       outputFolder: args["--outputFolder"] || ""
     };
   }
@@ -115,6 +119,15 @@ export class OptionsHelper {
         type: 'password',
         name: 'password',
         message: 'What is the password?'
+      });
+    }
+
+    if (options.cleanStart && !options.confirm) {
+      questions.push({
+        type: 'confirm',
+        name: 'confirm',
+        message: 'Are you sure you want to clean up all pages and assets?',
+        default: false
       });
     }
     
