@@ -7,6 +7,9 @@
 <h2 align="center">The static site generator for SharePoint</h2>
 
 <p align="center">
+  <img src="https://github.com/ValoIntranet/doctor/workflows/Does%20it%20build%20and%20publish%3F/badge.svg?branch=dev"
+      alt="Does it build and publish?" />
+
   <a href="https://www.npmjs.com/package/@valo/doctor">
     <img src="https://img.shields.io/npm/v/@valo/doctor/latest?style=flat-square"
       alt="npm @valo/doctor@latest" />

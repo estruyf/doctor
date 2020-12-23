@@ -3,6 +3,7 @@
 ## [1.3.0] 
 
 - [#21](https://github.com/ValoIntranet/doctor/issues/21): Implemented easier command execution from within the tool
+- [#22](https://github.com/ValoIntranet/doctor/issues/22): Enhanced the test actions with screenshots
 
 ## [1.2.1] 2020-12-18
 
