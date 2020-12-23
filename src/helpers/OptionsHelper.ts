@@ -142,8 +142,7 @@ export class OptionsHelper {
         startFolder: path.join(process.cwd(), options.startFolder || answers.startFolder)
       };
     } catch (e) {
-      console.log(kleur.bgRed().white("ERROR:"), e.message);
-      return null;
+      throw e.message;
     }
   }
 }

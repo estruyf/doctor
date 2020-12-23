@@ -5,6 +5,7 @@
 - [#7](https://github.com/ValoIntranet/doctor/issues/21): Added parameter to clean up all pages and assets before publishing
 - [#21](https://github.com/ValoIntranet/doctor/issues/21): Implemented easier command execution from within the tool
 - [#22](https://github.com/ValoIntranet/doctor/issues/22): Enhanced the test actions with screenshots
+- [#23](https://github.com/ValoIntranet/doctor/issues/23): Added process exit codes to make sure it correctly outputs a success or failure status
 
 ## [1.2.1] 2020-12-18
 

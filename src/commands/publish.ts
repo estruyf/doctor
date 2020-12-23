@@ -146,7 +146,7 @@ export class Publish {
                   try {
                     markup.content = this.processLinks(anchorElms, file, markup.content, options);
                   } catch (e) {
-                    console.error(`ERROR: ${e.message}`);
+                    throw e.message;
                   }
                 }
 
@@ -196,7 +196,7 @@ export class Publish {
           }
         } catch (e) {
           observer.error(e);
-          return;
+          throw e.message;
         }
         observer.complete();
       })();

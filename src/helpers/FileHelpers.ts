@@ -82,7 +82,7 @@ export class FileHelpers {
           }
         }
       } catch (e) {
-        console.error(`ERROR: ${e.message}`);
+        throw e.message;
       }
     }
   }
