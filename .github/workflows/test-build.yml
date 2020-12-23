@@ -114,7 +114,7 @@ jobs:
         node ./scripts/screenshots.js
       env:
         USER_NAME: ${{ secrets.USERNAME }}
-        PASSWORD: ${{ secrets.USERNAME }}
+        PASSWORD: ${{ secrets.PASSWORD }}
         SITEURL_WINDOWS: ${{ secrets.SITEURL_WINDOWS }}
         SITEURL_WINDOWS_POWERSHELL: ${{ secrets.SITEURL_WINDOWS_POWERSHELL }}
         SITEURL_MACOS: ${{ secrets.SITEURL_MACOS }}
