@@ -100,6 +100,7 @@ jobs:
   screenshots:
     name: Take screenshots after publishing
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [build, build_pwsh, build_cmd]
 
     steps:
@@ -112,7 +113,7 @@ jobs:
         npm i playwright-chromium node-sp-auth@3
         node ./scripts/screenshots.js
       env:
-        USERNAME: ${{ secrets.USERNAME }}
+        USER_NAME: ${{ secrets.USERNAME }}
         PASSWORD: ${{ secrets.USERNAME }}
         SITEURL_WINDOWS: ${{ secrets.SITEURL_WINDOWS }}
         SITEURL_WINDOWS_POWERSHELL: ${{ secrets.SITEURL_WINDOWS_POWERSHELL }}

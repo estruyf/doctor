@@ -13,28 +13,32 @@ const testSite = async (page, siteUrl, type) => {
     waitUntil: "networkidle0"
   });
 
-  fs.mkdirSync(path.join(__dirname, `./screenshots`));
+  fs.mkdirSync(path.join(__dirname, `../screenshots`), { recursive: true });
 
-  await page.screenshot({ path: path.join(__dirname, `./screenshots/${type}.png`) });
+  await page.screenshot({ path: path.join(__dirname, `../screenshots/${type}.png`) });
 }
 
 (async () => {
   try {
-    
-    const { USERNAME, PASSWORD, SITEURL_WINDOWS_POWERSHELL, SITEURL_WINDOWS, SITEURL_LINUX, SITEURL_MACOS } = process.env;
+
+    const { USER_NAME, PASSWORD, SITEURL_WINDOWS_POWERSHELL, SITEURL_WINDOWS, SITEURL_LINUX, SITEURL_MACOS } = process.env;
+
+    console.log('');
+    console.log(USER);
 
     const browser = await chromium.launch();
 
     const authData = await spauth.getAuth(SITEURL_MACOS, {
-      username: USERNAME,
-      password: PASSWORD
+      username: USER_NAME,
+      password: PASSWORD,
+      online: true
     });
 
     const page = await browser.newPage();
     await page.setExtraHTTPHeaders(authData.headers);
 
-    await testSite(page, SITEURL_LINUX, 'linux');
     await testSite(page, SITEURL_MACOS, 'macos');
+    await testSite(page, SITEURL_LINUX, 'linux');
     await testSite(page, SITEURL_WINDOWS_POWERSHELL, 'windows_powershell');
     await testSite(page, SITEURL_WINDOWS, 'windows');
 
@@ -42,5 +46,6 @@ const testSite = async (page, siteUrl, type) => {
 
   } catch (err) {
     console.log(err);
+    return;
   }
 })();
