@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0] 
+
+- [#21](https://github.com/ValoIntranet/doctor/issues/21): Implemented easier command execution from within the tool
+
+## [1.2.1] 2020-12-18
+
+- [#16](https://github.com/ValoIntranet/doctor/issues/16): Fix for specified webPartData is not a valid JSON string.
+
 ## [1.2.0] 2020-12-18
 
 - [#9](https://github.com/ValoIntranet/doctor/issues/9): Removed the `jq` dependency with a fallback to JSON parsing in the tool itself.

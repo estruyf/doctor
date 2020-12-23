@@ -274,8 +274,11 @@ The menu property can contain a `QuickLaunch` and/or `TopNavigationBar` elment w
 
 - [x]: Update links to the actual pages in SharePoint
 - [x]: Create static build output of the updated markdown files
+- [x]: Cross-platform support
+
 - [ ]: Support for metadata in Front Matter
-- [ ]: Cross-platform support
+- [ ]: Support for page description
+- [ ]: Support for setting header image
 - [ ]: Specify which parts of the publish process needs to run (`skipAuth`, `skipPages`, `skipNavigation`)
 
 ## Found an issue?

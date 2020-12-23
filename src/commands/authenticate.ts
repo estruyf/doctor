@@ -1,4 +1,5 @@
 import Listr = require("listr");
+import { ArgumentsHelper } from "../helpers/ArgumentsHelper";
 import { execScript } from "../helpers/execScript";
 import { CommandArguments } from "../models/CommandArguments";
 
@@ -19,7 +20,7 @@ export class Authenticate {
           if (auth === "deviceCode") {
             await execScript(`localm365`, [`login`], true);
           } else {
-            await execScript(`localm365`, [`login`, `--authType password`, `--userName "${username}"`, `--password "${password}"`]);
+            await execScript(`localm365`, ArgumentsHelper.parse(`login --authType password --userName "${username}" --password "${password}"`));
           }
         }
       }
