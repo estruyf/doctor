@@ -6,15 +6,17 @@ import { Commands } from "./main";
 import { CommandArguments } from "./models/CommandArguments";
 
 export async function cli(args: string[]) {
+
+  const version = Version.getVersion();
+  console.log('');
+  console.log(kleur.bgBlue().white(`   DOCTOR v${version}   `));
+  
   let options: CommandArguments = OptionsHelper.fetchConfig();
   options = OptionsHelper.parseArguments(options, args);
   options = await OptionsHelper.promptForMissingArgs(options);
   
   try {
     if (options.task === "help") {
-      const version = Version.getVersion();
-      console.log('');
-      console.log(kleur.bgBlue().white('   DOCTOR   '));
       console.log('The static site generator for SharePoint. Created by Valo.');
       console.log('');
       console.log(`The current version you're running: ${version} supports the following commands: ${Object.keys(Command).join(', ')}.`);
@@ -24,7 +26,9 @@ export async function cli(args: string[]) {
     } else {
       await Commands.start(options);
     }
+    process.exit(0);
   } catch (e) {
     console.log(kleur.bgRed().bold().white(` ERROR: `), kleur.bold().red(e.message));
+    process.exit(1);
   }
 }

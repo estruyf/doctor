@@ -43,12 +43,11 @@ jobs:
     - run: | 
         git clone https://github.com/ValoIntranet/doctor-sample
         cd doctor-sample
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}"
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}" --cleanStart --confirm
 
   build_pwsh:
     name: Build windows-latest - powershell
     runs-on: windows-latest
-    continue-on-error: true
 
     steps:
     - uses: actions/checkout@v2
@@ -69,13 +68,12 @@ jobs:
     - run: | 
         git clone https://github.com/ValoIntranet/doctor-sample
         cd doctor-sample
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}"
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}" --cleanStart --confirm
       shell: powershell
 
   build_cmd:
     name: Build windows-latest - cmd
     runs-on: windows-latest
-    continue-on-error: true
 
     steps:
     - uses: actions/checkout@v2
@@ -96,5 +94,32 @@ jobs:
     - run: | 
         git clone https://github.com/ValoIntranet/doctor-sample
         cd doctor-sample
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS }}"
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS }}" --cleanStart --confirm
       shell: cmd
+
+  screenshots:
+    name: Take screenshots after publishing
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [build, build_pwsh, build_cmd]
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+      with:
+        node-version: 12
+        registry-url: https://registry.npmjs.org/
+    - run: |
+        npm i playwright-chromium node-sp-auth@3
+        node ./scripts/screenshots.js
+      env:
+        USER_NAME: ${{ secrets.USERNAME }}
+        PASSWORD: ${{ secrets.PASSWORD }}
+        SITEURL_WINDOWS: ${{ secrets.SITEURL_WINDOWS }}
+        SITEURL_WINDOWS_POWERSHELL: ${{ secrets.SITEURL_WINDOWS_POWERSHELL }}
+        SITEURL_MACOS: ${{ secrets.SITEURL_MACOS }}
+        SITEURL_LINUX: ${{ secrets.SITEURL_LINUX }}
+    - uses: actions/upload-artifact@v2
+      with:
+        name: Screenshots
+        path: screenshots/**/*.png

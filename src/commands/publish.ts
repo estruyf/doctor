@@ -17,6 +17,8 @@ import { PublishOutput } from '../models/PublishOutput';
 import { Logger } from '../helpers/logger';
 import { FrontMatterHelper } from '../helpers/FrontMatterHelper';
 import { MarkdownHelper } from '../helpers/MarkdownHelper';
+import { ArgumentsHelper } from '../helpers/ArgumentsHelper';
+import { Page } from '../models/Page';
 
 export class Publish {
 
@@ -47,6 +49,14 @@ export class Publish {
     await Authenticate.init(options);
 
     await new Listr([
+      {
+        title: `Clean up all the files`,
+        task: async () => {
+          await FileHelpers.cleanUp(options, 'sitepages');
+          await FileHelpers.cleanUp(options, options.assetLibrary)
+        },
+        enabled: () => options.cleanStart && options.confirm
+      },
       {
         title: `Fetch all markdown files`,
         task: async (ctx: any) => await this.fetchMDFiles(ctx, startFolder)
@@ -118,7 +128,7 @@ export class Publish {
                   }
                 }
 
-                let { title, draft } = markup.data;
+                let { title, draft, layout } = markup.data;
                 let slug = FrontMatterHelper.getSlug(markup.data)
 
                 // Image processing
@@ -137,7 +147,7 @@ export class Publish {
                   try {
                     markup.content = this.processLinks(anchorElms, file, markup.content, options);
                   } catch (e) {
-                    console.error(`ERROR: ${e.message}`);
+                    throw e.message;
                   }
                 }
 
@@ -154,7 +164,7 @@ export class Publish {
                   observer.next(`Creating or updating the page in SharePoint for ${filename}`);
 
                   // Check if the page already exists
-                  await this.createPageIfNotExists(webUrl, slug, title);
+                  await this.createPageIfNotExists(webUrl, slug, title, layout);
       
                   // Retrieving all the controls from the page, so that we can start replacing the 
                   const controlData: string = await this.getPageControls(webUrl, slug);
@@ -187,7 +197,7 @@ export class Publish {
           }
         } catch (e) {
           observer.error(e);
-          return;
+          throw e.message;
         }
         observer.complete();
       })();
@@ -278,7 +288,6 @@ export class Publish {
         Logger.debug(`Referenced file slug: ${spUrl}`);
 
         // Update the link in the markdown
-        debugger
         content = content.replace(`(${fileLink})`, `(${spUrl})`);
       } else {
         Logger.debug(`Referenced file not found`);
@@ -294,9 +303,16 @@ export class Publish {
    * @param slug 
    * @param title 
    */
-  private static async createPageIfNotExists(webUrl: string, slug: string, title: string): Promise<void> {
+  private static async createPageIfNotExists(webUrl: string, slug: string, title: string, layout: string = "Article"): Promise<void> {
     try {
-      await execScript(`localm365`, [`spo`, `page`, `get`, `--webUrl`, `"${webUrl}"`, `--name`, `"${slug}"`]);
+      let pageData = await execScript(`localm365`, ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --output json`));
+      if (pageData && typeof pageData === "string") {
+        pageData = JSON.parse(pageData);
+      }
+
+      if (pageData && (pageData as Page).layoutType !== layout) {
+        await execScript(`localm365`, ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" --layoutType "${layout}"`));
+      }
     } catch (e) {
       // Check if folders for the file need to be created
       if (slug.split('/').length > 1) {
@@ -304,7 +320,7 @@ export class Publish {
         await FolderHelpers.create('sitepages', folders.slice(0, folders.length - 1), webUrl);
       }
       // File doesn't exist
-      await execScript(`localm365`, [`spo`, `page`, `add`, `--webUrl`, `"${webUrl}"`, `--name`, `"${slug}"`, `--title`, `"${title}"`]);
+      await execScript(`localm365`, ArgumentsHelper.parse(`spo page add --webUrl "${webUrl}" --name "${slug}" --title "${title}" --layoutType "${layout}"`));
     }
   }
 
@@ -314,7 +330,7 @@ export class Publish {
    * @param slug 
    */
   private static async getPageControls(webUrl: string, slug: string): Promise<string> {
-    const output = await execScript<string>(`localm365`, [`spo`, `page`, `control`, `list`, `--webUrl`, `"${webUrl}"`, `--name`, `"${slug}"`, `-o`, `json`]);
+    const output = await execScript<string>(`localm365`, ArgumentsHelper.parse(`spo page control list --webUrl "${webUrl}" --name "${slug}" -o json`));
     return output;
   }
 
@@ -328,10 +344,10 @@ export class Publish {
     
     if (wpId) {
       // Web part needs to be updated
-      await execScript(`localm365`, [`spo`, `page`, `control`, `set`, `--webUrl`, `"${webUrl}"`, `--name`, `"${slug}"`, `--id`, `"${wpId}"`, `--webPartData`, wpData]);
+      await execScript(`localm365`, [...ArgumentsHelper.parse(`spo page control set --webUrl "${webUrl}" --name "${slug}" --id "${wpId}" --webPartData`), wpData]);
     } else {
       // Add new markdown web part
-      await execScript(`localm365`, [`spo`, `page`, `clientsidewebpart`, `add`, `--webUrl`, `"${webUrl}"`, `--pageName`, `"${slug}"`, `--webPartId`, `1ef5ed11-ce7b-44be-bc5e-4abd55101d16`, `--webPartData`, wpData]);
+      await execScript(`localm365`, [...ArgumentsHelper.parse(`spo page clientsidewebpart add --webUrl "${webUrl}" --pageName "${slug}" --webPartId 1ef5ed11-ce7b-44be-bc5e-4abd55101d16 --webPartData`), wpData]);
     }
   }
 
@@ -343,10 +359,10 @@ export class Publish {
   private static async publishPageIfNeeded(webUrl: string, slug: string) {
     const relativeUrl = FileHelpers.getRelUrl(webUrl, `sitepages/${slug}`);
     try {
-      await execScript(`localm365`, [`spo`, `file`, `checkin`, `--webUrl`, `"${webUrl}"`, `--fileUrl`, `"${relativeUrl}"`]);
+      await execScript(`localm365`, ArgumentsHelper.parse(`spo file checkin --webUrl "${webUrl}" --fileUrl "${relativeUrl}"`));
     } catch (e) {
       // Might be that the file doesn't need to be checked in
     }
-    await execScript(`localm365`, [`spo`, `page`, `set`, `--name`, `"${slug}"`, `--webUrl`, `"${webUrl}"`, `--publish`]);
+    await execScript(`localm365`, ArgumentsHelper.parse(`spo page set --name "${slug}" --webUrl "${webUrl}" --publish`));
   }
 }

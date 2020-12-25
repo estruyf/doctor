@@ -28,8 +28,7 @@ export class Commands {
         try {
           await execScript("localm365");
         } catch (e) {
-          console.error(kleur.bold().bgRed().white(` Error: `), kleur.red(`It seems the CLI for Microsoft 365 is not installed. Please install the Microsoft 365 CLI by executing: $ npm i -g @pnp/cli-microsoft365`));
-          return;
+          throw "Somthing is wrong with the local @pnp/cli-microsoft365 version";
         }
       }
 

@@ -7,6 +7,9 @@
 <h2 align="center">The static site generator for SharePoint</h2>
 
 <p align="center">
+  <img src="https://github.com/ValoIntranet/doctor/workflows/Does%20it%20build%20and%20publish%3F/badge.svg?branch=dev"
+      alt="Does it build and publish?" />
+
   <a href="https://www.npmjs.com/package/@valo/doctor">
     <img src="https://img.shields.io/npm/v/@valo/doctor/latest?style=flat-square"
       alt="npm @valo/doctor@latest" />
@@ -27,8 +30,6 @@ As we understand that it is not the best experience for developers to write docu
 `Doctor` is a bit different, as instead of creating HTML files, it makes SharePoint pages instead. 
 
 Under the hood, it makes use of the [CLI for Microsoft 365](https://pnp.github.io/cli-microsoft365/).
-
-> **Important**: Currently only tested on macOS and Linux.
 
 ## Installation
 
@@ -66,6 +67,7 @@ Optional Front Matter properties are:
 
 - **slug**: `string` - If a slug is not defined, the title will be used. You can add the slug with our without `.aspx` file extension. The tool will automatically add it.
 - **draft**: `boolean` - defines if you want to publish the article during the publishing phase.
+- **layout**: `Article` | `Home` - defines which page layout you want to use. Default layout type is `Article`.
 - **menu**: `Menu`- defines where the page gets added to the navigation structure. Check: [menu section](#Menu).
 
 When you want to create page to page links, you can provide the relative path from the current markdown file to the other markdown file (with or without the `.md` extension).
@@ -228,7 +230,6 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 `--overwriteImages`
 : Specifies if you allow `doctor` to overwrite the images in the SharePoint library that are referenced in the markdown files.
 
-
 `--skipPrecheck`
 : Skips the pre-checks when running the commands. This validates if you have the right dependencies installed in your environment.
 
@@ -237,6 +238,12 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 
 `--outputFolder`
 : When providing this option, the processed markdown files will be generated in this folder.
+
+`--cleanStart`
+: Removes all pages before creation. This ensures that you that all changes made to your documentation get removed.
+
+`--confirm`
+: Don't prompt for confirming removing the files when you specified to clean up pages and assets before publishing.
 
 ### `doctor.json`
 
@@ -274,8 +281,11 @@ The menu property can contain a `QuickLaunch` and/or `TopNavigationBar` elment w
 
 - [x]: Update links to the actual pages in SharePoint
 - [x]: Create static build output of the updated markdown files
+- [x]: Cross-platform support
+
 - [ ]: Support for metadata in Front Matter
-- [ ]: Cross-platform support
+- [ ]: Support for page description
+- [ ]: Support for setting header image
 - [ ]: Specify which parts of the publish process needs to run (`skipAuth`, `skipPages`, `skipNavigation`)
 
 ## Found an issue?
