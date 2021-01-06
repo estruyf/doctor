@@ -5,5 +5,6 @@ export interface PageFrontMatter {
 
   slug?: string;
   draft?: boolean;
+  comments?: boolean;
   menu?: MenuItem;
 }

@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.0]
+
+- [#27](https://github.com/ValoIntranet/doctor/issues/27): Add support in Front Matter to enable or disable page comments. By default they are disabled.
+- [#32](https://github.com/ValoIntranet/doctor/issues/32): Added MIT license to the project
+
 ## [1.3.1]
 
 - [#28](https://github.com/ValoIntranet/doctor/issues/28): Fix for `cleanStart` when comfirm flag is not provided. Thanks to [Mark Heptinstall](https://github.com/mheptinstall).
