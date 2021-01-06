@@ -1,6 +1,6 @@
 {
   "name": "@valo/doctor",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "description": "The static site generator for SharePoint",
   "main": "dist/main.js",
   "homepage": "https://github.com/ValoIntranet/doctor",
