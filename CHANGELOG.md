@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.3.1]
+
+- [#28](https://github.com/ValoIntranet/doctor/issues/28): Fix for `cleanStart` when comfirm flag is not provided. Thanks to [Mark Heptinstall](https://github.com/mheptinstall).
+
 ## [1.3.0]
 
 - [#7](https://github.com/ValoIntranet/doctor/issues/21): Added parameter to clean up all pages and assets before publishing
