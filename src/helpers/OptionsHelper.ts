@@ -139,7 +139,8 @@ export class OptionsHelper {
         task: options.task || answers.task,
         username: options.username || answers.username,
         password: options.password || answers.password,
-        startFolder: path.join(process.cwd(), options.startFolder || answers.startFolder)
+        startFolder: path.join(process.cwd(), options.startFolder || answers.startFolder),
+        confirm: options.confirm || answers.confirm
       };
     } catch (e) {
       throw e.message;
