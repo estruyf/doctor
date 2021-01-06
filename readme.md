@@ -47,6 +47,8 @@ If you are using `yarn`, you can do it as follows:
 yarn global add @valo/doctor
 ```
 
+To quickly get started, we provided a [sample repository](https://github.com/ValoIntranet/doctor-sample) which allows you to test out all the functionalities of `Doctor`.
+
 ## Pages
 
 You start by creating pages as Markdown files (`.md`) in the source folder (`./src` is the default, but you can change this). The markdown pages should contain the following front matter.
@@ -71,8 +73,6 @@ Optional Front Matter properties are:
 - **menu**: `Menu`- defines where the page gets added to the navigation structure. Check: [menu section](#Menu).
 
 When you want to create page to page links, you can provide the relative path from the current markdown file to the other markdown file (with or without the `.md` extension).
-
-> **Info**: To quickly get started, we provided a sample repository which allows you to test out all the functionalities of `Doctor`.
 
 ### Menu
 
