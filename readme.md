@@ -67,7 +67,7 @@ Your article content starts here.
 
 Optional Front Matter properties are:
 
-- **slug**: `string` - If a slug is not defined, the title will be used. You can add the slug with our without `.aspx` file extension. The tool will automatically add it.
+- **slug**: `string` - If a slug is not defined, the title and current folder struture will be used. You can add the slug with our without `.aspx` file extension. The tool will automatically add it.
 - **draft**: `boolean` - defines if you want to publish the article during the publishing phase.
 - **comments**: `boolean` - with this setting you can enable/disable page commenting. By default this is disabled.
 - **layout**: `Article` | `Home` - defines which page layout you want to use. Default layout type is `Article`.

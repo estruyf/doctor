@@ -129,7 +129,7 @@ export class Publish {
                 }
 
                 let { title, draft, comments, layout } = markup.data;
-                let slug = FrontMatterHelper.getSlug(markup.data)
+                let slug = FrontMatterHelper.getSlug(markup.data, options.startFolder, file);
 
                 // Image processing
                 if (imgElms && imgElms.length > 0) {
@@ -249,7 +249,7 @@ export class Publish {
    * @param options 
    */
   private static processLinks(linkElms: HTMLAnchorElement[], filePath: string, content: string, options: CommandArguments) {
-    const { webUrl } = options;
+    const { webUrl, startFolder } = options;
 
     for (const link of linkElms.filter(i => !i.href.startsWith(`http`))) {
 
@@ -283,7 +283,7 @@ export class Publish {
           return;
         }
 
-        const slug = FrontMatterHelper.getSlug(mdData.data);
+        const slug = FrontMatterHelper.getSlug(mdData.data, startFolder, mdFilePath);
         const spUrl = `${webUrl}${webUrl.endsWith('/') ? '' : '/'}sitepages/${slug}`;
         Logger.debug(`Referenced file slug: ${spUrl}`);
 
