@@ -2,6 +2,7 @@
 
 ## [1.4.0]
 
+- [#26](https://github.com/ValoIntranet/doctor/issues/26): Include folder name for slug when not set in front matter.
 - [#27](https://github.com/ValoIntranet/doctor/issues/27): Add support in Front Matter to enable or disable page comments. By default they are disabled.
 - [#32](https://github.com/ValoIntranet/doctor/issues/32): Added MIT license to the project
 
