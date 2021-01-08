@@ -18,6 +18,9 @@ export class Commands {
     if (options) {
       const hrstart = process.hrtime();
 
+      // Disable the CLI update check to speed up the process
+      process.env['CLIMICROSOFT365_NOUPDATE'] = '1';
+
       Logger.init(options.debug);
 
       console.log('');
