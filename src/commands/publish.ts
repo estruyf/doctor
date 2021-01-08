@@ -19,6 +19,7 @@ import { FrontMatterHelper } from '../helpers/FrontMatterHelper';
 import { MarkdownHelper } from '../helpers/MarkdownHelper';
 import { ArgumentsHelper } from '../helpers/ArgumentsHelper';
 import { Page } from '../models/Page';
+import { HeaderHelper } from './../helpers/HeaderHelper';
 
 export class Publish {
 
@@ -128,7 +129,7 @@ export class Publish {
                   }
                 }
 
-                let { title, draft, comments, layout } = markup.data;
+                let { title, draft, comments, layout, header } = markup.data;
                 let slug = FrontMatterHelper.getSlug(markup.data, options.startFolder, file);
 
                 // Image processing
@@ -165,6 +166,9 @@ export class Publish {
 
                   // Check if the page already exists
                   await this.createPageIfNotExists(webUrl, slug, title, layout, comments);
+
+                  // Check if the header of the page needs to be changed
+                  await HeaderHelper.set(file, webUrl, slug, header, options);
       
                   // Retrieving all the controls from the page, so that we can start replacing the 
                   const controlData: string = await this.getPageControls(webUrl, slug);

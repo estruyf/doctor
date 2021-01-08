@@ -71,6 +71,17 @@ Optional Front Matter properties are:
 - **draft**: `boolean` - defines if you want to publish the article during the publishing phase.
 - **comments**: `boolean` - with this setting you can enable/disable page commenting. By default this is disabled.
 - **layout**: `Article` | `Home` - defines which page layout you want to use. Default layout type is `Article`.
+- **header**: `HeaderOptions` - defines how you want to render the header on the page.
+  - **type**: Use one of the following values: `None|Default|Custom`. Default: `Default`.
+  - **image**: Path to the image file you want to use in your page header.
+  - **altText**: The image description.
+  - **translateX**: X focal point of the header image.
+  - **translateY**: Y focal point of the header image.
+  - **layout**: Layout to use in the header. Allowed values `FullWidthImage|NoImage|ColorBlock|CutInShape`. Default: `FullWidthImage`.
+  - **textAlignment**: How to align text in the header. Allowed values `Center|Left`. Default: `Left`.
+  - **showTopicHeader**: Specify if you want to show the topic header above the title. Default: `false`.
+  - **topicHeader**: Topic header text to show.
+  - **showPublishDate**: Show the publish date in the header. Default: `false`.
 - **menu**: `Menu`- defines where the page gets added to the navigation structure. Check: [menu section](#Menu).
 
 When you want to create page to page links, you can provide the relative path from the current markdown file to the other markdown file (with or without the `.md` extension).
