@@ -4,6 +4,7 @@ import { MenuItem } from "./Menu";
 export interface PageFrontMatter {
   title: string;
 
+  description?: string;
   slug?: string;
   draft?: boolean;
   comments?: boolean;
