@@ -180,11 +180,9 @@ export class Publish {
                   }
 
                   // Check if page needs to be published
-                  if (typeof draft !== "undefined") {
-                    if (!draft) {
-                      observer.next(`Publishing ${filename}`);
-                      await this.publishPageIfNeeded(webUrl, slug);
-                    }
+                  if (typeof draft === "undefined" || !draft) {
+                    observer.next(`Publishing ${filename}`);
+                    await this.publishPageIfNeeded(webUrl, slug);
                   }
 
                   ++output.pagesProcessed;
