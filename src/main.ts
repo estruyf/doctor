@@ -31,7 +31,7 @@ export class Commands {
         try {
           await execScript("localm365");
         } catch (e) {
-          throw "Somthing is wrong with the local @pnp/cli-microsoft365 version";
+          throw "Something is wrong with the local @pnp/cli-microsoft365 version";
         }
       }
 

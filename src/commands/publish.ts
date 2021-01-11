@@ -71,7 +71,7 @@ export class Publish {
         task: async () => await NavigationHelper.update(webUrl, ouput.navigation)
       }
     ]).run().catch(err => {
-      console.error(err);
+      throw err;
     });
 
     console.log('');
