@@ -76,7 +76,7 @@ export class FileHelpers {
         Logger.debug(`Folders to be removed: ${JSON.stringify(folderData)}`);
         
         for (const folder of folderData as Folder[]) {
-          if (folder && folder.Exists && folder.Name.toLowerCase() !== "forms") {
+          if (folder && folder.Exists && folder.Name.toLowerCase() !== "forms" && folder.Name.toLowerCase() !== "templates") {
             const folderPath = `${crntFolder}${folder.ServerRelativeUrl.toLowerCase().split(crntFolder).pop()}`;
             await execScript<string>(`localm365`, ArgumentsHelper.parse(`spo folder remove --webUrl "${webUrl}" --folderUrl "${folderPath}" --confirm`));
           }
