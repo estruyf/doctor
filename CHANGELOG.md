@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.4.0]
+
+- [#17](https://github.com/ValoIntranet/doctor/issues/17): Enhancement: Add support for page description.
+- [#18](https://github.com/ValoIntranet/doctor/issues/18): Enhancement: Support for setting header image of the page.
+- [#20](https://github.com/ValoIntranet/doctor/issues/20): Enhancement: Add support for title area layout.
+- [#25](https://github.com/ValoIntranet/doctor/issues/25): Make `draft` optional.
+- [#26](https://github.com/ValoIntranet/doctor/issues/26): Include folder name for slug when not set in front matter.
+- [#27](https://github.com/ValoIntranet/doctor/issues/27): Add support in Front Matter to enable or disable page comments. By default they are disabled.
+- [#32](https://github.com/ValoIntranet/doctor/issues/32): Added MIT license to the project
+
 ## [1.3.1]
 
 - [#28](https://github.com/ValoIntranet/doctor/issues/28): Fix for `cleanStart` when comfirm flag is not provided. Thanks to [Mark Heptinstall](https://github.com/mheptinstall).

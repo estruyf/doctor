@@ -19,6 +19,8 @@ import { FrontMatterHelper } from '../helpers/FrontMatterHelper';
 import { MarkdownHelper } from '../helpers/MarkdownHelper';
 import { ArgumentsHelper } from '../helpers/ArgumentsHelper';
 import { Page } from '../models/Page';
+import { HeaderHelper } from './../helpers/HeaderHelper';
+import { ListData } from './../models/ListData';
 
 export class Publish {
 
@@ -70,7 +72,7 @@ export class Publish {
         task: async () => await NavigationHelper.update(webUrl, ouput.navigation)
       }
     ]).run().catch(err => {
-      console.error(err);
+      throw err;
     });
 
     console.log('');
@@ -128,8 +130,8 @@ export class Publish {
                   }
                 }
 
-                let { title, draft, layout } = markup.data;
-                let slug = FrontMatterHelper.getSlug(markup.data)
+                let { title, description, draft, comments, layout, header } = markup.data;
+                let slug = FrontMatterHelper.getSlug(markup.data, options.startFolder, file);
 
                 // Image processing
                 if (imgElms && imgElms.length > 0) {
@@ -164,7 +166,10 @@ export class Publish {
                   observer.next(`Creating or updating the page in SharePoint for ${filename}`);
 
                   // Check if the page already exists
-                  await this.createPageIfNotExists(webUrl, slug, title, layout);
+                  await this.createPageIfNotExists(webUrl, slug, title, layout, comments, description);
+
+                  // Check if the header of the page needs to be changed
+                  await HeaderHelper.set(file, webUrl, slug, header, options);
       
                   // Retrieving all the controls from the page, so that we can start replacing the 
                   const controlData: string = await this.getPageControls(webUrl, slug);
@@ -174,13 +179,17 @@ export class Publish {
                     const markdownWp = webparts.find((c: any) => c.title === webPartTitle);   
                     await this.insertOrCreateControl(webPartTitle, markup.content, slug, webUrl, markdownWp ? markdownWp.id : null);
                   }
-
+                  
                   // Check if page needs to be published
-                  if (typeof draft !== "undefined") {
-                    if (!draft) {
-                      observer.next(`Publishing ${filename}`);
-                      await this.publishPageIfNeeded(webUrl, slug);
-                    }
+                  if (typeof draft === "undefined" || !draft) {
+                    observer.next(`Publishing ${filename}`);
+                    await this.publishPageIfNeeded(webUrl, slug);
+                  }
+
+                  // Set the page its description
+                  if (description) {
+                    observer.next(`Setting page description for ${filename}`);
+                    await this.setPageDescription(webUrl, slug, description);
                   }
 
                   ++output.pagesProcessed;
@@ -203,7 +212,6 @@ export class Publish {
       })();
     });
   }
-
 
   /**
    * Process images referenced in the file
@@ -249,7 +257,7 @@ export class Publish {
    * @param options 
    */
   private static processLinks(linkElms: HTMLAnchorElement[], filePath: string, content: string, options: CommandArguments) {
-    const { webUrl } = options;
+    const { webUrl, startFolder } = options;
 
     for (const link of linkElms.filter(i => !i.href.startsWith(`http`))) {
 
@@ -283,7 +291,7 @@ export class Publish {
           return;
         }
 
-        const slug = FrontMatterHelper.getSlug(mdData.data);
+        const slug = FrontMatterHelper.getSlug(mdData.data, startFolder, mdFilePath);
         const spUrl = `${webUrl}${webUrl.endsWith('/') ? '' : '/'}sitepages/${slug}`;
         Logger.debug(`Referenced file slug: ${spUrl}`);
 
@@ -303,15 +311,21 @@ export class Publish {
    * @param slug 
    * @param title 
    */
-  private static async createPageIfNotExists(webUrl: string, slug: string, title: string, layout: string = "Article"): Promise<void> {
+  private static async createPageIfNotExists(webUrl: string, slug: string, title: string, layout: string = "Article", comments: boolean = false, description: string = ""): Promise<void> {
     try {
       let pageData = await execScript(`localm365`, ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --output json`));
       if (pageData && typeof pageData === "string") {
         pageData = JSON.parse(pageData);
+
+        Logger.debug(pageData);
       }
 
       if (pageData && (pageData as Page).layoutType !== layout) {
-        await execScript(`localm365`, ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" --layoutType "${layout}"`));
+        await execScript(`localm365`, ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" --layoutType "${layout}" --description "${description}"`));
+      }
+
+      if (pageData && (pageData as Page).commentsDisabled !== !comments) {
+        await execScript(`localm365`, ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" --commentsEnabled ${comments ? "true" : "false" }`));
       }
     } catch (e) {
       // Check if folders for the file need to be created
@@ -320,7 +334,7 @@ export class Publish {
         await FolderHelpers.create('sitepages', folders.slice(0, folders.length - 1), webUrl);
       }
       // File doesn't exist
-      await execScript(`localm365`, ArgumentsHelper.parse(`spo page add --webUrl "${webUrl}" --name "${slug}" --title "${title}" --layoutType "${layout}"`));
+      await execScript(`localm365`, ArgumentsHelper.parse(`spo page add --webUrl "${webUrl}" --name "${slug}" --title "${title}" --layoutType "${layout}" ${comments ? "--commentsEnabled" : ""} --description "${description}"`));
     }
   }
 
@@ -348,6 +362,32 @@ export class Publish {
     } else {
       // Add new markdown web part
       await execScript(`localm365`, [...ArgumentsHelper.parse(`spo page clientsidewebpart add --webUrl "${webUrl}" --pageName "${slug}" --webPartId 1ef5ed11-ce7b-44be-bc5e-4abd55101d16 --webPartData`), wpData]);
+    }
+  }
+
+  /**
+   * Set the page its description
+   * @param webUrl 
+   * @param slug 
+   * @param description 
+   */
+  private static async setPageDescription(webUrl: string, slug: string, description: string) {
+    let pageData: any = await execScript(`localm365`, ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --output json`));
+    if (pageData && typeof pageData === "string") {
+      pageData = JSON.parse(pageData);
+
+      Logger.debug(pageData);
+    }
+
+    let listData: any = await execScript(`localm365`, ArgumentsHelper.parse(`spo list list --webUrl "${webUrl}" --output json`));
+    if (listData && typeof listData === "string") {
+      listData = JSON.parse(listData);
+    }
+
+    const pageList = (listData as ListData[]).find(l => l.Url.toLowerCase().includes("/sitepages"));
+
+    if (pageData.ListItemAllFields && pageData.ListItemAllFields.Id && pageList) {
+      await execScript(`localm365`, ArgumentsHelper.parse(`spo listitem set --listTitle "${pageList.Title}" --id ${pageData.ListItemAllFields.Id} --webUrl "${webUrl}" --Description "${description}" --systemUpdate`));
     }
   }
 
