@@ -243,9 +243,6 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 `--overwriteImages`
 : Specifies if you allow `doctor` to overwrite the images in the SharePoint library that are referenced in the markdown files.
 
-`--skipPrecheck`
-: Skips the pre-checks when running the commands. This validates if you have the right dependencies installed in your environment.
-
 `--debug`
 : Provides more information of what is happening during command execution.
 

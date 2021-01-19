@@ -2,7 +2,6 @@ import * as kleur from 'kleur';
 import { Publish } from './commands/publish';
 import { CommandArguments } from './models/CommandArguments';
 import { Init } from './commands/init';
-import { execScript } from './helpers/execScript';
 import { Version } from './commands/version';
 import { Command } from './commands/Command';
 import { Logger } from './helpers/logger';
@@ -26,14 +25,6 @@ export class Commands {
       console.log('');
       console.log(kleur.bold().bgMagenta().white(` START: `), `${options.task} job`);
       console.log('');
-
-      if (!options.skipPrecheck && options.task !== Command.version) {
-        try {
-          await execScript("localm365");
-        } catch (e) {
-          throw "Something is wrong with the local @pnp/cli-microsoft365 version";
-        }
-      }
 
       if (options.task === Command.publish) {
         await Publish.start(options);
