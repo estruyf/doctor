@@ -1,3 +1,4 @@
+import { encode } from 'html-entities';
 
 export class MarkdownHelper {
 
@@ -18,8 +19,7 @@ export class MarkdownHelper {
     }
 
     markdown = this.parseMarkdown(markdown, isWIn);
-
-    wpData = wpData.replace(tilePh, webPartTitle).replace(markdownPh, markdown);
+    wpData = wpData.replace(tilePh, webPartTitle).replace(markdownPh, encode(markdown));
     return wpData;
   }
 
@@ -29,10 +29,12 @@ export class MarkdownHelper {
    * @param isWin 
    */
   private static parseMarkdown(markdown: string, isWin: boolean = false) {
-    markdown = markdown.replace(/\r/g, '\\r').replace(/\n/g, '\\n')
+    markdown = markdown.replace(/\r/g, '~r~').replace(/\n/g, '~n~');
+    markdown = markdown.replace(/\\/g, `\\\\`);
+    markdown = markdown.replace(/~r~/g, '\\r').replace(/~n~/g, '\\n');
     if (isWin) {
-      return markdown.replace(/\"/g, `\\\\""`);
+      return markdown.replace(/\"/g, `&quot;`);
     }
-    return markdown.replace(/"/g, `\\"`);
+    return markdown.replace(/"/g, `&quot;`);
   }
 }
