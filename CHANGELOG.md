@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.5.0]
+
+- [#37](https://github.com/ValoIntranet/doctor/issues/37): Fix issue with encoding special characters
+
 ## [1.4.0]
 
 - [#17](https://github.com/ValoIntranet/doctor/issues/17): Enhancement: Add support for page description.
