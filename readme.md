@@ -255,6 +255,12 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 `--confirm`
 : Don't prompt for confirming removing the files when you specified to clean up pages and assets before publishing.
 
+`--skipExistingPages`
+: Will not overwrite pages if they already existed on the site.
+
+`--continueOnError`
+: Continue when an error occurs during the publishing process.
+
 ### `doctor.json`
 
 You can provide the same flags and values like in the parameters. Parameters can override what is defined in the `doctor.json`. Be sure to use the whole argument names, and not the shortcodes.

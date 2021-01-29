@@ -2,7 +2,9 @@
 
 ## [1.5.0]
 
+- [#36](https://github.com/ValoIntranet/doctor/issues/36): Enhancement: Added `--skipExistingPages` support
 - [#37](https://github.com/ValoIntranet/doctor/issues/37): Fix issue with encoding special characters
+- [#38](https://github.com/ValoIntranet/doctor/issues/38): Enhancement: Added `--continueOnError` support
 
 ## [1.4.0]
 

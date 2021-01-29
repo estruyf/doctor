@@ -16,7 +16,7 @@ export class FrontMatterHelper {
     const spFilePath = pathSlug.filter(s => s).join('/');
 
     if (!slug) {
-      slug = `${spFilePath ? `${spFilePath}/` : ''}${title.replace(/ /g, '-').toLowerCase()}.aspx`
+      slug = `${spFilePath ? `${spFilePath}/` : ''}${title.replace(/\//g, '-').replace(/ /g, '-').toLowerCase()}.aspx`
     } else if (!(slug as string).endsWith('.aspx')) {
       slug = `${slug}.aspx`
     }

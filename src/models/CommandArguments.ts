@@ -10,9 +10,11 @@ export interface CommandArguments {
   webUrl: string;
   overwriteImages: boolean;
   skipPrecheck: boolean;
+  skipExistingPages: boolean;
   debug: boolean;
   cleanStart: boolean;
   confirm: boolean;
+  continueOnError: boolean;
 
   menu?: Menu;
 
