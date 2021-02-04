@@ -72,6 +72,7 @@ Optional Front Matter properties are:
 - **description**: `string` - the page description to add. *Be aware*: description is limited to 255 characters.
 - **comments**: `boolean` - with this setting you can enable/disable page commenting. By default this is disabled.
 - **layout**: `Article` | `Home` - defines which page layout you want to use. Default layout type is `Article`.
+- **template**: `string` - specify the title of the page template which you want to use for the current page.
 - **header**: `HeaderOptions` - defines how you want to render the header on the page.
   - **type**: Use one of the following values: `None|Default|Custom`. Default: `Default`.
   - **image**: Path to the image file you want to use in your page header.

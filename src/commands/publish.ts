@@ -174,7 +174,7 @@ export class Publish {
 
                   if (!existed || (existed && !skipExistingPages)) {
                     // Check if the header of the page needs to be changed
-                    await HeaderHelper.set(file, webUrl, slug, header, options);
+                    await HeaderHelper.set(file, webUrl, slug, header, options, !!template);
         
                     // Retrieving all the controls from the page, so that we can start replacing the 
                     const controlData: string = await this.getPageControls(webUrl, slug);
@@ -337,12 +337,26 @@ export class Publish {
         return true;
       }
 
+      let cmdArgs = ``;
+
+      if (pageData && (pageData as Page).title !== title) {
+        cmdArgs = `--title "${title}"`;
+      }
+
+      if (pageData && description) {
+        cmdArgs = `${cmdArgs} --description "${description}"`;
+      }
+
       if (pageData && (pageData as Page).layoutType !== layout) {
-        await execScript(`localm365`, ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" --layoutType "${layout}" --description "${description}"`));
+        cmdArgs = `${cmdArgs} --layoutType "${layout}"`;
       }
 
       if (pageData && (pageData as Page).commentsDisabled !== !comments) {
-        await execScript(`localm365`, ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" --commentsEnabled ${comments ? "true" : "false" }`));
+        cmdArgs = `${cmdArgs} --commentsEnabled ${comments ? "true" : "false" }`;
+      }
+
+      if (cmdArgs) {
+        await execScript(`localm365`, ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" ${cmdArgs}`));
       }
 
       return true;
@@ -363,8 +377,10 @@ export class Publish {
 
         const pageTemplate = (templates as PageTemplate[]).find(t => t.Title === template);
         if (pageTemplate) {
-          await execScript(`localm365`, ArgumentsHelper.parse(`spo file copy --webUrl "${webUrl}" --sourceUrl "${pageTemplate.Url}" --targetUrl "sitepages/${slug}"`));
-          this.createPageIfNotExists(webUrl, slug, title, layout, comments, description, null, skipExistingPages);
+          const templateUrl = pageTemplate.Url.toLowerCase().replace("sitepages/", "");
+          await execScript(`localm365`, ArgumentsHelper.parse(`spo page copy --webUrl "${webUrl}" --sourceName "${templateUrl}" --targetUrl "${slug}"`));
+          await execScript(`localm365`, ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" --publish`));
+          return this.createPageIfNotExists(webUrl, slug, title, layout, comments, description, null, skipExistingPages);
         } else {
           console.log(`Template "${template}" not found on the site, will create a default page instead.`)
         }
