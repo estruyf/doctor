@@ -236,7 +236,10 @@ export class Publish {
   private static async processImages(imgElms: HTMLImageElement[], filePath: string, contents: string, options: CommandArguments, output: PublishOutput) {
     const { startFolder, assetLibrary, webUrl, overwriteImages } = options;
 
-    for (const img of imgElms.filter(i => !i.src.startsWith(`http`))) {
+    const imgs = imgElms.filter(i => !i.src.startsWith(`http`));
+    for (const img of imgs) {
+      Logger.debug(`Adding image: ${img.src} - ${imgs.length}`)
+
       const imgDirectory = path.join(path.dirname(filePath), path.dirname(img.src));
       const imgPath = path.join(path.dirname(filePath), img.src);
 
@@ -249,16 +252,15 @@ export class Publish {
 
       try {
         await FileHelpers.create(crntFolder, imgPath, webUrl, overwriteImages);
-
         contents = contents.replace(new RegExp(img.src, 'g'), `${webUrl}/${crntFolder}/${path.basename(img.src)}`);
-        const markup = parseMarkdown(contents);
         ++output.imagesProcessed;
-
-        return markup;
       } catch (e) {
         return Promise.reject(new Error(`Something failed while uploading the image asset. ${e.message}`));
       }
     }
+
+    const markup = parseMarkdown(contents);
+    return markup;
   }
 
   /**
