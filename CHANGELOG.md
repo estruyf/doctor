@@ -7,6 +7,7 @@
 - [#37](https://github.com/ValoIntranet/doctor/issues/37): Fix issue with encoding special characters
 - [#38](https://github.com/ValoIntranet/doctor/issues/38): Enhancement: Added `--continueOnError` support
 - [#39](https://github.com/ValoIntranet/doctor/issues/39): Fix for navigation command execution
+- [#40](https://github.com/ValoIntranet/doctor/issues/40): Fix issue with multiple images on pages
 
 ## [1.4.0]
 
