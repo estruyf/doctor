@@ -1,4 +1,5 @@
 import { Menu, MenuItem, MenuType } from "../models/Menu";
+import { ArgumentsHelper } from "./ArgumentsHelper";
 import { execScript } from "./execScript";
 import { Logger } from "./logger";
 
@@ -140,7 +141,7 @@ export class NavigationHelper {
    * @param type 
    */
   private static async getNavigationElms(webUrl: string, type: LocationType) {
-    let args = [`spo`, `navigation`, `node`, `list`, `--webUrl`, `'${webUrl}'`, `--location`, type, `-o`, `json`];
+    let args = [`spo`, `navigation`, `node`, `list`, `--webUrl`, `"${webUrl}"`, `--location`, type, `-o`, `json`];
     if (args && typeof args === "string") {
       args = JSON.parse(args);
     }
@@ -170,7 +171,7 @@ export class NavigationHelper {
    */
   private static async removeNavigationElm(webUrl: string, type: LocationType, id: number) {
     if (id) {
-      await execScript('localm365', [`spo`, `navigation`, `node`, `remove`, `--webUrl`, `'${webUrl}'`, `--location`, type, `--id`, `${id}`, '--confirm']);
+      await execScript(`localm365`, ArgumentsHelper.parse(`spo navigation node remove --webUrl "${webUrl}" --location "${type}" --id "${id}" --confirm`));
     }
   }
 
@@ -182,9 +183,9 @@ export class NavigationHelper {
    * @param url 
    */
   private static async createNavigationElm(webUrl: string, type: LocationType, name: string, url: string, id: number = null): Promise<NavigationItem | null> {
-    const rootElm = id ? [`--parentNodeId`, `${id}`] : [];
+    const rootElm = id ? `--parentNodeId "${id}"` : '';
     if (name) {
-      const item = await execScript('localm365', [`spo`, `navigation`, `node`, `add`, `--webUrl`, `'${webUrl}'`, `--location`, type, `--title`, `'${name}'`, `--url`, `'${url}'`, ...rootElm, `-o`, `json`]);
+      const item = await execScript(`localm365`, ArgumentsHelper.parse(`spo navigation node add --webUrl "${webUrl}" --location "${type}" --title "${name}" --url "${url}" ${rootElm} -o json`));
 
       return typeof item === "string" ? JSON.parse(item) : item;
     }
