@@ -21,8 +21,10 @@ import { ArgumentsHelper } from '../helpers/ArgumentsHelper';
 import { Page } from '../models/Page';
 import { HeaderHelper } from './../helpers/HeaderHelper';
 import { ListData } from './../models/ListData';
+import { PageTemplate } from '../models/PageTemplate';
 
 export class Publish {
+  private static pageList: ListData = null;
 
   /**
    * Publishes the markdown files to SharePoint
@@ -106,10 +108,10 @@ export class Publish {
 
     return new Observable(observer => {
       (async () => {
-        try {
-          const { files } = ctx;
+        const { files } = ctx;
 
-          for (const file of files) {
+        for (const file of files) {
+          try {
             if (file.endsWith('.md')) {
               const filename = path.basename(file);
               observer.next(`Started processing: ${filename}`);
@@ -124,13 +126,15 @@ export class Publish {
                 const anchorElms = [...htmlElm.window.document.querySelectorAll('a') as any] as HTMLAnchorElement[];
 
                 // Check if the required data for the article is present
-                if (markup && markup.data) {
+                if (markup && !markup.data) {
+                  throw new Error(`The "${filename}" has no front matter defined`);
+                } else if (markup && markup.data) {
                   if (!markup.data.title) {
-                    return Promise.reject(new Error(`The ${filename} has no 'title' defined`));
+                    throw new Error(`The "${filename}" has no 'title' defined`);
                   }
                 }
 
-                let { title, description, draft, comments, layout, header } = markup.data;
+                let { title, description, draft, comments, layout, header, template, skipExistingPages } = markup.data;
                 let slug = FrontMatterHelper.getSlug(markup.data, options.startFolder, file);
 
                 // Image processing
@@ -166,33 +170,37 @@ export class Publish {
                   observer.next(`Creating or updating the page in SharePoint for ${filename}`);
 
                   // Check if the page already exists
-                  await this.createPageIfNotExists(webUrl, slug, title, layout, comments, description);
+                  const existed = await this.createPageIfNotExists(webUrl, slug, title, layout, comments, description, template, skipExistingPages);
 
-                  // Check if the header of the page needs to be changed
-                  await HeaderHelper.set(file, webUrl, slug, header, options);
-      
-                  // Retrieving all the controls from the page, so that we can start replacing the 
-                  const controlData: string = await this.getPageControls(webUrl, slug);
-                  
-                  if (controlData) {
-                    const webparts = JSON.parse(controlData);
-                    const markdownWp = webparts.find((c: any) => c.title === webPartTitle);   
-                    await this.insertOrCreateControl(webPartTitle, markup.content, slug, webUrl, markdownWp ? markdownWp.id : null);
-                  }
-                  
-                  // Check if page needs to be published
-                  if (typeof draft === "undefined" || !draft) {
-                    observer.next(`Publishing ${filename}`);
-                    await this.publishPageIfNeeded(webUrl, slug);
-                  }
+                  if (!existed || (existed && !skipExistingPages)) {
+                    // Check if the header of the page needs to be changed
+                    await HeaderHelper.set(file, webUrl, slug, header, options, !!template);
+        
+                    // Retrieving all the controls from the page, so that we can start replacing the 
+                    const controlData: string = await this.getPageControls(webUrl, slug);
+                    
+                    if (controlData) {
+                      const webparts = JSON.parse(controlData);
+                      const markdownWp = webparts.find((c: any) => c.title === webPartTitle);   
+                      await this.insertOrCreateControl(webPartTitle, markup.content, slug, webUrl, markdownWp ? markdownWp.id : null);
+                    }
+                    
+                    // Check if page needs to be published
+                    if (typeof draft === "undefined" || !draft) {
+                      observer.next(`Publishing ${filename}`);
+                      await this.publishPageIfNeeded(webUrl, slug);
+                    }
 
-                  // Set the page its description
-                  if (description) {
-                    observer.next(`Setting page description for ${filename}`);
-                    await this.setPageDescription(webUrl, slug, description);
-                  }
+                    // Set the page its description
+                    if (description) {
+                      observer.next(`Setting page description for ${filename}`);
+                      await this.setPageDescription(webUrl, slug, description);
+                    }
 
-                  ++output.pagesProcessed;
+                    ++output.pagesProcessed;
+                  } else {
+                    Logger.debug(`Skipping "${filename}" as it already exists`);
+                  }
                 }
 
                 // Check if the file contains a menu element to add too
@@ -203,10 +211,14 @@ export class Publish {
                 }
               }
             }
+          } catch (e) {
+            observer.error(e);
+            Logger.debug(e.message);
+
+            if (!options.continueOnError) {
+              throw e.message;
+            }
           }
-        } catch (e) {
-          observer.error(e);
-          throw e.message;
         }
         observer.complete();
       })();
@@ -224,7 +236,10 @@ export class Publish {
   private static async processImages(imgElms: HTMLImageElement[], filePath: string, contents: string, options: CommandArguments, output: PublishOutput) {
     const { startFolder, assetLibrary, webUrl, overwriteImages } = options;
 
-    for (const img of imgElms.filter(i => !i.src.startsWith(`http`))) {
+    const imgs = imgElms.filter(i => !i.src.startsWith(`http`));
+    for (const img of imgs) {
+      Logger.debug(`Adding image: ${img.src} - ${imgs.length}`)
+
       const imgDirectory = path.join(path.dirname(filePath), path.dirname(img.src));
       const imgPath = path.join(path.dirname(filePath), img.src);
 
@@ -237,16 +252,15 @@ export class Publish {
 
       try {
         await FileHelpers.create(crntFolder, imgPath, webUrl, overwriteImages);
-
         contents = contents.replace(new RegExp(img.src, 'g'), `${webUrl}/${crntFolder}/${path.basename(img.src)}`);
-        const markup = parseMarkdown(contents);
         ++output.imagesProcessed;
-
-        return markup;
       } catch (e) {
         return Promise.reject(new Error(`Something failed while uploading the image asset. ${e.message}`));
       }
     }
+
+    const markup = parseMarkdown(contents);
+    return markup;
   }
 
   /**
@@ -311,30 +325,73 @@ export class Publish {
    * @param slug 
    * @param title 
    */
-  private static async createPageIfNotExists(webUrl: string, slug: string, title: string, layout: string = "Article", comments: boolean = false, description: string = ""): Promise<void> {
+  private static async createPageIfNotExists(webUrl: string, slug: string, title: string, layout: string = "Article", comments: boolean = false, description: string = "", template: string | null = null, skipExistingPages: boolean = false): Promise<boolean> {
     try {
       let pageData = await execScript(`localm365`, ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --output json`));
       if (pageData && typeof pageData === "string") {
         pageData = JSON.parse(pageData);
+      }
 
-        Logger.debug(pageData);
+      Logger.debug(pageData);
+
+      if (skipExistingPages) {
+        // Page already existed
+        return true;
+      }
+
+      let cmdArgs = ``;
+
+      if (pageData && (pageData as Page).title !== title) {
+        cmdArgs = `--title "${title}"`;
+      }
+
+      if (pageData && description) {
+        cmdArgs = `${cmdArgs} --description "${description}"`;
       }
 
       if (pageData && (pageData as Page).layoutType !== layout) {
-        await execScript(`localm365`, ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" --layoutType "${layout}" --description "${description}"`));
+        cmdArgs = `${cmdArgs} --layoutType "${layout}"`;
       }
 
       if (pageData && (pageData as Page).commentsDisabled !== !comments) {
-        await execScript(`localm365`, ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" --commentsEnabled ${comments ? "true" : "false" }`));
+        cmdArgs = `${cmdArgs} --commentsEnabled ${comments ? "true" : "false" }`;
       }
+
+      if (cmdArgs) {
+        await execScript(`localm365`, ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" ${cmdArgs}`));
+      }
+
+      return true;
     } catch (e) {
       // Check if folders for the file need to be created
       if (slug.split('/').length > 1) {
         const folders = slug.split('/');
         await FolderHelpers.create('sitepages', folders.slice(0, folders.length - 1), webUrl);
       }
+
+      if (template) {
+        let templates: PageTemplate[] | string = await execScript(`localm365`, ArgumentsHelper.parse(`spo page template list --webUrl "${webUrl}" --output json`));
+        if (templates && typeof templates === "string") {
+          templates = JSON.parse(templates);
+        }
+        
+        Logger.debug(templates);
+
+        const pageTemplate = (templates as PageTemplate[]).find(t => t.Title === template);
+        if (pageTemplate) {
+          const templateUrl = pageTemplate.Url.toLowerCase().replace("sitepages/", "");
+          await execScript(`localm365`, ArgumentsHelper.parse(`spo page copy --webUrl "${webUrl}" --sourceName "${templateUrl}" --targetUrl "${slug}"`));
+          await execScript(`localm365`, ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" --publish`));
+          return this.createPageIfNotExists(webUrl, slug, title, layout, comments, description, null, skipExistingPages);
+        } else {
+          console.log(`Template "${template}" not found on the site, will create a default page instead.`)
+        }
+      }
+
       // File doesn't exist
       await execScript(`localm365`, ArgumentsHelper.parse(`spo page add --webUrl "${webUrl}" --name "${slug}" --title "${title}" --layoutType "${layout}" ${comments ? "--commentsEnabled" : ""} --description "${description}"`));
+
+      return false;
     }
   }
 
@@ -378,14 +435,8 @@ export class Publish {
 
       Logger.debug(pageData);
     }
-
-    let listData: any = await execScript(`localm365`, ArgumentsHelper.parse(`spo list list --webUrl "${webUrl}" --output json`));
-    if (listData && typeof listData === "string") {
-      listData = JSON.parse(listData);
-    }
-
-    const pageList = (listData as ListData[]).find(l => l.Url.toLowerCase().includes("/sitepages"));
-
+    
+    const pageList = await this.getSitePagesList(webUrl);
     if (pageData.ListItemAllFields && pageData.ListItemAllFields.Id && pageList) {
       await execScript(`localm365`, ArgumentsHelper.parse(`spo listitem set --listTitle "${pageList.Title}" --id ${pageData.ListItemAllFields.Id} --webUrl "${webUrl}" --Description "${description}" --systemUpdate`));
     }
@@ -404,5 +455,20 @@ export class Publish {
       // Might be that the file doesn't need to be checked in
     }
     await execScript(`localm365`, ArgumentsHelper.parse(`spo page set --name "${slug}" --webUrl "${webUrl}" --publish`));
+  }
+
+  /**
+   * Retrieve the site pages library
+   * @param webUrl 
+   */
+  private static async getSitePagesList(webUrl: string) {
+    if (!this.pageList) {
+      let listData: any = await execScript(`localm365`, ArgumentsHelper.parse(`spo list list --webUrl "${webUrl}" --output json`));
+      if (listData && typeof listData === "string") {
+        listData = JSON.parse(listData);
+      }
+      this.pageList = (listData as ListData[]).find(l => l.Url.toLowerCase().includes("/sitepages"));
+    }
+    return this.pageList;
   }
 }

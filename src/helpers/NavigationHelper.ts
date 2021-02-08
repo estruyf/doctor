@@ -1,4 +1,5 @@
 import { Menu, MenuItem, MenuType } from "../models/Menu";
+import { ArgumentsHelper } from "./ArgumentsHelper";
 import { execScript } from "./execScript";
 import { Logger } from "./logger";
 
@@ -20,6 +21,7 @@ export class NavigationHelper {
 
     Logger.debug(`Start update with the following navigation:`);
     Logger.debug(JSON.stringify(navigation, null, 2));
+
     for (const location in navigation) {
       if (location as LocationType === "QuickLaunch" || location as LocationType === "TopNavigationBar") {
         const menu: MenuType = navigation[location];
@@ -37,6 +39,9 @@ export class NavigationHelper {
 
             // Start creating the new navigation elements
             const rootNode = await this.createNavigationElm(webUrl, location as LocationType, item.name, item.url || '');
+
+            Logger.debug(`Root node created: ${JSON.stringify(rootNode)}`);
+
             if (rootNode && item.items) {
               await this.createSubNavigationItems(webUrl, location as LocationType, rootNode.Id, item.items);
             }
@@ -140,7 +145,7 @@ export class NavigationHelper {
    * @param type 
    */
   private static async getNavigationElms(webUrl: string, type: LocationType) {
-    let args = [`spo`, `navigation`, `node`, `list`, `--webUrl`, `'${webUrl}'`, `--location`, type, `-o`, `json`];
+    let args = [`spo`, `navigation`, `node`, `list`, `--webUrl`, `"${webUrl}"`, `--location`, type, `-o`, `json`];
     if (args && typeof args === "string") {
       args = JSON.parse(args);
     }
@@ -170,7 +175,7 @@ export class NavigationHelper {
    */
   private static async removeNavigationElm(webUrl: string, type: LocationType, id: number) {
     if (id) {
-      await execScript('localm365', [`spo`, `navigation`, `node`, `remove`, `--webUrl`, `'${webUrl}'`, `--location`, type, `--id`, `${id}`, '--confirm']);
+      await execScript(`localm365`, ArgumentsHelper.parse(`spo navigation node remove --webUrl "${webUrl}" --location "${type}" --id "${id}" --confirm`));
     }
   }
 
@@ -182,9 +187,9 @@ export class NavigationHelper {
    * @param url 
    */
   private static async createNavigationElm(webUrl: string, type: LocationType, name: string, url: string, id: number = null): Promise<NavigationItem | null> {
-    const rootElm = id ? [`--parentNodeId`, `${id}`] : [];
+    const rootElm = id ? `--parentNodeId "${id}"` : '';
     if (name) {
-      const item = await execScript('localm365', [`spo`, `navigation`, `node`, `add`, `--webUrl`, `'${webUrl}'`, `--location`, type, `--title`, `'${name}'`, `--url`, `'${url}'`, ...rootElm, `-o`, `json`]);
+      const item = await execScript(`localm365`, ArgumentsHelper.parse(`spo navigation node add --webUrl "${webUrl}" --location "${type}" --title "${name}" --url "${url}" ${rootElm} -o json`));
 
       return typeof item === "string" ? JSON.parse(item) : item;
     }
@@ -197,8 +202,11 @@ export class NavigationHelper {
    * @param Id 
    * @param items 
    */
-  private static async createSubNavigationItems(webUrl: string, type: LocationType, rootId: number, items: MenuItem[], level: number = 1) {
-    if (type === "QuickLaunch" && level >= 2) {
+  private static async createSubNavigationItems(webUrl: string, type: LocationType, rootId: number, items: MenuItem[], level: number = 0) {
+    level++;
+    Logger.debug(`Navigation start level: ${level}`);
+    if (type === "QuickLaunch" && level > 2) {
+      Logger.debug(`Max level of navigation depth reached`);
       return;
     }
 
@@ -207,7 +215,7 @@ export class NavigationHelper {
       const parentNode = await this.createNavigationElm(webUrl, type, item.name, item.url, rootId);
 
       if (item.items && item.items.length > 0 && parentNode.Id) {
-        await this.createSubNavigationItems(webUrl, type, parentNode.Id, item.items, level++);
+        await this.createSubNavigationItems(webUrl, type, parentNode.Id, item.items, level);
       }
     }
   }

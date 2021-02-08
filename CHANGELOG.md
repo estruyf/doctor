@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.5.0]
+
+- [#33](https://github.com/ValoIntranet/doctor/issues/33): Page template support added
+- [#36](https://github.com/ValoIntranet/doctor/issues/36): Enhancement: Added `--skipExistingPages` support
+- [#37](https://github.com/ValoIntranet/doctor/issues/37): Fix issue with encoding special characters
+- [#38](https://github.com/ValoIntranet/doctor/issues/38): Enhancement: Added `--continueOnError` support
+- [#39](https://github.com/ValoIntranet/doctor/issues/39): Fix for navigation command execution
+- [#40](https://github.com/ValoIntranet/doctor/issues/40): Fix issue with multiple images on pages
+- [#41](https://github.com/ValoIntranet/doctor/issues/41): Fix issue with 2nd level navigation items
+
 ## [1.4.0]
 
 - [#17](https://github.com/ValoIntranet/doctor/issues/17): Enhancement: Add support for page description.

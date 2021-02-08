@@ -17,7 +17,7 @@ export class HeaderHelper {
    * @param header 
    * @param options 
    */
-  public static async set(filePath: string, webUrl: string, slug: string, header: HeaderOptions, options: CommandArguments) {
+  public static async set(filePath: string, webUrl: string, slug: string, header: HeaderOptions, options: CommandArguments, isCopy: boolean = false) {
     const { assetLibrary, startFolder, overwriteImages } = options;
 
     let setPageHeader = `spo page header set --webUrl "${webUrl}" --pageName "${slug}"`;
@@ -80,6 +80,8 @@ export class HeaderHelper {
       }
     }
     
-    await execScript(`localm365`, ArgumentsHelper.parse(`${setPageHeader}`));
+    if (header || !header && !isCopy) {
+      await execScript(`localm365`, ArgumentsHelper.parse(`${setPageHeader}`));
+    }
   }
 }

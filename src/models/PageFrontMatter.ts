@@ -10,4 +10,5 @@ export interface PageFrontMatter {
   comments?: boolean;
   header?: HeaderOptions;
   menu?: MenuItem;
+  template?: string;
 }
