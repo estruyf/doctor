@@ -21,6 +21,7 @@ export class NavigationHelper {
 
     Logger.debug(`Start update with the following navigation:`);
     Logger.debug(JSON.stringify(navigation, null, 2));
+
     for (const location in navigation) {
       if (location as LocationType === "QuickLaunch" || location as LocationType === "TopNavigationBar") {
         const menu: MenuType = navigation[location];
@@ -38,6 +39,9 @@ export class NavigationHelper {
 
             // Start creating the new navigation elements
             const rootNode = await this.createNavigationElm(webUrl, location as LocationType, item.name, item.url || '');
+
+            Logger.debug(`Root node created: ${JSON.stringify(rootNode)}`);
+
             if (rootNode && item.items) {
               await this.createSubNavigationItems(webUrl, location as LocationType, rootNode.Id, item.items);
             }
@@ -198,8 +202,11 @@ export class NavigationHelper {
    * @param Id 
    * @param items 
    */
-  private static async createSubNavigationItems(webUrl: string, type: LocationType, rootId: number, items: MenuItem[], level: number = 1) {
-    if (type === "QuickLaunch" && level >= 2) {
+  private static async createSubNavigationItems(webUrl: string, type: LocationType, rootId: number, items: MenuItem[], level: number = 0) {
+    level++;
+    Logger.debug(`Navigation start level: ${level}`);
+    if (type === "QuickLaunch" && level > 2) {
+      Logger.debug(`Max level of navigation depth reached`);
       return;
     }
 
@@ -208,7 +215,7 @@ export class NavigationHelper {
       const parentNode = await this.createNavigationElm(webUrl, type, item.name, item.url, rootId);
 
       if (item.items && item.items.length > 0 && parentNode.Id) {
-        await this.createSubNavigationItems(webUrl, type, parentNode.Id, item.items, level++);
+        await this.createSubNavigationItems(webUrl, type, parentNode.Id, item.items, level);
       }
     }
   }
