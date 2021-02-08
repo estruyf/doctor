@@ -2,7 +2,7 @@ import { Menu } from "./Menu";
 
 export interface CommandArguments {
   task: string;
-  auth: "deviceCode" | "password";
+  auth: "deviceCode" | "password" | "certificate";
   startFolder: string;
   startFolderRel: string;
   assetLibrary: string;
@@ -19,4 +19,7 @@ export interface CommandArguments {
   username?: string;
   password?: string;
   outputFolder?: string;
+  tenant?: string;
+  appId?: string;
+  certificateBase64Encoded?: string;
 }
