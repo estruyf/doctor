@@ -8,6 +8,7 @@
 - [#38](https://github.com/ValoIntranet/doctor/issues/38): Enhancement: Added `--continueOnError` support
 - [#39](https://github.com/ValoIntranet/doctor/issues/39): Fix for navigation command execution
 - [#40](https://github.com/ValoIntranet/doctor/issues/40): Fix issue with multiple images on pages
+- [#41](https://github.com/ValoIntranet/doctor/issues/41): Fix issue with 2nd level navigation items
 
 ## [1.4.0]
 
