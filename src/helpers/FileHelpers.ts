@@ -36,7 +36,7 @@ export class FileHelpers {
           // Check if file exists
           const filePath = `${crntFolder}/${path.basename(imgPath)}`;
           const relativeUrl = this.getRelUrl(webUrl, filePath);
-          await execScript(`localm365`, ArgumentsHelper.parse(`spo file get --webUrl "${webUrl}" --url "${relativeUrl}"`));
+          await execScript(ArgumentsHelper.parse(`spo file get --webUrl "${webUrl}" --url "${relativeUrl}"`));
         } catch (e) {
           await this.upload(webUrl, crntFolder, imgPath);
         }
@@ -54,7 +54,7 @@ export class FileHelpers {
     if (options.cleanStart) {
       try {
         const { webUrl } = options;
-        let filesData: File[] | string =  await execScript<string>(`localm365`, ArgumentsHelper.parse(`spo file list --webUrl "${webUrl}" -f "${crntFolder}" -o json`));
+        let filesData: File[] | string =  await execScript<string>(ArgumentsHelper.parse(`spo file list --webUrl "${webUrl}" -f "${crntFolder}" -o json`));
         if (filesData && typeof filesData === "string") {
           filesData = JSON.parse(filesData);
         }
@@ -64,11 +64,11 @@ export class FileHelpers {
         for (const file of filesData as File[]) {
           if (file && file.UniqueId) {
             const filePath = `${crntFolder}${file.ServerRelativeUrl.toLowerCase().split(crntFolder).pop()}`;
-            await execScript<string>(`localm365`, ArgumentsHelper.parse(`spo file remove --webUrl "${webUrl}" --url "${filePath}" --confirm`));
+            await execScript<string>(ArgumentsHelper.parse(`spo file remove --webUrl "${webUrl}" --url "${filePath}" --confirm`));
           }
         }
 
-        let folderData: Folder[] | string =  await execScript<string>(`localm365`, ArgumentsHelper.parse(`spo folder list --webUrl "${webUrl}" --parentFolderUrl "${crntFolder}" -o json`));
+        let folderData: Folder[] | string =  await execScript<string>(ArgumentsHelper.parse(`spo folder list --webUrl "${webUrl}" --parentFolderUrl "${crntFolder}" -o json`));
         if (folderData && typeof folderData === "string") {
           folderData = JSON.parse(folderData);
         }
@@ -78,7 +78,7 @@ export class FileHelpers {
         for (const folder of folderData as Folder[]) {
           if (folder && folder.Exists && folder.Name.toLowerCase() !== "forms" && folder.Name.toLowerCase() !== "templates") {
             const folderPath = `${crntFolder}${folder.ServerRelativeUrl.toLowerCase().split(crntFolder).pop()}`;
-            await execScript<string>(`localm365`, ArgumentsHelper.parse(`spo folder remove --webUrl "${webUrl}" --folderUrl "${folderPath}" --confirm`));
+            await execScript<string>(ArgumentsHelper.parse(`spo folder remove --webUrl "${webUrl}" --folderUrl "${folderPath}" --confirm`));
           }
         }
       } catch (e) {
@@ -94,6 +94,6 @@ export class FileHelpers {
    * @param imgPath 
    */
   private static async upload(webUrl: string, crntFolder: string, imgPath: string) {
-    await execScript(`localm365`, ArgumentsHelper.parse(`spo file add --webUrl "${webUrl}" --folder "${crntFolder}" --path "${imgPath}"`));
+    await execScript(ArgumentsHelper.parse(`spo file add --webUrl "${webUrl}" --folder "${crntFolder}" --path "${imgPath}"`));
   }
 }

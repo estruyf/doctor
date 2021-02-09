@@ -218,11 +218,11 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 > **Info**: Check out the [Certificate Authentication](#certificate-authentication) section for more information about using the `certificate` approach.
 
 
-`--username`
+`--username <username>`
 : When using `password` authentication, you need to pass the `username` and `password`.
 
 
-`--password`
+`--password <password>`
 : When using `password` authentication, you need to pass the `username` and `password`.
 
 
@@ -234,11 +234,11 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 : The URL of the site collection to use.
 
 
-`--library`
+`--library <library>`
 : Specified the library which you want to use in SharePoint to store your referenced images.
 
 
-`--webPartTitle`
+`--webPartTitle <webPartTitle>`
 : This defined the title of the markdown web part to be created/updated on the page. Default value is: `doctor-placeholder`.
 
 > **Important**: if you would change this value, be sure to keep this in the `doctor.json` file. 
@@ -249,7 +249,7 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 `--debug`
 : Provides more information of what is happening during command execution.
 
-`--outputFolder`
+`--outputFolder <outputFolder>`
 : When providing this option, the processed markdown files will be generated in this folder.
 
 `--cleanStart`
@@ -263,6 +263,9 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 
 `--continueOnError`
 : Continue when an error occurs during the publishing process.
+
+`--commandName <commandName>`
+: In case you want to use the locally installed `CLI for Microsoft 365`, you can use this flag. By default, it uses the version specified in the `doctor` tool. You can use the a locally installed version as follows: `--commandName m365`.
 
 ### `doctor.json`
 

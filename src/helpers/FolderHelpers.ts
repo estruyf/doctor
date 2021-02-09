@@ -20,7 +20,7 @@ export class FolderHelpers {
         Logger.debug(`Folder: ${folder} - Folder path: ${folderToProcess}`);
         if (this.checkedFolders.indexOf(folderToProcess) === -1) {
           try {
-            let scriptData: any = await execScript(`localm365`, ArgumentsHelper.parse(`spo folder get --webUrl "${webUrl}" --folderUrl "${folderToProcess}" -o json`));
+            let scriptData: any = await execScript(ArgumentsHelper.parse(`spo folder get --webUrl "${webUrl}" --folderUrl "${folderToProcess}" -o json`));
 
             if (scriptData && typeof scriptData === "string") {
               scriptData = JSON.parse(scriptData);
@@ -30,7 +30,7 @@ export class FolderHelpers {
               throw "Folder doesn't seem to exist yet";
             }
           } catch (e) {
-            await execScript(`localm365`, ArgumentsHelper.parse(`spo folder add --webUrl "${webUrl}" --parentFolderUrl "/${crntFolder}" --name "${folder}"`));
+            await execScript(ArgumentsHelper.parse(`spo folder add --webUrl "${webUrl}" --parentFolderUrl "/${crntFolder}" --name "${folder}"`));
           }
           
           this.checkedFolders.push(folderToProcess);

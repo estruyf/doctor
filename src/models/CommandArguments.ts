@@ -24,4 +24,5 @@ export interface CommandArguments {
   tenant?: string;
   appId?: string;
   certificateBase64Encoded?: string;
+  commandName?: string;
 }

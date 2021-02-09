@@ -2,7 +2,9 @@
 
 ## [1.6.0]
 
-- [#34](https://github.com/ValoIntranet/doctor/issues/34): Add support for certificate authentication
+- [#34](https://github.com/ValoIntranet/doctor/issues/34): Add support for certificate authentication (provided by [Gustavo Covas](https://github.com/gustavocovas))
+- [#44](https://github.com/ValoIntranet/doctor/issues/44): Enhancement: Be able to specify which version of CLI for Microsoft 365 you want to use
+
 
 ## [1.5.0]
 

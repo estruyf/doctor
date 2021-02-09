@@ -18,11 +18,11 @@ export class Authenticate {
         title: `Authenticate to M365 with ${auth}`,
         task: async () => {
           if (auth === "deviceCode") {
-            await execScript(`localm365`, [`login`], true);
+            await execScript([`login`], true);
           } else if (auth === "certificate") {
-            await execScript(`localm365`, ArgumentsHelper.parse(`login --authType certificate --appId "${appId}" --tenant "${tenant}" --certificateBase64Encoded "${certificateBase64Encoded}" ${password ? `--password ${password}` : `--password`}`));
+            await execScript(ArgumentsHelper.parse(`login --authType certificate --appId "${appId}" --tenant "${tenant}" --certificateBase64Encoded "${certificateBase64Encoded}" ${password ? `--password ${password}` : `--password`}`));
           } else {
-            await execScript(`localm365`, ArgumentsHelper.parse(`login --authType password --userName "${username}" --password "${password}"`));
+            await execScript(ArgumentsHelper.parse(`login --authType password --userName "${username}" --password "${password}"`));
           }
         }
       }
