@@ -20,7 +20,7 @@ export class Authenticate {
           if (auth === "deviceCode") {
             await execScript(`localm365`, [`login`], true);
           } else if (auth === "certificate") {
-            await execScript(`localm365`, ArgumentsHelper.parse(`login --authType certificate --appId "${appId}" --tenant "${tenant}" --certificateBase64Encoded "${certificateBase64Encoded}" --password`));
+            await execScript(`localm365`, ArgumentsHelper.parse(`login --authType certificate --appId "${appId}" --tenant "${tenant}" --certificateBase64Encoded "${certificateBase64Encoded}" ${password ? `--password ${password}` : `--password`}`));
           } else {
             await execScript(`localm365`, ArgumentsHelper.parse(`login --authType password --userName "${username}" --password "${password}"`));
           }
