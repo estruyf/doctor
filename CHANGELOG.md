@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.6.0]
+
+- [#34](https://github.com/ValoIntranet/doctor/issues/34): Add support for certificate authentication
+
 ## [1.5.0]
 
 - [#33](https://github.com/ValoIntranet/doctor/issues/33): Page template support added
