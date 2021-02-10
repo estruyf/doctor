@@ -25,6 +25,7 @@ import { PageTemplate } from '../models/PageTemplate';
 
 export class Publish {
   private static pageList: ListData = null;
+  private static processedPages: { [slug: string]: number } = {};
 
   /**
    * Publishes the markdown files to SharePoint
@@ -134,7 +135,7 @@ export class Publish {
                   }
                 }
 
-                let { title, description, draft, comments, layout, header, template, skipExistingPages } = markup.data;
+                let { title, description, draft, comments, layout, header, template, skipExistingPages, metadata } = markup.data;
                 let slug = FrontMatterHelper.getSlug(markup.data, options.startFolder, file);
 
                 // Image processing
@@ -183,6 +184,11 @@ export class Publish {
                       const webparts = JSON.parse(controlData);
                       const markdownWp = webparts.find((c: any) => c.title === webPartTitle);   
                       await this.insertOrCreateControl(webPartTitle, markup.content, slug, webUrl, markdownWp ? markdownWp.id : null);
+                    }
+
+                    // Check if metadata needs to be added to the page
+                    if (metadata) {
+                      await this.setPageMetadata(webUrl, slug, metadata);
                     }
                     
                     // Check if page needs to be published
@@ -423,22 +429,38 @@ export class Publish {
   }
 
   /**
+   * Set the page its metadata
+   * @param webUrl 
+   * @param slug
+   * @param metadata 
+   */
+  private static async setPageMetadata(webUrl: string, slug: string, metadata: { [fieldName: string]: any } = null) {
+    const pageId = await this.getPageId(webUrl, slug);
+    const pageList = await this.getSitePagesList(webUrl);
+    if (pageId && pageList) {
+      let metadataCommand: string = `spo listitem set --listTitle "${pageList.Title}" --id ${pageId} --webUrl "${webUrl}"`;
+
+      if (metadata) {
+        for (const fieldName in metadata) {
+          metadataCommand = `${metadataCommand} --${fieldName} "${metadata[fieldName]}"`
+        }
+      }
+
+      await execScript(ArgumentsHelper.parse(metadataCommand));
+    }
+  }
+
+  /**
    * Set the page its description
    * @param webUrl 
    * @param slug 
    * @param description 
    */
   private static async setPageDescription(webUrl: string, slug: string, description: string) {
-    let pageData: any = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --output json`));
-    if (pageData && typeof pageData === "string") {
-      pageData = JSON.parse(pageData);
-
-      Logger.debug(pageData);
-    }
-    
+    const pageId = await this.getPageId(webUrl, slug);
     const pageList = await this.getSitePagesList(webUrl);
-    if (pageData.ListItemAllFields && pageData.ListItemAllFields.Id && pageList) {
-      await execScript(ArgumentsHelper.parse(`spo listitem set --listTitle "${pageList.Title}" --id ${pageData.ListItemAllFields.Id} --webUrl "${webUrl}" --Description "${description}" --systemUpdate`));
+    if (pageId && pageList) {
+      await execScript(ArgumentsHelper.parse(`spo listitem set --listTitle "${pageList.Title}" --id ${pageId} --webUrl "${webUrl}" --Description "${description}" --systemUpdate`));
     }
   }
 
@@ -470,5 +492,30 @@ export class Publish {
       this.pageList = (listData as ListData[]).find(l => l.Url.toLowerCase().includes("/sitepages"));
     }
     return this.pageList;
+  }
+
+  /**
+   * Retrieve the page id
+   * @param webUrl 
+   * @param slug 
+   */
+  private static async getPageId(webUrl: string, slug: string) {
+    if (!this.processedPages[slug]) {
+      let pageData: any = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --output json`));
+      if (pageData && typeof pageData === "string") {
+        pageData = JSON.parse(pageData);
+
+        Logger.debug(pageData);
+
+        if (pageData.ListItemAllFields && pageData.ListItemAllFields.Id) {
+          this.processedPages[slug] = pageData.ListItemAllFields.Id;
+          return this.processedPages[slug];
+        }
+
+        return null;
+      }
+    }
+
+    return this.processedPages[slug];
   }
 }

@@ -85,6 +85,7 @@ Optional Front Matter properties are:
   - **topicHeader**: Topic header text to show.
   - **showPublishDate**: Show the publish date in the header. Default: `false`.
 - **menu**: `Menu`- defines where the page gets added to the navigation structure. Check: [menu section](#Menu).
+- **metadata**: `Metadata` - with this object you can set extra metadata for your page. Check: [Metadata section](#Metadata).
 
 When you want to create page to page links, you can provide the relative path from the current markdown file to the other markdown file (with or without the `.md` extension).
 
@@ -160,6 +161,30 @@ menu:
 ---
 
 Write here the Doctor page content.
+```
+
+### Metadata
+
+Adding metadata for a page is fairly simple. You can do this by specifying the `metadata` object with corresponding `field name` and its `value`.
+
+```yaml
+metadata:
+  <field name>: <value>
+```
+
+#### Example
+
+```yaml
+---
+title: Home
+slug: home.aspx
+layout: Article
+description: "The Valo Doctor documentation homepage"
+
+metadata:
+  Category: "Choice 1"
+  SingleLineText: "Single line of text value"
+---
 ```
 
 ## Commands

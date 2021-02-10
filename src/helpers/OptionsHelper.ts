@@ -68,7 +68,7 @@ export class OptionsHelper {
       tenant: args["--tenant"] || options["tenant"] || null,
       appId: args["--appId"] || options["appId"] || null,
       certificateBase64Encoded: args["--certificateBase64Encoded"] || options["certificateBase64Encoded"] || null,
-      commandName: args["--commandName"] || options["commandName"] || null,
+      commandName: args["--commandName"] || options["commandName"] || "localm365",
       webUrl: args["--url"] || options["url"] || null,
       startFolder: args["--folder"] || options["folder"] || './src',
       startFolderRel: args["--folder"] || options["folder"] || './src',
