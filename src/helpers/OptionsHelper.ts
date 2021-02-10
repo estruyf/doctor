@@ -60,7 +60,7 @@ export class OptionsHelper {
     );
     
     return {
-      task: args._[0].startsWith('--help') ? 'help' : args._[0],
+      task: args._[0] ? args._[0].startsWith('--help') ? 'help' : args._[0] : null,
       auth: args["--auth"] as any || options["auth"] || "deviceCode",
       overwriteImages: args["--overwriteImages"] as any || options["overwriteImages"] || false,
       username: args["--username"] || options["username"] || null,
