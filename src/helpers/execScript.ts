@@ -5,6 +5,7 @@ import { Logger } from './logger';
 
 export const execScript = async <T>(args: string[] = [], shouldSpawn: boolean = false): Promise<T> => {
   return new Promise<T>((resolve, reject) => {
+    Logger.debug(``);
     Logger.debug(`Command: ${CliCommand.getName()} ${args.join(' ')}`);
 
     if (shouldSpawn) {

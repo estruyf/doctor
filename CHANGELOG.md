@@ -5,7 +5,7 @@
 - [#3](https://github.com/ValoIntranet/doctor/issues/3): Added metadata support for pages
 - [#34](https://github.com/ValoIntranet/doctor/issues/34): Add support for certificate authentication (provided by [Gustavo Covas](https://github.com/gustavocovas))
 - [#44](https://github.com/ValoIntranet/doctor/issues/44): Enhancement: Be able to specify which version of CLI for Microsoft 365 you want to use
-
+- [#47](https://github.com/ValoIntranet/doctor/issues/47): Fix for issue with encoding `<` and `>` in the markdown
 
 ## [1.5.0]
 
