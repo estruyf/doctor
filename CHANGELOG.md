@@ -6,6 +6,7 @@
 - [#34](https://github.com/ValoIntranet/doctor/issues/34): Add support for certificate authentication (provided by [Gustavo Covas](https://github.com/gustavocovas))
 - [#44](https://github.com/ValoIntranet/doctor/issues/44): Enhancement: Be able to specify which version of CLI for Microsoft 365 you want to use
 - [#47](https://github.com/ValoIntranet/doctor/issues/47): Fix for issue with encoding `<` and `>` in the markdown
+- [#48](https://github.com/ValoIntranet/doctor/issues/48): Masking the password and certificate Base64 string in the console
 
 ## [1.5.0]
 

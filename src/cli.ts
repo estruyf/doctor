@@ -27,8 +27,8 @@ export async function cli(args: string[]) {
       await Commands.start(options);
     }
     process.exit(0);
-  } catch (e) {
-    console.log(kleur.bgRed().bold().white(` ERROR: `), kleur.bold().red(e.message));
+  } catch (e: any | Error) {
+    console.log(kleur.bgRed().bold().white(` ERROR: `), kleur.bold().red(e.message.toString()));
     process.exit(1);
   }
 }

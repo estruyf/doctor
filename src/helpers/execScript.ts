@@ -3,10 +3,11 @@ import { exec } from 'child_process';
 import { spawn } from 'cross-spawn';
 import { Logger } from './logger';
 
-export const execScript = async <T>(args: string[] = [], shouldSpawn: boolean = false): Promise<T> => {
+export const execScript = async <T>(args: string[] = [], shouldSpawn: boolean = false, toMask: string[] = []): Promise<T> => {
   return new Promise<T>((resolve, reject) => {
     Logger.debug(``);
-    Logger.debug(`Command: ${CliCommand.getName()} ${args.join(' ')}`);
+    const cmdToExec = Logger.mask(`${CliCommand.getName()} ${args.join(' ')}`, toMask);
+    Logger.debug(`Command: ${cmdToExec}`);
 
     if (shouldSpawn) {
       const execution = spawn(CliCommand.getName(), [...args]);
@@ -20,12 +21,15 @@ export const execScript = async <T>(args: string[] = [], shouldSpawn: boolean = 
       });
 
       execution.stderr.on('data', (error) => {
-        reject(error);
+        error = Logger.mask(error, toMask);
+        reject(new Error(error));
       });
     } else {
         exec(`${CliCommand.getName()} ${args.join(' ')}`, (err: Error, stdOut: string, stdErr: string) => {
         if (err || stdErr) {
-          reject(err || stdErr);
+          let error = err && err.message ? err.message : stdErr;
+          error = Logger.mask(error, toMask);
+          reject(new Error(error));
           return;
         }
 

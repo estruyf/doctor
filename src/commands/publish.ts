@@ -32,7 +32,7 @@ export class Publish {
    * @param options 
    */
   public static async start(options: CommandArguments) {
-    Logger.debug(`Running with the following options: ${JSON.stringify(options)}`);
+    Logger.debug(`Running with the following options: ${Logger.mask(JSON.stringify(options), [options.password, options.certificateBase64Encoded])}`);
 
     if (!fs.existsSync(options.startFolder)) {
       return Promise.reject(new Error(`The provided folder location doesn't exist.`));

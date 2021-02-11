@@ -20,9 +20,9 @@ export class Authenticate {
           if (auth === "deviceCode") {
             await execScript([`login`], true);
           } else if (auth === "certificate") {
-            await execScript(ArgumentsHelper.parse(`login --authType certificate --appId "${appId}" --tenant "${tenant}" --certificateBase64Encoded "${certificateBase64Encoded}" ${password ? `--password ${password}` : `--password`}`));
+            await execScript(ArgumentsHelper.parse(`login --authType certificate --appId "${appId}" --tenant "${tenant}" --certificateBase64Encoded "${certificateBase64Encoded}" ${password ? `--password ${password}` : `--password`}`), false, [certificateBase64Encoded, password]);
           } else {
-            await execScript(ArgumentsHelper.parse(`login --authType password --userName "${username}" --password "${password}"`));
+            await execScript(ArgumentsHelper.parse(`login --authType password --userName "${username}" --password "${password}"`), false, [password]);
           }
         }
       }
