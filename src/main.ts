@@ -5,6 +5,7 @@ import { Init } from './commands/init';
 import { Version } from './commands/version';
 import { Command } from './commands/Command';
 import { Logger } from './helpers/logger';
+import { CliCommand } from './helpers/CliCommand';
 
 export class Commands {
 
@@ -20,7 +21,8 @@ export class Commands {
       // Disable the CLI update check to speed up the process
       process.env['CLIMICROSOFT365_NOUPDATE'] = '1';
 
-      Logger.init(options.debug);
+      Logger.init(options.debug);        
+      CliCommand.init(options.commandName);
 
       console.log('');
       console.log(kleur.bold().bgMagenta().white(` START: `), `${options.task} job`);
@@ -33,7 +35,6 @@ export class Commands {
       } else if (options.task === Command.version) {
         Version.start();
       }
-
 
       console.log('');
       const hrend = process.hrtime(hrstart);

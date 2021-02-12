@@ -13,4 +13,26 @@ export class Logger {
       console.log(kleur.bgYellow().white("DEBUG"), typeof msg === "string" ? msg : JSON.stringify(msg));
     }
   }
+
+  /**
+   * Mask the values in the string
+   * @param value 
+   * @param masks 
+   */
+  public static mask(value: string, masks: string[] = []): string {
+    if (masks.length > 0) {
+      for (const mask of masks) {
+        if (mask) {
+          try {
+            const toReplace = new RegExp(mask, "g");
+            value = value.replace(toReplace, "*****");
+          } catch {
+            value = value.replace(mask, "*****");
+          }
+        }
+      }
+    }
+
+    return value;
+  }
 }

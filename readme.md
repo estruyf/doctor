@@ -85,6 +85,7 @@ Optional Front Matter properties are:
   - **topicHeader**: Topic header text to show.
   - **showPublishDate**: Show the publish date in the header. Default: `false`.
 - **menu**: `Menu`- defines where the page gets added to the navigation structure. Check: [menu section](#Menu).
+- **metadata**: `Metadata` - with this object you can set extra metadata for your page. Check: [Metadata section](#Metadata).
 
 When you want to create page to page links, you can provide the relative path from the current markdown file to the other markdown file (with or without the `.md` extension).
 
@@ -162,6 +163,30 @@ menu:
 Write here the Doctor page content.
 ```
 
+### Metadata
+
+Adding metadata for a page is fairly simple. You can do this by specifying the `metadata` object with corresponding `field name` and its `value`.
+
+```yaml
+metadata:
+  <field name>: <value>
+```
+
+#### Example
+
+```yaml
+---
+title: Home
+slug: home.aspx
+layout: Article
+description: "The Valo Doctor documentation homepage"
+
+metadata:
+  Category: "Choice 1"
+  SingleLineText: "Single line of text value"
+---
+```
+
 ## Commands
 
 ### Version
@@ -213,14 +238,16 @@ doctor publish --url https://<tenant>.sharepoint.com/sites/<documentation>
 Options are specified via command arguments, or within a `doctor.json` file (automatically gets created on initialization `doctor init`).
 
 `-a, --auth <auth>`
-: Specify the authentication type to use. Values can be `deviceCode` (default) or `password`.
+: Specify the authentication type to use. Values can be `deviceCode` (default) or `password` or `certificate`.
+
+> **Info**: Check out the [Certificate Authentication](#certificate-authentication) section for more information about using the `certificate` approach.
 
 
-`--username`
+`--username <username>`
 : When using `password` authentication, you need to pass the `username` and `password`.
 
 
-`--password`
+`--password <password>`
 : When using `password` authentication, you need to pass the `username` and `password`.
 
 
@@ -232,11 +259,11 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 : The URL of the site collection to use.
 
 
-`--library`
+`--library <library>`
 : Specified the library which you want to use in SharePoint to store your referenced images.
 
 
-`--webPartTitle`
+`--webPartTitle <webPartTitle>`
 : This defined the title of the markdown web part to be created/updated on the page. Default value is: `doctor-placeholder`.
 
 > **Important**: if you would change this value, be sure to keep this in the `doctor.json` file. 
@@ -247,7 +274,7 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 `--debug`
 : Provides more information of what is happening during command execution.
 
-`--outputFolder`
+`--outputFolder <outputFolder>`
 : When providing this option, the processed markdown files will be generated in this folder.
 
 `--cleanStart`
@@ -261,6 +288,9 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 
 `--continueOnError`
 : Continue when an error occurs during the publishing process.
+
+`--commandName <commandName>`
+: In case you want to use the locally installed `CLI for Microsoft 365`, you can use this flag. By default, it uses the version specified in the `doctor` tool. You can use the a locally installed version as follows: `--commandName m365`.
 
 ### `doctor.json`
 
@@ -294,16 +324,42 @@ The menu property can contain a `QuickLaunch` and/or `TopNavigationBar` elment w
 
 > **Important**: If you specify arguments during command execution, they will be used instead of the values defined in the `doctor.json` file.
 
+### Certificate authentication
+
+If you want to use certificate authentication, you will need to follow the next steps before you can use `doctor`.
+
+- Go to your [Azure Portal](https://portal.azure.com)
+- Open your **Azure Active Directory**
+- Click on **App registrations**
+- Click on **New registration**
+- Specify a name for your new Azure AD app
+
+![](./assets/app-reg.png)
+
+- Once the app is created, click on **API Permissions** and add the **Sites.FullControl.All** application permission scope from SharePoint 
+
+![](./assets/app-permissions.png)
+
+- Click on **Grant admin consent for <tenant>**, and accept
+- Open a command prompt, and run the following command in order to generate a certificate: `openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 366 -nodes`
+
+![](./assets/app-certificate.png)
+
+- Upload the **cert.pem** file to the Azure AD App under **Certificates & secrets**
+
+![](./assets/app-certificate-upload.png)
+
+- Converted the certificate into the `PKCS` format using `openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem`
+  - It will ask for a password. This is yours to pick. Be aware, if you specify a password, you will also need to pass it to the `doctor` command with the `--password <password>` argument.
+  - Use the `Base64` output as the input for the `--certificateBase64Encoded <certificateBase64Encoded>` argument.
+
+Once you did the previous steps, you are ready to make use of the `doctor` tool. You can run `doctor` with the certificate authentication as follows: `doctor publish --auth certificate --certificateBase64Encoded <certificateBase64Encoded> --appId <appId> --tenant <tenant> --url <url>`.
+
+> **Info**: You can also store these `certificateBase64Encoded`, `appId`, and `tenant` settings in the `doctor.json` file. More information can be found under the [doctor.json](#doctorjson) section.
+
 ## Todo
 
-- [x]: Update links to the actual pages in SharePoint
-- [x]: Create static build output of the updated markdown files
-- [x]: Cross-platform support
-
-- [ ]: Support for metadata in Front Matter
-- [ ]: Support for page description
-- [ ]: Support for setting header image
-- [ ]: Specify which parts of the publish process needs to run (`skipAuth`, `skipPages`, `skipNavigation`)
+All ideas can be found in our [issue list](https://github.com/ValoIntranet/doctor/issues) tagged with [enhancement](https://github.com/ValoIntranet/doctor/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement).
 
 ## Found an issue?
 

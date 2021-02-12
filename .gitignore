@@ -3,3 +3,6 @@ dist
 todo.md
 .DS_Store
 screenshots
+
+*.pem
+*.pfx

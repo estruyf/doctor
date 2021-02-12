@@ -25,13 +25,14 @@ import { PageTemplate } from '../models/PageTemplate';
 
 export class Publish {
   private static pageList: ListData = null;
+  private static processedPages: { [slug: string]: number } = {};
 
   /**
    * Publishes the markdown files to SharePoint
    * @param options 
    */
   public static async start(options: CommandArguments) {
-    Logger.debug(`Running with the following options: ${JSON.stringify(options)}`);
+    Logger.debug(`Running with the following options: ${Logger.mask(JSON.stringify(options), [options.password, options.certificateBase64Encoded])}`);
 
     if (!fs.existsSync(options.startFolder)) {
       return Promise.reject(new Error(`The provided folder location doesn't exist.`));
@@ -134,7 +135,7 @@ export class Publish {
                   }
                 }
 
-                let { title, description, draft, comments, layout, header, template, skipExistingPages } = markup.data;
+                let { title, description, draft, comments, layout, header, template, skipExistingPages, metadata } = markup.data;
                 let slug = FrontMatterHelper.getSlug(markup.data, options.startFolder, file);
 
                 // Image processing
@@ -183,6 +184,11 @@ export class Publish {
                       const webparts = JSON.parse(controlData);
                       const markdownWp = webparts.find((c: any) => c.title === webPartTitle);   
                       await this.insertOrCreateControl(webPartTitle, markup.content, slug, webUrl, markdownWp ? markdownWp.id : null);
+                    }
+
+                    // Check if metadata needs to be added to the page
+                    if (metadata) {
+                      await this.setPageMetadata(webUrl, slug, metadata);
                     }
                     
                     // Check if page needs to be published
@@ -327,7 +333,7 @@ export class Publish {
    */
   private static async createPageIfNotExists(webUrl: string, slug: string, title: string, layout: string = "Article", comments: boolean = false, description: string = "", template: string | null = null, skipExistingPages: boolean = false): Promise<boolean> {
     try {
-      let pageData = await execScript(`localm365`, ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --output json`));
+      let pageData = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --output json`));
       if (pageData && typeof pageData === "string") {
         pageData = JSON.parse(pageData);
       }
@@ -358,7 +364,7 @@ export class Publish {
       }
 
       if (cmdArgs) {
-        await execScript(`localm365`, ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" ${cmdArgs}`));
+        await execScript(ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" ${cmdArgs}`));
       }
 
       return true;
@@ -370,7 +376,7 @@ export class Publish {
       }
 
       if (template) {
-        let templates: PageTemplate[] | string = await execScript(`localm365`, ArgumentsHelper.parse(`spo page template list --webUrl "${webUrl}" --output json`));
+        let templates: PageTemplate[] | string = await execScript(ArgumentsHelper.parse(`spo page template list --webUrl "${webUrl}" --output json`));
         if (templates && typeof templates === "string") {
           templates = JSON.parse(templates);
         }
@@ -380,8 +386,8 @@ export class Publish {
         const pageTemplate = (templates as PageTemplate[]).find(t => t.Title === template);
         if (pageTemplate) {
           const templateUrl = pageTemplate.Url.toLowerCase().replace("sitepages/", "");
-          await execScript(`localm365`, ArgumentsHelper.parse(`spo page copy --webUrl "${webUrl}" --sourceName "${templateUrl}" --targetUrl "${slug}"`));
-          await execScript(`localm365`, ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" --publish`));
+          await execScript(ArgumentsHelper.parse(`spo page copy --webUrl "${webUrl}" --sourceName "${templateUrl}" --targetUrl "${slug}"`));
+          await execScript(ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" --publish`));
           return this.createPageIfNotExists(webUrl, slug, title, layout, comments, description, null, skipExistingPages);
         } else {
           console.log(`Template "${template}" not found on the site, will create a default page instead.`)
@@ -389,7 +395,7 @@ export class Publish {
       }
 
       // File doesn't exist
-      await execScript(`localm365`, ArgumentsHelper.parse(`spo page add --webUrl "${webUrl}" --name "${slug}" --title "${title}" --layoutType "${layout}" ${comments ? "--commentsEnabled" : ""} --description "${description}"`));
+      await execScript(ArgumentsHelper.parse(`spo page add --webUrl "${webUrl}" --name "${slug}" --title "${title}" --layoutType "${layout}" ${comments ? "--commentsEnabled" : ""} --description "${description}"`));
 
       return false;
     }
@@ -401,7 +407,7 @@ export class Publish {
    * @param slug 
    */
   private static async getPageControls(webUrl: string, slug: string): Promise<string> {
-    const output = await execScript<string>(`localm365`, ArgumentsHelper.parse(`spo page control list --webUrl "${webUrl}" --name "${slug}" -o json`));
+    const output = await execScript<string>(ArgumentsHelper.parse(`spo page control list --webUrl "${webUrl}" --name "${slug}" -o json`));
     return output;
   }
 
@@ -415,10 +421,32 @@ export class Publish {
     
     if (wpId) {
       // Web part needs to be updated
-      await execScript(`localm365`, [...ArgumentsHelper.parse(`spo page control set --webUrl "${webUrl}" --name "${slug}" --id "${wpId}" --webPartData`), wpData]);
+      await execScript([...ArgumentsHelper.parse(`spo page control set --webUrl "${webUrl}" --name "${slug}" --id "${wpId}" --webPartData`), wpData]);
     } else {
       // Add new markdown web part
-      await execScript(`localm365`, [...ArgumentsHelper.parse(`spo page clientsidewebpart add --webUrl "${webUrl}" --pageName "${slug}" --webPartId 1ef5ed11-ce7b-44be-bc5e-4abd55101d16 --webPartData`), wpData]);
+      await execScript([...ArgumentsHelper.parse(`spo page clientsidewebpart add --webUrl "${webUrl}" --pageName "${slug}" --webPartId 1ef5ed11-ce7b-44be-bc5e-4abd55101d16 --webPartData`), wpData]);
+    }
+  }
+
+  /**
+   * Set the page its metadata
+   * @param webUrl 
+   * @param slug
+   * @param metadata 
+   */
+  private static async setPageMetadata(webUrl: string, slug: string, metadata: { [fieldName: string]: any } = null) {
+    const pageId = await this.getPageId(webUrl, slug);
+    const pageList = await this.getSitePagesList(webUrl);
+    if (pageId && pageList) {
+      let metadataCommand: string = `spo listitem set --listTitle "${pageList.Title}" --id ${pageId} --webUrl "${webUrl}"`;
+
+      if (metadata) {
+        for (const fieldName in metadata) {
+          metadataCommand = `${metadataCommand} --${fieldName} "${metadata[fieldName]}"`
+        }
+      }
+
+      await execScript(ArgumentsHelper.parse(metadataCommand));
     }
   }
 
@@ -429,16 +457,10 @@ export class Publish {
    * @param description 
    */
   private static async setPageDescription(webUrl: string, slug: string, description: string) {
-    let pageData: any = await execScript(`localm365`, ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --output json`));
-    if (pageData && typeof pageData === "string") {
-      pageData = JSON.parse(pageData);
-
-      Logger.debug(pageData);
-    }
-    
+    const pageId = await this.getPageId(webUrl, slug);
     const pageList = await this.getSitePagesList(webUrl);
-    if (pageData.ListItemAllFields && pageData.ListItemAllFields.Id && pageList) {
-      await execScript(`localm365`, ArgumentsHelper.parse(`spo listitem set --listTitle "${pageList.Title}" --id ${pageData.ListItemAllFields.Id} --webUrl "${webUrl}" --Description "${description}" --systemUpdate`));
+    if (pageId && pageList) {
+      await execScript(ArgumentsHelper.parse(`spo listitem set --listTitle "${pageList.Title}" --id ${pageId} --webUrl "${webUrl}" --Description "${description}" --systemUpdate`));
     }
   }
 
@@ -450,11 +472,11 @@ export class Publish {
   private static async publishPageIfNeeded(webUrl: string, slug: string) {
     const relativeUrl = FileHelpers.getRelUrl(webUrl, `sitepages/${slug}`);
     try {
-      await execScript(`localm365`, ArgumentsHelper.parse(`spo file checkin --webUrl "${webUrl}" --fileUrl "${relativeUrl}"`));
+      await execScript(ArgumentsHelper.parse(`spo file checkin --webUrl "${webUrl}" --fileUrl "${relativeUrl}"`));
     } catch (e) {
       // Might be that the file doesn't need to be checked in
     }
-    await execScript(`localm365`, ArgumentsHelper.parse(`spo page set --name "${slug}" --webUrl "${webUrl}" --publish`));
+    await execScript(ArgumentsHelper.parse(`spo page set --name "${slug}" --webUrl "${webUrl}" --publish`));
   }
 
   /**
@@ -463,12 +485,37 @@ export class Publish {
    */
   private static async getSitePagesList(webUrl: string) {
     if (!this.pageList) {
-      let listData: any = await execScript(`localm365`, ArgumentsHelper.parse(`spo list list --webUrl "${webUrl}" --output json`));
+      let listData: any = await execScript(ArgumentsHelper.parse(`spo list list --webUrl "${webUrl}" --output json`));
       if (listData && typeof listData === "string") {
         listData = JSON.parse(listData);
       }
       this.pageList = (listData as ListData[]).find(l => l.Url.toLowerCase().includes("/sitepages"));
     }
     return this.pageList;
+  }
+
+  /**
+   * Retrieve the page id
+   * @param webUrl 
+   * @param slug 
+   */
+  private static async getPageId(webUrl: string, slug: string) {
+    if (!this.processedPages[slug]) {
+      let pageData: any = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --output json`));
+      if (pageData && typeof pageData === "string") {
+        pageData = JSON.parse(pageData);
+
+        Logger.debug(pageData);
+
+        if (pageData.ListItemAllFields && pageData.ListItemAllFields.Id) {
+          this.processedPages[slug] = pageData.ListItemAllFields.Id;
+          return this.processedPages[slug];
+        }
+
+        return null;
+      }
+    }
+
+    return this.processedPages[slug];
   }
 }

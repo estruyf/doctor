@@ -33,6 +33,10 @@ export class OptionsHelper {
         '--auth': String,
         '--username': String,
         '--password': String,
+        '--tenant': String,
+        '--appId': String,
+        '--certificateBase64Encoded': String,
+        '--commandName': String,
         '--folder': String,
         '--url': String,
         '--library': String,
@@ -56,11 +60,15 @@ export class OptionsHelper {
     );
     
     return {
-      task: args._[0].startsWith('--help') ? 'help' : args._[0],
+      task: args._[0] ? args._[0].startsWith('--help') ? 'help' : args._[0] : null,
       auth: args["--auth"] as any || options["auth"] || "deviceCode",
       overwriteImages: args["--overwriteImages"] as any || options["overwriteImages"] || false,
       username: args["--username"] || options["username"] || null,
       password: args["--password"] || options["password"] || null,
+      tenant: args["--tenant"] || options["tenant"] || null,
+      appId: args["--appId"] || options["appId"] || null,
+      certificateBase64Encoded: args["--certificateBase64Encoded"] || options["certificateBase64Encoded"] || null,
+      commandName: args["--commandName"] || options["commandName"] || "localm365",
       webUrl: args["--url"] || options["url"] || null,
       startFolder: args["--folder"] || options["folder"] || './src',
       startFolderRel: args["--folder"] || options["folder"] || './src',

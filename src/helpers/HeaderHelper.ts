@@ -81,7 +81,7 @@ export class HeaderHelper {
     }
     
     if (header || !header && !isCopy) {
-      await execScript(`localm365`, ArgumentsHelper.parse(`${setPageHeader}`));
+      await execScript(ArgumentsHelper.parse(`${setPageHeader}`));
     }
   }
 }
