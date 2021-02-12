@@ -81,7 +81,8 @@ export class OptionsHelper {
       debug: args["--debug"] || false,
       cleanStart: args["--cleanStart"] || false,
       confirm: args["--confirm"] || false,
-      outputFolder: args["--outputFolder"] || ""
+      outputFolder: args["--outputFolder"] || "",
+      siteDesign: options["siteDesign"] || null
     };
   }
 

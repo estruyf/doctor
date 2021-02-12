@@ -304,6 +304,42 @@ You can provide the same flags and values like in the parameters. Parameters can
 }
 ```
 
+#### Site look and feel
+
+If you want, you can define the site its look and feel. This needs to be done on global level in the `doctor.json` file.
+
+- **siteDesign**: `SiteDesign` - Allows you to set the theme and header/footer chrome
+  - **theme**: `string` - The name of the theme to set
+  - **chrome**: `Chrome` - Settings for the header/footer chrome
+    - **headerLayout**: `string` - Specifies the header layout to set on the site. Options: `Standard|Compact|Minimal|Extended`. Default `Standard`.
+    - **headerEmphasis**: `string` - Specifies the header its background color to set. Options: `Lightest|Light|Dark|Darkest`. Default `Lightest`.
+    - **logoAlignment**: `string` - When using the `Extended` header, you can set the logo its position. Otherwise this setting will be ignored. Options: `Left|Center|Right`. Default `Left`.
+    - **footerLayout**: `string` - Specifies the footer layout to set on the site. Options: `Simple|Extended`. Default `Simple`.
+    - **footerEmphasis**: `string` - Specifies the footer its background color to set. Options: `Lightest|Light|Dark|Darkest`. Default `Darkest`.
+    - **disableMegaMenu**: `boolean` - Specify to disable the mega menu. This results in using the cascading navigation (classic experience).
+    - **hideTitleInHeader**: `boolean` - Specify to hide the site title in the header.
+    - **disableFooter**: `boolean` - Specify to disable the footer on the site.
+
+Example:
+
+```json
+{
+  "siteDesign": {
+    "theme": "Red",
+    "chrome": {
+      "headerLayout": "Compact",
+      "headerEmphasis": "Darkest",
+      "disableMegaMenu": false,
+      "footerEnabled": true
+    }
+  }
+}
+```
+
+> **Info**: All properties you define in the `siteDesign` object are optional.
+
+#### Global navigation structure
+
 You can also define a static navigation structure in the `doctor.json` file. Example:
 
 ```json

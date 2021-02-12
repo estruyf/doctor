@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.7.0]
+
+- [#50](https://github.com/ValoIntranet/doctor/issues/50): Fix for skipping pages
+- [#51](https://github.com/ValoIntranet/doctor/issues/51): Enhancement making skipping pages faster without the need to check each page
+- [#52](https://github.com/ValoIntranet/doctor/issues/51): Enhancements to make it possible to change the look and feel of the site
+
 ## [1.6.0]
 
 - [#3](https://github.com/ValoIntranet/doctor/issues/3): Added metadata support for pages

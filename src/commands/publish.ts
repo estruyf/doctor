@@ -1,3 +1,4 @@
+import { SiteHelpers } from './../helpers/SitesHelpers';
 import * as path from 'path';
 import * as fg from 'fast-glob';
 import * as fs from 'fs';
@@ -74,6 +75,11 @@ export class Publish {
       {
         title: `Updating navigation`,
         task: async () => await NavigationHelper.update(webUrl, ouput.navigation)
+      },
+      {
+        title: `Change the look of the site`,
+        task: async (ctx: any) => await SiteHelpers.changeLook(ctx, options),
+        enabled: () => !!options.siteDesign
       }
     ]).run().catch(err => {
       throw err;
