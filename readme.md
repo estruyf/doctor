@@ -351,6 +351,8 @@ If you want to use certificate authentication, you will need to follow the next 
 
 - Converted the certificate into the `PKCS` format using `openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem`
   - It will ask for a password. This is yours to pick. Be aware, if you specify a password, you will also need to pass it to the `doctor` command with the `--password <password>` argument.
+
+- Get the `base64` string from the `pfx` file. Execute: `cat cert.pfx | base64`
   - Use the `Base64` output as the input for the `--certificateBase64Encoded <certificateBase64Encoded>` argument.
 
 Once you did the previous steps, you are ready to make use of the `doctor` tool. You can run `doctor` with the certificate authentication as follows: `doctor publish --auth certificate --certificateBase64Encoded <certificateBase64Encoded> --appId <appId> --tenant <tenant> --url <url>`.
