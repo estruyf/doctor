@@ -5,8 +5,10 @@ import { CommandArguments } from '../models/CommandArguments';
 import { Logger } from './logger';
 import { File } from '../models/File';
 import { Folder } from '../models/Folder';
+import { ListHelpers } from './ListHelpers';
 
 export class FileHelpers {
+  private static allPages: File[] = [];
   private static checkedFiles: string[] = [];
 
   /**
@@ -85,6 +87,27 @@ export class FileHelpers {
         throw e.message;
       }
     }
+  }
+
+  /**
+   * Retrieve all pages
+   * @param webUrl 
+   * @param crntFolder 
+   */
+  public static async getAllPages(webUrl: string, crntFolder: string): Promise<File[]> {
+    if (this.allPages && this.allPages.length > 0) {
+      return this.allPages;
+    }
+
+    const pageList = await ListHelpers.getSitePagesList(webUrl);
+
+    let filesData: File[] | string =  await execScript<string>(ArgumentsHelper.parse(`spo listitem list --webUrl "${webUrl}" --title "${pageList.Title}" --fields "ID,Title,FileRef" -o json`));
+    if (filesData && typeof filesData === "string") {
+      filesData = JSON.parse(filesData);
+    }
+
+    this.allPages = filesData as File[];
+    return this.allPages;
   }
 
   /**

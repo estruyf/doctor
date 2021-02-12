@@ -20,11 +20,12 @@ import { MarkdownHelper } from '../helpers/MarkdownHelper';
 import { ArgumentsHelper } from '../helpers/ArgumentsHelper';
 import { Page } from '../models/Page';
 import { HeaderHelper } from './../helpers/HeaderHelper';
-import { ListData } from './../models/ListData';
 import { PageTemplate } from '../models/PageTemplate';
+import { File } from '../models/File';
+import { ListHelpers } from '../helpers/ListHelpers';
 
 export class Publish {
-  private static pageList: ListData = null;
+  private static pages: File[] = [];
   private static processedPages: { [slug: string]: number } = {};
 
   /**
@@ -104,15 +105,19 @@ export class Publish {
    * @param ctx 
    */
   private static async processMDFiles(ctx: any, options: CommandArguments, output: PublishOutput): Promise<Observable<string>> {
-    const { webUrl, webPartTitle } = options;
+    const { webUrl, webPartTitle, skipExistingPages } = options;
     const converter = new showdown.Converter();
 
     return new Observable(observer => {
       (async () => {
         const { files } = ctx;
+        this.pages = await FileHelpers.getAllPages(webUrl, 'sitepages');
+        Logger.debug(`Existing pages`);
+        Logger.debug(this.pages);
 
         for (const file of files) {
           try {
+
             if (file.endsWith('.md')) {
               const filename = path.basename(file);
               observer.next(`Started processing: ${filename}`);
@@ -135,7 +140,7 @@ export class Publish {
                   }
                 }
 
-                let { title, description, draft, comments, layout, header, template, skipExistingPages, metadata } = markup.data;
+                let { title, description, draft, comments, layout, header, template, metadata } = markup.data;
                 let slug = FrontMatterHelper.getSlug(markup.data, options.startFolder, file);
 
                 // Image processing
@@ -333,17 +338,24 @@ export class Publish {
    */
   private static async createPageIfNotExists(webUrl: string, slug: string, title: string, layout: string = "Article", comments: boolean = false, description: string = "", template: string | null = null, skipExistingPages: boolean = false): Promise<boolean> {
     try {
+      const relativeUrl = FileHelpers.getRelUrl(webUrl, `sitepages/${slug}`);
+
+      if (skipExistingPages) {
+        if (this.pages && this.pages.length > 0) {
+          const page = this.pages.find(page => page.FileRef.toLowerCase() === relativeUrl.toLowerCase());
+          if (page) {
+            // Page already existed
+            return true;
+          }
+        }
+      }
+      
       let pageData = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --output json`));
       if (pageData && typeof pageData === "string") {
         pageData = JSON.parse(pageData);
       }
 
       Logger.debug(pageData);
-
-      if (skipExistingPages) {
-        // Page already existed
-        return true;
-      }
 
       let cmdArgs = ``;
 
@@ -436,7 +448,7 @@ export class Publish {
    */
   private static async setPageMetadata(webUrl: string, slug: string, metadata: { [fieldName: string]: any } = null) {
     const pageId = await this.getPageId(webUrl, slug);
-    const pageList = await this.getSitePagesList(webUrl);
+    const pageList = await ListHelpers.getSitePagesList(webUrl);
     if (pageId && pageList) {
       let metadataCommand: string = `spo listitem set --listTitle "${pageList.Title}" --id ${pageId} --webUrl "${webUrl}"`;
 
@@ -458,7 +470,7 @@ export class Publish {
    */
   private static async setPageDescription(webUrl: string, slug: string, description: string) {
     const pageId = await this.getPageId(webUrl, slug);
-    const pageList = await this.getSitePagesList(webUrl);
+    const pageList = await ListHelpers.getSitePagesList(webUrl);
     if (pageId && pageList) {
       await execScript(ArgumentsHelper.parse(`spo listitem set --listTitle "${pageList.Title}" --id ${pageId} --webUrl "${webUrl}" --Description "${description}" --systemUpdate`));
     }
@@ -477,21 +489,6 @@ export class Publish {
       // Might be that the file doesn't need to be checked in
     }
     await execScript(ArgumentsHelper.parse(`spo page set --name "${slug}" --webUrl "${webUrl}" --publish`));
-  }
-
-  /**
-   * Retrieve the site pages library
-   * @param webUrl 
-   */
-  private static async getSitePagesList(webUrl: string) {
-    if (!this.pageList) {
-      let listData: any = await execScript(ArgumentsHelper.parse(`spo list list --webUrl "${webUrl}" --output json`));
-      if (listData && typeof listData === "string") {
-        listData = JSON.parse(listData);
-      }
-      this.pageList = (listData as ListData[]).find(l => l.Url.toLowerCase().includes("/sitepages"));
-    }
-    return this.pageList;
   }
 
   /**

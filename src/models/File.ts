@@ -20,4 +20,5 @@ export interface File {
   UIVersion: number;
   UIVersionLabel: string;
   UniqueId: string;
+  FileRef?: string;
 }
