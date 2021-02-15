@@ -3,8 +3,6 @@ import md = require('markdown-it');
 import hljs = require('highlight.js');
 import { MarkdownSettings } from '../models';
 import { ShortcodesHelpers } from './ShortcodesHelpers';
-// import { ShortcodesHelpers } from './ShortcodesHelpers';
-// import shortcode_plugin from '../shortcodes/Plugin';
 
 export class MarkdownHelper {
 

@@ -5,7 +5,7 @@ import Listr = require('listr');
 import parseMarkdown = require('frontmatter');
 import kleur = require('kleur');
 import md = require('markdown-it');
-import { JSDOM } from 'jsdom';
+import { Window } from 'happy-dom';
 import { ArgumentsHelper, execScript, FileHelpers, FolderHelpers, FrontMatterHelper, HeaderHelper, ListHelpers, Logger, MarkdownHelper, NavigationHelper, SiteHelpers } from '../helpers';
 import { Observable } from 'rxjs';
 import { Authenticate } from './authenticate';
@@ -119,9 +119,11 @@ export class Publish {
 
                 let markup = parseMarkdown(contents);
                 const htmlMarkup = converter.render(contents);
-                const htmlElm = new JSDOM(htmlMarkup);
-                const imgElms = [...htmlElm.window.document.querySelectorAll('img') as any] as HTMLImageElement[];
-                const anchorElms = [...htmlElm.window.document.querySelectorAll('a') as any] as HTMLAnchorElement[];
+                const window = new Window();
+                const document = window.document;
+                document.body.innerHTML = htmlMarkup;
+                const imgElms = [...document.querySelectorAll('img') as any] as HTMLImageElement[];
+                const anchorElms = [...document.querySelectorAll('a') as any] as HTMLAnchorElement[];
 
                 // Check if the required data for the article is present
                 if (markup && !markup.data) {
@@ -238,7 +240,7 @@ export class Publish {
    */
   private static async processImages(imgElms: HTMLImageElement[], filePath: string, contents: string, options: CommandArguments, output: PublishOutput) {
     const { startFolder, assetLibrary, webUrl, overwriteImages } = options;
-
+    
     const imgs = imgElms.filter(i => !i.src.startsWith(`http`));
     for (const img of imgs) {
       Logger.debug(`Adding image: ${img.src} - ${imgs.length}`)
@@ -276,19 +278,19 @@ export class Publish {
   private static processLinks(linkElms: HTMLAnchorElement[], filePath: string, content: string, options: CommandArguments) {
     const { webUrl, startFolder } = options;
 
-    for (const link of linkElms.filter(i => !i.href.startsWith(`http`))) {
+    for (const link of linkElms.filter(i => !i.getAttribute('href').startsWith(`http`))) {
 
-      const fileLink = link.href;
+      const fileLink = link.getAttribute('href');
       let mdFile = "";
 
       Logger.debug(`Processing link: ${fileLink} for ${filePath}`);
 
       if (fileLink.endsWith(`.md`)) {
-        mdFile = link.href;
+        mdFile = link.getAttribute('href');
       } else if (fileLink === ".") {
         mdFile = path.basename(filePath);
       } else {
-        mdFile = `${link.href}.md`;
+        mdFile = `${link.getAttribute('href')}.md`;
       }
 
       const mdFilePath = path.join(path.dirname(filePath), mdFile);

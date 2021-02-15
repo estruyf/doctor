@@ -4,7 +4,8 @@ import { getIcon, getIconClassName } from '@uifabric/styling';
 initializeIcons(undefined, { warnOnMissingIcons: true, disableWarnings: false });
 
 export const IconRenderer = {
-  render: function (attrs: any, env) {
+  render: function (attrs: any, markup: string) {
+
     if (!attrs || !attrs.name) {
       return "";
     }
