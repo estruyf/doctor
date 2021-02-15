@@ -1,29 +1,15 @@
-import { SiteHelpers } from './../helpers/SitesHelpers';
 import * as path from 'path';
 import * as fg from 'fast-glob';
 import * as fs from 'fs';
 import Listr = require('listr');
 import parseMarkdown = require('frontmatter');
-import showdown = require('showdown');
 import kleur = require('kleur');
+import { Remarkable } from 'remarkable';
 import { JSDOM } from 'jsdom';
-import { FileHelpers } from '../helpers/FileHelpers';
-import { execScript } from '../helpers/execScript';
+import { ArgumentsHelper, execScript, FileHelpers, FolderHelpers, FrontMatterHelper, HeaderHelper, ListHelpers, Logger, MarkdownHelper, NavigationHelper, SiteHelpers } from '../helpers';
 import { Observable } from 'rxjs';
-import { FolderHelpers } from '../helpers/FolderHelpers';
-import { NavigationHelper } from '../helpers/NavigationHelper';
-import { CommandArguments } from '../models/CommandArguments';
 import { Authenticate } from './authenticate';
-import { PublishOutput } from '../models/PublishOutput';
-import { Logger } from '../helpers/logger';
-import { FrontMatterHelper } from '../helpers/FrontMatterHelper';
-import { MarkdownHelper } from '../helpers/MarkdownHelper';
-import { ArgumentsHelper } from '../helpers/ArgumentsHelper';
-import { Page } from '../models/Page';
-import { HeaderHelper } from './../helpers/HeaderHelper';
-import { PageTemplate } from '../models/PageTemplate';
-import { File } from '../models/File';
-import { ListHelpers } from '../helpers/ListHelpers';
+import { CommandArguments, Page, PublishOutput, File, PageTemplate } from '../models';
 
 export class Publish {
   private static pages: File[] = [];
@@ -112,7 +98,7 @@ export class Publish {
    */
   private static async processMDFiles(ctx: any, options: CommandArguments, output: PublishOutput): Promise<Observable<string>> {
     const { webUrl, webPartTitle, skipExistingPages } = options;
-    const converter = new showdown.Converter();
+    const converter = new Remarkable({ html: true, breaks: true });
 
     return new Observable(observer => {
       (async () => {
@@ -132,7 +118,7 @@ export class Publish {
               if (contents) {
 
                 let markup = parseMarkdown(contents);
-                const htmlMarkup = converter.makeHtml(contents);
+                const htmlMarkup = converter.render(contents);
                 const htmlElm = new JSDOM(htmlMarkup);
                 const imgElms = [...htmlElm.window.document.querySelectorAll('img') as any] as HTMLImageElement[];
                 const anchorElms = [...htmlElm.window.document.querySelectorAll('a') as any] as HTMLAnchorElement[];
@@ -269,7 +255,7 @@ export class Publish {
 
       try {
         await FileHelpers.create(crntFolder, imgPath, webUrl, overwriteImages);
-        contents = contents.replace(new RegExp(img.src, 'g'), `${webUrl}/${crntFolder}/${path.basename(img.src)}`);
+        contents = contents.replace(new RegExp(img.src, 'g'), (`${webUrl}/${crntFolder}/${path.basename(img.src)}`).replace(/ /g, "%20"));
         ++output.imagesProcessed;
       } catch (e) {
         return Promise.reject(new Error(`Something failed while uploading the image asset. ${e.message}`));
@@ -348,7 +334,7 @@ export class Publish {
 
       if (skipExistingPages) {
         if (this.pages && this.pages.length > 0) {
-          const page = this.pages.find(page => page.FileRef.toLowerCase() === relativeUrl.toLowerCase());
+          const page = this.pages.find((page: File) => page.FileRef.toLowerCase() === relativeUrl.toLowerCase());
           if (page) {
             // Page already existed
             return true;

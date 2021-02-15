@@ -1,4 +1,4 @@
-interface NavigationItem {
+export interface NavigationItem {
   Id: number;
   Title: string;
   Url: string;
