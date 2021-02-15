@@ -6,6 +6,7 @@ import { Version } from './commands/version';
 import { Command } from './commands/Command';
 import { Logger } from './helpers/logger';
 import { CliCommand } from './helpers/CliCommand';
+import { ShortcodesHelpers } from './helpers';
 
 export class Commands {
 
@@ -29,6 +30,13 @@ export class Commands {
       console.log('');
 
       if (options.task === Command.publish) {
+        if (options.markdown && options.markdown.allowHtml) {
+          console.info(kleur.bold().bgYellow().black(` Warning: `), `You specified to allow custom HTML usage in Doctor. Be aware that once you modify the page on SharePoint itself, the HTML will be overwritten. Best is to maintain content from the Doctor sources.
+          `);
+
+          await ShortcodesHelpers.init(options.shortcodesFolder);
+        }
+
         await Publish.start(options);
       } else if (options.task === Command.init) {
         await Init.start(options);

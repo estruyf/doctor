@@ -338,6 +338,16 @@ Example:
 
 > **Info**: All properties you define in the `siteDesign` object are optional.
 
+#### Markdown publishing settings
+
+The `markdown` property allows you to define how you want to render the HTML in SharePoint. By default, `Doctor` lets the HTML being rendered by the Markdown web part. This property allows you to override these settings, and define to let `Doctor` take over for the HTML rendering.
+
+- **markdown**
+  - **allowHtml**: `boolean` - By default SharePoint renders the HTML. If you set this to `true`, it will allow Doctor to generate the HTML and allows you to make use of all HTML capabilities the tool has to offer.
+  - **theme**: `string` - Specify the theme to use for the code blocks. You can use `Dark` or `Light`. Default is `Dark`.
+
+> **Important**: When allowing `Doctor` to take over for rendering the HTML, be aware that the pages can best not be modified on SharePoint. Otherwise the web part will override the HTML completly.
+
 #### Global navigation structure
 
 You can also define a static navigation structure in the `doctor.json` file. Example:

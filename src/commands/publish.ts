@@ -4,12 +4,12 @@ import * as fs from 'fs';
 import Listr = require('listr');
 import parseMarkdown = require('frontmatter');
 import kleur = require('kleur');
-import { Remarkable } from 'remarkable';
+import md = require('markdown-it');
 import { JSDOM } from 'jsdom';
 import { ArgumentsHelper, execScript, FileHelpers, FolderHelpers, FrontMatterHelper, HeaderHelper, ListHelpers, Logger, MarkdownHelper, NavigationHelper, SiteHelpers } from '../helpers';
 import { Observable } from 'rxjs';
 import { Authenticate } from './authenticate';
-import { CommandArguments, Page, PublishOutput, File, PageTemplate } from '../models';
+import { CommandArguments, Page, PublishOutput, File, PageTemplate, MarkdownSettings } from '../models';
 
 export class Publish {
   private static pages: File[] = [];
@@ -98,7 +98,7 @@ export class Publish {
    */
   private static async processMDFiles(ctx: any, options: CommandArguments, output: PublishOutput): Promise<Observable<string>> {
     const { webUrl, webPartTitle, skipExistingPages } = options;
-    const converter = new Remarkable({ html: true, breaks: true });
+    const converter = new md({ html: true, breaks: true });
 
     return new Observable(observer => {
       (async () => {
@@ -180,7 +180,7 @@ export class Publish {
                     if (controlData) {
                       const webparts = JSON.parse(controlData);
                       const markdownWp = webparts.find((c: any) => c.title === webPartTitle);   
-                      await this.insertOrCreateControl(webPartTitle, markup.content, slug, webUrl, markdownWp ? markdownWp.id : null);
+                      await this.insertOrCreateControl(webPartTitle, markup.content, slug, webUrl, markdownWp ? markdownWp.id : null, options.markdown);
                     }
 
                     // Check if metadata needs to be added to the page
@@ -420,8 +420,8 @@ export class Publish {
    * @param webPartTitle 
    * @param markdown 
    */
-  private static async insertOrCreateControl(webPartTitle: string, markdown: string, slug: string, webUrl: string, wpId: string = null) {
-    const wpData = MarkdownHelper.getJsonData(webPartTitle, markdown);
+  private static async insertOrCreateControl(webPartTitle: string, markdown: string, slug: string, webUrl: string, wpId: string = null, mdOptions: MarkdownSettings | null) {
+    const wpData = await MarkdownHelper.getJsonData(webPartTitle, markdown, mdOptions);
     
     if (wpId) {
       // Web part needs to be updated

@@ -26,6 +26,8 @@ export interface CommandArguments {
   certificateBase64Encoded?: string;
   commandName?: string;
   siteDesign?: SiteDesign;
+  markdown?: MarkdownSettings;
+  shortcodesFolder?: string;
 }
 
 export interface SiteDesign {
@@ -42,4 +44,9 @@ export interface Chrome {
   disableMegaMenu?: boolean;
   disableFooter?: boolean;
   hideTitleInHeader?: boolean;
+}
+
+export interface MarkdownSettings {
+  allowHtml?: boolean;
+  theme?: "dark" | "light";
 }

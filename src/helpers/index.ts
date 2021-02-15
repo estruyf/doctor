@@ -8,6 +8,7 @@ export * from './ListHelpers';
 export * from './MarkdownHelper';
 export * from './NavigationHelper';
 export * from './OptionsHelper';
+export * from './ShortcodesHelpers';
 export * from './SitesHelpers';
 export * from './execScript';
 export * from './logger';
