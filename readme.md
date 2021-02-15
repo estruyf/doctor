@@ -311,11 +311,11 @@ If you want, you can define the site its look and feel. This needs to be done on
 - **siteDesign**: `SiteDesign` - Allows you to set the theme and header/footer chrome
   - **theme**: `string` - The name of the theme to set
   - **chrome**: `Chrome` - Settings for the header/footer chrome
-    - **headerLayout**: `string` - Specifies the header layout to set on the site. Options: `Standard|Compact|Minimal|Extended`. Default `Standard`.
-    - **headerEmphasis**: `string` - Specifies the header its background color to set. Options: `Lightest|Light|Dark|Darkest`. Default `Lightest`.
-    - **logoAlignment**: `string` - When using the `Extended` header, you can set the logo its position. Otherwise this setting will be ignored. Options: `Left|Center|Right`. Default `Left`.
-    - **footerLayout**: `string` - Specifies the footer layout to set on the site. Options: `Simple|Extended`. Default `Simple`.
-    - **footerEmphasis**: `string` - Specifies the footer its background color to set. Options: `Lightest|Light|Dark|Darkest`. Default `Darkest`.
+    - **headerLayout**: `string` - Specifies the header layout to set on the site. Options: `Standard|Compact|Minimal|Extended`.
+    - **headerEmphasis**: `string` - Specifies the header its background color to set. Options: `Lightest|Light|Dark|Darkest`.
+    - **logoAlignment**: `string` - When using the `Extended` header, you can set the logo its position. Otherwise this setting will be ignored. Options: `Left|Center|Right`.
+    - **footerLayout**: `string` - Specifies the footer layout to set on the site. Options: `Simple|Extended`.
+    - **footerEmphasis**: `string` - Specifies the footer its background color to set. Options: `Lightest|Light|Dark|Darkest`.
     - **disableMegaMenu**: `boolean` - Specify to disable the mega menu. This results in using the cascading navigation (classic experience).
     - **hideTitleInHeader**: `boolean` - Specify to hide the site title in the header.
     - **disableFooter**: `boolean` - Specify to disable the footer on the site.
