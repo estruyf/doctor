@@ -2,9 +2,11 @@
 
 ## [1.7.0]
 
+- [#6](https://github.com/ValoIntranet/doctor/issues/6): Enhancement to allow Doctor to generate the HTML instead of the Markdown Web Part.
 - [#50](https://github.com/ValoIntranet/doctor/issues/50): Fix for skipping pages
 - [#51](https://github.com/ValoIntranet/doctor/issues/51): Enhancement making skipping pages faster without the need to check each page
 - [#52](https://github.com/ValoIntranet/doctor/issues/51): Enhancements to make it possible to change the look and feel of the site
+- [#54](https://github.com/ValoIntranet/doctor/issues/54): Enhancements to set the code editor theme for Markdown
 
 ## [1.6.0]
 
