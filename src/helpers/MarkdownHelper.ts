@@ -3,6 +3,8 @@ import md = require('markdown-it');
 import hljs = require('highlight.js');
 import { MarkdownSettings } from '../models';
 import { ShortcodesHelpers } from './ShortcodesHelpers';
+// import { ShortcodesHelpers } from './ShortcodesHelpers';
+// import shortcode_plugin from '../shortcodes/Plugin';
 
 export class MarkdownHelper {
 
@@ -12,7 +14,7 @@ export class MarkdownHelper {
    * @param markdown 
    */
   public static async getJsonData(webPartTitle: string, markdown: string, mdOptions: MarkdownSettings | null): Promise<string> {
-    const converter = md({ html: true, breaks: true, highlight: function (str, lang) {
+    const converter = md({ html: true, breaks: true, highlight: (str, lang) => {
       if (lang && hljs.getLanguage(lang)) {
         try {
           return `<pre class="hljs"><code>${hljs.highlight(lang, str, true).value}</code></pre>`;
@@ -20,7 +22,8 @@ export class MarkdownHelper {
       }
   
       return '<pre class="hljs"><code>' + (md as any).utils.escapeHtml(str) + '</code></pre>';
-    } }).use(require('markdown-it-shortcode-tag'), await ShortcodesHelpers.get());
+    }});
+    // .use(shortcode_plugin, await ShortcodesHelpers.get());
 
     const tilePh = `WEBPARTTITLE-PLACEHOLDER`;
     const markdownPh = `MARKDOWN-PLACEHOLDER`;
@@ -41,6 +44,7 @@ export class MarkdownHelper {
 
     if (allowHtml) {
       let htmlMarkup = converter.render(markdown);
+      htmlMarkup = await ShortcodesHelpers.parse(htmlMarkup);
       htmlMarkup = `<style>${this.getStyles(theme === "light")}</style>${htmlMarkup}`;
       htmlMarkup = htmlMarkup.replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/\"/g, `\\\"`);
       wpData = wpData.replace(htmlPh, htmlMarkup);

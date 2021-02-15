@@ -1,41 +1,42 @@
 import * as fs from 'fs';
 import * as fg from 'fast-glob';
 import * as path from 'path';
-import { initializeIcons } from '@uifabric/icons';
-import { getIcon, getIconClassName } from '@uifabric/styling';
-
-initializeIcons(undefined, { warnOnMissingIcons: true, disableWarnings: false });
+import { Window } from 'happy-dom';
+import { IconRenderer } from '../shortcodes';
 
 export class ShortcodesHelpers {
   private static shortcodes = {
-    icon: {
-      render: function (attrs: any, env) {
-        if (!attrs || !attrs.name) {
-          return "";
-        }
-        
-        const icon = getIcon(attrs.name);
-        
-        if (icon && icon.code && icon.subset) {
-          const className = getIconClassName(attrs.name);
-          const cssStyles = `<style>
-            .${className} {
-              display: inline-block;
-              font-family: ${icon.subset.fontFace.fontFamily};
-              font-style: ${icon.subset.fontFace.fontStyle || 'normal'};
-              font-weight: ${icon.subset.fontFace.fontWeight || 'normal'};
-              speak: none;
-            }
-            .${className}:before{content:"${icon.code}"}
-          </style>
-          <i data-icon-name="${attrs.name}" role="presentation" aria-hidden="true" class="ms-Icon doctor-Icon ${className}" style="">${icon.code}</i>`;
-          return cssStyles;
-        }
+    icon: IconRenderer
+  };
 
-        return "";
+  public static async parse(htmlMarkup: string): Promise<string> {
+    if (!ShortcodesHelpers.shortcodes) return htmlMarkup;
+
+    const tags = Object.getOwnPropertyNames(ShortcodesHelpers.shortcodes);
+    if (!tags || tags.length < 1) return htmlMarkup;
+
+    for (const tag of tags) {
+      if (typeof ShortcodesHelpers.shortcodes[tag].render !== 'function') {
+        throw new Error(`Missing render function for shortcode tag: "${tag}"`);
       }
     }
-  };
+
+    const window = new Window();
+    const document = window.document;
+    document.body.innerHTML = htmlMarkup;
+
+    for (const tag of tags) {
+      const elms = document.querySelectorAll(tag);
+      if (elms && elms.length) {
+        for (const elm of elms) {
+          if (elm.innerHTML) {}
+          // console.log(`InnerHTML`, tag, elm.innerHTML);
+        }
+      }
+    }
+
+    return htmlMarkup;
+  }
 
   /**
    * Initialize the shortcodes

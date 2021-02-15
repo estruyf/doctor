@@ -9,3 +9,4 @@ export * from './Page';
 export * from './PageFrontMatter';
 export * from './PageTemplate';
 export * from './PublishOutput';
+export * from './Tokens';

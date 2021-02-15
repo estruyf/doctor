@@ -57,6 +57,7 @@
     "esm": "3.2.25",
     "fast-glob": "3.2.4",
     "frontmatter": "0.0.3",
+    "happy-dom": "2.6.2",
     "highlight.js": "10.6.0",
     "html-entities": "2.1.0",
     "inquirer": "7.3.3",
