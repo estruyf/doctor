@@ -1,14 +1,15 @@
 import * as fs from 'fs';
 import * as fg from 'fast-glob';
 import * as path from 'path';
-import { Window } from 'happy-dom';
-import { IconRenderer } from '../shortcodes';
+import * as cheerio from 'cheerio';
+import { IconRenderer, CalloutRenderer } from '../shortcodes';
 import { Shortcode } from '../models';
 import { Logger } from './logger';
 
 export class ShortcodesHelpers {
   private static shortcodes: Shortcode = {
-    icon: IconRenderer
+    icon: IconRenderer,
+    callout: CalloutRenderer
   };
 
   /**
@@ -27,7 +28,6 @@ export class ShortcodesHelpers {
     if (files && files.length > 0) {
       for (const file of files) {
         const sc = await require(path.join(process.cwd(), file));
-        console.log(sc)
         if (sc && sc.name && sc.render) {
           ShortcodesHelpers.shortcodes[sc.name] = { render: sc.render };
         }
@@ -51,22 +51,26 @@ export class ShortcodesHelpers {
       }
     }
 
-    Logger.debug(`Doctor uses ${tags.length} shortcodes for HTML parsing.`)
+    Logger.debug(`Doctor uses ${tags.length} shortcodes for HTML parsing.`);
 
-    const window = new Window();
-    const document = window.document;
-    document.body.innerHTML = htmlMarkup;
+    const $ = cheerio.load(htmlMarkup, { xmlMode: true });
 
     for (const tag of tags) {
-      const elms = document.querySelectorAll(tag);
-      if (elms && elms.length) {
+      const elms = $(tag).toArray();
+      // const elms = [...document.getElementsByTagName(tag) as any];
+      Logger.debug(`Doctor found ${elms.length} element(s) for "${tag}" shortcode.`);
+      if (elms && elms.length > 0) {
         const shortcode = ShortcodesHelpers.shortcodes[tag];
+
         for (const elm of elms) {
           if (elm && shortcode && shortcode.render) {
             Logger.debug(`Executing shortcode "${tag}"`);
 
-            const scHtml = await shortcode.render(elm.hasAttributes() ? this.processAttributes((elm.attributes as any)) : {}, elm.innerHTML);
-            elm.parentElement.innerHTML = scHtml;
+            const $elm = $(elm);
+            const attributes = this.getAllAttributes($elm.get(0));
+
+            const scHtml = await shortcode.render(attributes, $elm.html());
+            $elm.replaceWith(scHtml);
 
             Logger.debug(`Shortcode "${tag}" its HTML:`);
             Logger.debug(scHtml);
@@ -75,31 +79,35 @@ export class ShortcodesHelpers {
         }
       }
     }
+    
+    Logger.debug(`The HTML after shortcode convertion`);
+    Logger.debug($.html());
+    Logger.debug(``);
 
-    return htmlMarkup;
+    return $.html();
   }
+  
+  /**
+   * Get all attributes
+   * @param $elm 
+   */
+  public static getAllAttributes($elm: any) {
+    const allAttr = {};
+
+    if ($elm.attribs) {
+      const names = Object.keys($elm.attribs);
+
+      for(const name of names) {
+        allAttr[`${name}`] = $elm.attribs[name];
+      }
+    }
+    return allAttr;
+  };
   
   /**
    * Retrieve all registered shortcodes
    */
   public static get() {
     return ShortcodesHelpers.shortcodes;
-  }
-
-  /**
-   * Process all attributes to an object
-   * @param attributes 
-   */
-  private static processAttributes(attributes: Element["attributes"]) {
-    const allAttr = {};
-    for(let i = 0; i <= attributes.length; i++) {
-      const attr = attributes[i];
-      if (attr && attr.name && attr.value) {
-        const name = attr.name.toString();
-        const value = attr.value;
-        allAttr[`${name}`] = value;
-      }
-    }
-    return allAttr;
   }
 }

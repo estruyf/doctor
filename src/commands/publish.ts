@@ -1,11 +1,11 @@
 import * as path from 'path';
 import * as fg from 'fast-glob';
 import * as fs from 'fs';
+import * as cheerio from 'cheerio';
 import Listr = require('listr');
 import parseMarkdown = require('frontmatter');
 import kleur = require('kleur');
 import md = require('markdown-it');
-import { Window } from 'happy-dom';
 import { ArgumentsHelper, execScript, FileHelpers, FolderHelpers, FrontMatterHelper, HeaderHelper, ListHelpers, Logger, MarkdownHelper, NavigationHelper, SiteHelpers } from '../helpers';
 import { Observable } from 'rxjs';
 import { Authenticate } from './authenticate';
@@ -119,11 +119,10 @@ export class Publish {
 
                 let markup = parseMarkdown(contents);
                 const htmlMarkup = converter.render(contents);
-                const window = new Window();
-                const document = window.document;
-                document.body.innerHTML = htmlMarkup;
-                const imgElms = [...document.querySelectorAll('img') as any] as HTMLImageElement[];
-                const anchorElms = [...document.querySelectorAll('a') as any] as HTMLAnchorElement[];
+
+                const $ = cheerio.load(htmlMarkup, { xmlMode: true });
+                const imgElms = $(`img`).toArray();
+                const anchorElms = $(`a`).toArray();
 
                 // Check if the required data for the article is present
                 if (markup && !markup.data) {
@@ -141,7 +140,7 @@ export class Publish {
                 if (imgElms && imgElms.length > 0) {
                   observer.next(`Uploading images referenced in ${filename}`);
 
-                  markup = await this.processImages(imgElms, file, contents, options, output);
+                  markup = await this.processImages($, imgElms, file, contents, options, output);
                 }
 
                 // Anchor processing
@@ -151,7 +150,7 @@ export class Publish {
                   Logger.debug(`Number of links in ${filename}: ${anchorElms.length}`)
 
                   try {
-                    markup.content = this.processLinks(anchorElms, file, markup.content, options);
+                    markup.content = this.processLinks($, anchorElms, file, markup.content, options);
                   } catch (e) {
                     throw e.message;
                   }
@@ -232,21 +231,24 @@ export class Publish {
 
   /**
    * Process images referenced in the file
+   * @param $ 
    * @param imgElms 
    * @param filePath 
    * @param contents 
    * @param options 
    * @param output 
    */
-  private static async processImages(imgElms: HTMLImageElement[], filePath: string, contents: string, options: CommandArguments, output: PublishOutput) {
+  private static async processImages($: cheerio.Root, imgElms: cheerio.Element[], filePath: string, contents: string, options: CommandArguments, output: PublishOutput) {
     const { startFolder, assetLibrary, webUrl, overwriteImages } = options;
     
-    const imgs = imgElms.filter(i => !i.src.startsWith(`http`));
-    for (const img of imgs) {
-      Logger.debug(`Adding image: ${img.src} - ${imgs.length}`)
+    const imgSources = imgElms.filter(i => !$(i).attr("src").startsWith(`http`)).map(img => $(img).attr('src'));
+    const uImgSources = [...new Set(imgSources)];
 
-      const imgDirectory = path.join(path.dirname(filePath), path.dirname(img.src));
-      const imgPath = path.join(path.dirname(filePath), img.src);
+    for (const imgSource of uImgSources) {
+      Logger.debug(`Adding image: ${imgSource} - ${imgSources.length}`)
+
+      const imgDirectory = path.join(path.dirname(filePath), path.dirname(imgSource));
+      const imgPath = path.join(path.dirname(filePath), imgSource);
 
       const uniStartPath = startFolder.replace(/\\/g, '/');
       const folders = imgDirectory.replace(/\\/g, '/').replace(uniStartPath, '').split('/');
@@ -257,7 +259,8 @@ export class Publish {
 
       try {
         await FileHelpers.create(crntFolder, imgPath, webUrl, overwriteImages);
-        contents = contents.replace(new RegExp(img.src, 'g'), (`${webUrl}/${crntFolder}/${path.basename(img.src)}`).replace(/ /g, "%20"));
+        const imgUrl = (`${webUrl}/${crntFolder}/${path.basename(imgSource)}`).replace(/ /g, "%20");
+        contents = contents.replace(new RegExp(imgSource, 'g'), imgUrl);
         ++output.imagesProcessed;
       } catch (e) {
         return Promise.reject(new Error(`Something failed while uploading the image asset. ${e.message}`));
@@ -270,27 +273,31 @@ export class Publish {
 
   /**
    * Process the links referenced in the markdown files
+   * @param $ 
    * @param linkElms 
    * @param filePath 
    * @param content 
    * @param options 
    */
-  private static processLinks(linkElms: HTMLAnchorElement[], filePath: string, content: string, options: CommandArguments) {
+  private static processLinks($: cheerio.Root, linkElms: cheerio.Element[], filePath: string, content: string, options: CommandArguments) {
     const { webUrl, startFolder } = options;
 
-    for (const link of linkElms.filter(i => !i.getAttribute('href').startsWith(`http`))) {
+    const fLinks = linkElms.filter(i => !$(i).attr("href").startsWith(`http`));
+    const uLinks = [...new Set(fLinks)];
 
-      const fileLink = link.getAttribute('href');
+    for (const link of uLinks) {
+      const $link = $(link);
+      const fileLink = $link.attr('href');
       let mdFile = "";
 
       Logger.debug(`Processing link: ${fileLink} for ${filePath}`);
 
       if (fileLink.endsWith(`.md`)) {
-        mdFile = link.getAttribute('href');
+        mdFile = $link.attr('href');
       } else if (fileLink === ".") {
         mdFile = path.basename(filePath);
       } else {
-        mdFile = `${link.getAttribute('href')}.md`;
+        mdFile = `${$link.attr('href')}.md`;
       }
 
       const mdFilePath = path.join(path.dirname(filePath), mdFile);
@@ -316,6 +323,8 @@ export class Publish {
 
         // Update the link in the markdown
         content = content.replace(`(${fileLink})`, `(${spUrl})`);
+        content = content.replace(`"${fileLink}"`, `"${spUrl}"`);
+        content = content.replace(`'${fileLink}`, `'${spUrl}'`);
       } else {
         Logger.debug(`Referenced file not found`);
       }

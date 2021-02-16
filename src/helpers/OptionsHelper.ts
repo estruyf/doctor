@@ -84,7 +84,7 @@ export class OptionsHelper {
       outputFolder: args["--outputFolder"] || "",
       siteDesign: options["siteDesign"] || null,
       markdown: options["markdown"] || null,
-      shortcodesFolder: options["shortcodesFolder"] || "./shortcodes"
+      shortcodesFolder: options["markdown"] && options["markdown"]["shortcodesFolder"] ? options["markdown"]["shortcodesFolder"] : "./shortcodes"
     };
   }
 

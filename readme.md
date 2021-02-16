@@ -343,8 +343,21 @@ Example:
 The `markdown` property allows you to define how you want to render the HTML in SharePoint. By default, `Doctor` lets the HTML being rendered by the Markdown web part. This property allows you to override these settings, and define to let `Doctor` take over for the HTML rendering.
 
 - **markdown**
-  - **allowHtml**: `boolean` - By default SharePoint renders the HTML. If you set this to `true`, it will allow Doctor to generate the HTML and allows you to make use of all HTML capabilities the tool has to offer.
+  - **allowHtml**: `boolean` - By default SharePoint renders the HTML. If you set this to `true`, it will allow Doctor to generate the HTML and allows you to make use of all HTML capabilities the tool has to offer. When you enable this, you can also make use of [shortcodes](#markdown-shortcodes) in markdown to make more HTML rich pages.
   - **theme**: `string` - Specify the theme to use for the code blocks. You can use `Dark` or `Light`. Default is `Dark`.
+  - **shortcodesFolder**: `string` - Specifies where custom shortcodes can be retrieved. Check [shortcodes](#markdown-shortcodes) section to learn more about how shortcodes can be used. Default folder location `Doctor` expects is `./shortcodes`. If you want to change this, you can use the `shortcodesFolder` property and update it appropriate.
+
+Example:
+
+```json
+{
+  "markdown": {
+    "allowHtml": true,
+    "theme": "light",
+    "shortcodesFolder": "./shortcodes"
+  }
+}
+```
 
 > **Important**: When allowing `Doctor` to take over for rendering the HTML, be aware that the pages can best not be modified on SharePoint. Otherwise the web part will override the HTML completly.
 
@@ -369,6 +382,30 @@ You can also define a static navigation structure in the `doctor.json` file. Exa
 The menu property can contain a `QuickLaunch` and/or `TopNavigationBar` elment with their corresponding static navigation links under the `items` property. More information about navigation items can be found in the [menu section](#Menu).
 
 > **Important**: If you specify arguments during command execution, they will be used instead of the values defined in the `doctor.json` file.
+
+### Markdown shortcodes
+
+Shortcodes are HTML snippets inside your content files calling built-in or custom templates. You can use these shortcodes like custom HTML elements. Similar like custom web components.
+
+Example:
+
+```html
+<icon name="Share" />
+```
+
+#### Custom shortcodes
+
+You can add custom shortcodes to your project by adding a JavaScript file to the `shortcodes` folder (If you want, you can change this location - [Markdown publishing settings](#markdown-publishing-settings)). The contents of the JavaScript file should contain the following:
+
+```javascript
+// Usage in Markdown: <shortcode-name name="name attribute">the content</shortcode-name>
+module.exports = {
+  name: "shortcode-name",
+  render: (attributes, html) => {
+    return `<div>Name: ${attributes.name} - HTML: ${html}</div>`
+  }
+};
+```
 
 ### Certificate authentication
 

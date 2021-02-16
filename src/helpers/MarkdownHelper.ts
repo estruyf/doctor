@@ -43,7 +43,7 @@ export class MarkdownHelper {
     if (allowHtml) {
       let htmlMarkup = converter.render(markdown);
       htmlMarkup = await ShortcodesHelpers.parse(htmlMarkup);
-      htmlMarkup = `<style>${this.getStyles(theme === "light")}</style>${htmlMarkup}`;
+      htmlMarkup = `<style>${this.getEditorStyles(theme === "light")} ${this.getCalloutStyles()}</style>${htmlMarkup}`;
       htmlMarkup = htmlMarkup.replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/\"/g, `\\\"`);
       wpData = wpData.replace(htmlPh, htmlMarkup);
     }
@@ -72,7 +72,7 @@ export class MarkdownHelper {
    * Retrieve the CSS styles for code highlighting
    * @param light 
    */
-  private static getStyles(light: boolean = false) {
+  private static getEditorStyles(light: boolean = false) {
     if (light) {
       return `.hljs {
         display: block;
@@ -236,5 +236,32 @@ export class MarkdownHelper {
     .hljs-selector-id {
       font-weight: bold;
     }`;
+  }
+
+  private static getCalloutStyles() {
+    return `
+      .callout {
+        padding: 1rem;
+        border: 1px solid #eaeaea;
+        border-radius: 15px;
+      }
+
+      .callout h5 {
+        font-weight: bold;
+        margin: 0 0 .5rem 0;
+      }
+      
+      .callout .callout-icon svg {
+        display: inline-block;
+        vertical-align: middle;
+        margin-right: .2em;
+      }
+
+      .callout-note { background-color: #e1dfdd; color: #000; }
+      .callout-tip { background-color: #bad80a; color: #000; }
+      .callout-info { background-color: #00b7c3; color: #000; }
+      .callout-caution { background-color: #ffaa44; color: #000; }
+      .callout-danger { background-color: #d13438; color: #000; }
+    `;
   }
 }
