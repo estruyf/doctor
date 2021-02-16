@@ -1,5 +1,4 @@
 
-import * as minify from 'html-minifier';
 import md = require('markdown-it');
 import hljs = require('highlight.js');
 import { MarkdownSettings } from '../models';
@@ -47,7 +46,7 @@ export class MarkdownHelper {
       htmlMarkup = await ShortcodesHelpers.parse(htmlMarkup);
       htmlMarkup = `<style>${this.getEditorStyles(theme === "light")} ${this.getCalloutStyles()}</style>${htmlMarkup}`;
       htmlMarkup = htmlMarkup.replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/\"/g, `\\\"`);
-      wpData = wpData.replace(htmlPh, minify.minify(htmlMarkup, { minifyCSS: true  }));
+      wpData = wpData.replace(htmlPh, htmlMarkup);
     }
 
     return wpData;
@@ -246,6 +245,10 @@ export class MarkdownHelper {
         padding: 1rem;
         border: 1px solid #eaeaea;
         border-radius: 15px;
+      }
+
+      .callout-content>:last-child {
+        margin-bottom: 0;
       }
 
       .callout h5 {
