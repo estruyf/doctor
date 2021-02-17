@@ -1,3 +1,5 @@
+import * as path from 'path';
+import { FileHelpers, FolderHelpers } from '.';
 import { CommandArguments } from "../models/CommandArguments";
 import { ArgumentsHelper } from "./ArgumentsHelper";
 import { execScript } from "./execScript";
@@ -12,13 +14,34 @@ export class SiteHelpers {
    * @param options 
    */
   public static async changeLook(ctx: any, options: CommandArguments) {
-    const { siteDesign, webUrl } = options;
+    const { siteDesign, webUrl, assetLibrary, overwriteImages } = options;
     if (!siteDesign || Object.keys(siteDesign).length === 0) {
       return;
     }
 
     Logger.debug(`Start changing the look of the site with the following options:`);
     Logger.debug(JSON.stringify(siteDesign, null, 2));
+
+    if (typeof siteDesign.logo !== "undefined") {
+      try {
+        let imgUrl = siteDesign.logo;
+
+        if (imgUrl) {
+          const imgPath = path.join(process.cwd(), path.dirname(siteDesign.logo));
+
+          let crntFolder = `${assetLibrary}/site`;
+          crntFolder = await FolderHelpers.create(crntFolder, ["site"], webUrl);
+          
+          await FileHelpers.create(crntFolder, imgPath, webUrl, overwriteImages);
+
+          imgUrl = (`${webUrl}/${crntFolder}/${path.basename(path.basename(imgPath))}`).replace(/ /g, "%20");
+        }
+        
+        await execScript(ArgumentsHelper.parse(`spo web set --webUrl "${webUrl}" --siteLogoUrl "${imgUrl}"`));
+      } catch (e) {
+        return Promise.reject(new Error(`Something failed while setting the site logo. ${e.message}`));
+      }
+    }
 
     if (siteDesign.theme) {
       try {

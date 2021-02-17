@@ -1,8 +1,10 @@
+export * from './Chrome';
 export * from './CommandArguments';
 export * from './File';
 export * from './Folder';
 export * from './HeaderOptions';
 export * from './ListData';
+export * from './MarkdownSettings';
 export * from './Menu';
 export * from './NavigationItem';
 export * from './Page';
@@ -10,4 +12,5 @@ export * from './PageFrontMatter';
 export * from './PageTemplate';
 export * from './PublishOutput';
 export * from './Shortcode';
+export * from './SiteDesign';
 export * from './Tokens';

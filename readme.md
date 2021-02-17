@@ -309,6 +309,7 @@ You can provide the same flags and values like in the parameters. Parameters can
 If you want, you can define the site its look and feel. This needs to be done on global level in the `doctor.json` file.
 
 - **siteDesign**: `SiteDesign` - Allows you to set the theme and header/footer chrome
+  - **logo**: `string` - The path to your logo you want to use for the site. If the value is empty `""` it will be used to unset the site its logo.
   - **theme**: `string` - The name of the theme to set
   - **chrome**: `Chrome` - Settings for the header/footer chrome
     - **headerLayout**: `string` - Specifies the header layout to set on the site. Options: `Standard|Compact|Minimal|Extended`.
@@ -325,6 +326,7 @@ Example:
 ```json
 {
   "siteDesign": {
+    "logo: "./assets/valo-doctor.png",
     "theme": "Red",
     "chrome": {
       "headerLayout": "Compact",

@@ -1,5 +1,4 @@
-import { Menu } from "./Menu";
-
+import { MarkdownSettings, Menu, SiteDesign } from ".";
 export interface CommandArguments {
   task: string;
   auth: "deviceCode" | "password" | "certificate";
@@ -28,25 +27,4 @@ export interface CommandArguments {
   siteDesign?: SiteDesign;
   markdown?: MarkdownSettings;
   shortcodesFolder?: string;
-}
-
-export interface SiteDesign {
-  theme?: string;
-  chrome?: Chrome;
-}
-
-export interface Chrome {
-  headerLayout?: "Standard" | "Compact" | "Minimal" | "Extended";
-  headerEmphasis?: "Lightest" | "Light" | "Dark" | "Darker";
-  logoAlignment?: "Left" | "Center" | "Right";
-  footerLayout?: "Simple" | "Extended";
-  footerEmphasis?: "Lightest" | "Light" | "Dark" | "Darker";
-  disableMegaMenu?: boolean;
-  disableFooter?: boolean;
-  hideTitleInHeader?: boolean;
-}
-
-export interface MarkdownSettings {
-  allowHtml?: boolean;
-  theme?: "dark" | "light";
 }

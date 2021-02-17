@@ -179,6 +179,13 @@
       "title": "siteDesign",
       "description": "Defines the design to apply to the site (theme, chrome header and footer).",
       "properties": {
+        "logo": {
+          "$id": "#/properties/siteDesign/properties/logo",
+          "type": "string",
+          "title": "logo",
+          "description": "Set the logo for the site.",
+          "default": ""
+        },
         "theme": {
           "$id": "#/properties/siteDesign/properties/theme",
           "type": "string",

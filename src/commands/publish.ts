@@ -353,7 +353,7 @@ export class Publish {
         }
       }
       
-      let pageData = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --output json`));
+      let pageData = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --metadataOnly --output json`));
       if (pageData && typeof pageData === "string") {
         pageData = JSON.parse(pageData);
       }
@@ -501,7 +501,7 @@ export class Publish {
    */
   private static async getPageId(webUrl: string, slug: string) {
     if (!this.processedPages[slug]) {
-      let pageData: any = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --output json`));
+      let pageData: any = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --metadataOnly --output json`));
       if (pageData && typeof pageData === "string") {
         pageData = JSON.parse(pageData);
 
