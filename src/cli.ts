@@ -21,7 +21,7 @@ export async function cli(args: string[]) {
       console.log('');
       console.log(`The current version you're running: ${version} supports the following commands: ${Object.keys(Command).join(', ')}.`);
       console.log('');
-      console.log('Documentation: https://github.com/ValoIntranet/doctor');
+      console.log('Documentation: https://github.com/estruyf/doctor');
       console.log('');
     } else {
       await Commands.start(options);

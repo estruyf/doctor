@@ -1,5 +1,5 @@
 <h1 align="center">
-  <a href="hhttps://github.com/ValoIntranet/doctor">
+  <a href="hhttps://github.com/estruyf/doctor">
     <img alt="Doctor" src="./assets/valo-doctor.svg" height="200">
   </a>
 </h1>
@@ -7,17 +7,17 @@
 <h2 align="center">The static site generator for SharePoint</h2>
 
 <p align="center">
-  <img src="https://github.com/ValoIntranet/doctor/workflows/Does%20it%20build%20and%20publish%3F/badge.svg?branch=dev"
+  <img src="https://github.com/estruyf/doctor/workflows/Does%20it%20build%20and%20publish%3F/badge.svg?branch=dev"
       alt="Does it build and publish?" />
 
-  <a href="https://www.npmjs.com/package/@valo/doctor">
-    <img src="https://img.shields.io/npm/v/@valo/doctor/latest?style=flat-square"
-      alt="npm @valo/doctor@latest" />
+  <a href="https://www.npmjs.com/package/@estruyf/doctor">
+    <img src="https://img.shields.io/npm/v/@estruyf/doctor/latest?style=flat-square"
+      alt="npm @estruyf/doctor@latest" />
   </a>
   
-  <a href="https://www.npmjs.com/package/@valointranet/doctor">
-    <img src="https://img.shields.io/npm/v/@valo/doctor/next?style=flat-square"
-      alt="npm @valo/doctor@next" />
+  <a href="https://www.npmjs.com/package/@estruyf/doctor">
+    <img src="https://img.shields.io/npm/v/@estruyf/doctor/next?style=flat-square"
+      alt="npm @estruyf/doctor@next" />
   </a>
 </p>
 
@@ -38,16 +38,16 @@ Thank you for your interest in the `doctor`. The following information will help
 Start by installing `doctor` as follows via npm:
 
 ```
-npm i -g @valo/doctor
+npm i -g @estruyf/doctor
 ```
 
 If you are using `yarn`, you can do it as follows:
 
 ```
-yarn global add @valo/doctor
+yarn global add @estruyf/doctor
 ```
 
-To quickly get started, we provided a [sample repository](https://github.com/ValoIntranet/doctor-sample) which allows you to test out all the functionalities of `Doctor`.
+To quickly get started, we provided a [sample repository](https://github.com/estruyf/doctor-sample) which allows you to test out all the functionalities of `Doctor`.
 
 ## Pages
 
@@ -397,17 +397,17 @@ Once you did the previous steps, you are ready to make use of the `doctor` tool.
 
 ## Todo
 
-All ideas can be found in our [issue list](https://github.com/ValoIntranet/doctor/issues) tagged with [enhancement](https://github.com/ValoIntranet/doctor/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement).
+All ideas can be found in our [issue list](https://github.com/estruyf/doctor/issues) tagged with [enhancement](https://github.com/estruyf/doctor/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement).
 
 ## Found an issue?
 
-Please add all your issues to the project [issue list](https://github.com/ValoIntranet/doctor/issues).
+Please add all your issues to the project [issue list](https://github.com/estruyf/doctor/issues).
 
 ## Feedback / Contribute
 
-If you want to contribute to the project, feel free to do so. Best is to start a discussion in the [discussion list](https://github.com/ValoIntranet/doctor/discussions) and let us know what you want to implement.
+If you want to contribute to the project, feel free to do so. Best is to start a discussion in the [discussion list](https://github.com/estruyf/doctor/discussions) and let us know what you want to implement.
 
-Feedback can also be provided to the [discussion list](https://github.com/ValoIntranet/doctor/discussions).
+Feedback can also be provided to the [discussion list](https://github.com/estruyf/doctor/discussions).
 
 ## Disclaimer
 
@@ -415,6 +415,6 @@ Feedback can also be provided to the [discussion list](https://github.com/ValoIn
 
 <p align="center">
   <a href="#">
-      <img src="http://estruyf-github.azurewebsites.net/api/VisitorHit?user=valointranet&repo=doctor&countColor=%23ffc100" />
+      <img src="http://estruyf-github.azurewebsites.net/api/VisitorHit?user=estruyf&repo=doctor&countColor=%23ffc100" />
    </a>
 </p>

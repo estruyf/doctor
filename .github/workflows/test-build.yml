@@ -41,7 +41,7 @@ jobs:
     - run: npm link
 
     - run: | 
-        git clone https://github.com/ValoIntranet/doctor-sample
+        git clone https://github.com/estruyf/doctor-sample
         cd doctor-sample
         doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}" --cleanStart --confirm
 
@@ -66,7 +66,7 @@ jobs:
       shell: powershell
 
     - run: | 
-        git clone https://github.com/ValoIntranet/doctor-sample
+        git clone https://github.com/estruyf/doctor-sample
         cd doctor-sample
         doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}" --cleanStart --confirm
       shell: powershell
@@ -92,7 +92,7 @@ jobs:
       shell: cmd
 
     - run: | 
-        git clone https://github.com/ValoIntranet/doctor-sample
+        git clone https://github.com/estruyf/doctor-sample
         cd doctor-sample
         doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS }}" --cleanStart --confirm
       shell: cmd
