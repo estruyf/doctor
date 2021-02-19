@@ -44,8 +44,8 @@ export class MarkdownHelper {
     if (allowHtml) {
       let htmlMarkup = converter.render(markdown);
       htmlMarkup = await ShortcodesHelpers.parse(htmlMarkup);
-      htmlMarkup = `<style>${this.getEditorStyles(theme === "light")} ${this.getCalloutStyles()}</style>${htmlMarkup}`;
-      htmlMarkup = htmlMarkup.replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/\"/g, `\\\"`);
+      htmlMarkup = `${htmlMarkup}<style>${this.getEditorStyles(theme === "light")} ${this.getCalloutStyles()}</style>`;
+      htmlMarkup = htmlMarkup.replace(/\\/g, `\\\\`).replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/\"/g, `\\\"`);
       wpData = wpData.replace(htmlPh, htmlMarkup);
     }
 
