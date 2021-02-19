@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.6.1]
+
+- Just because of an issue in the package generation
+
 ## [1.6.0]
 
 - [#3](https://github.com/estruyf/doctor/issues/3): Added metadata support for pages
