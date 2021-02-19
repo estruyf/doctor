@@ -1,6 +1,6 @@
 {
   "name": "@estruyf/doctor",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "The static site generator for SharePoint",
   "main": "dist/main.js",
   "homepage": "https://github.com/estruyf/doctor",
