@@ -37,7 +37,7 @@ export class SiteHelpers {
           imgUrl = (`${webUrl}/${crntFolder}/${path.basename(path.basename(imgPath))}`).replace(/ /g, "%20");
         }
         
-        await execScript(ArgumentsHelper.parse(`spo web set --webUrl "${webUrl}" --siteLogoUrl "${imgUrl}"`));
+        await execScript(ArgumentsHelper.parse(`spo site set --url "${webUrl}" --siteLogoUrl "${imgUrl}"`));
       } catch (e) {
         return Promise.reject(new Error(`Something failed while setting the site logo. ${e.message}`));
       }
