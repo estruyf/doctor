@@ -1,29 +1,15 @@
-import { SiteHelpers } from './../helpers/SitesHelpers';
 import * as path from 'path';
 import * as fg from 'fast-glob';
 import * as fs from 'fs';
+import * as cheerio from 'cheerio';
 import Listr = require('listr');
 import parseMarkdown = require('frontmatter');
-import showdown = require('showdown');
 import kleur = require('kleur');
-import { JSDOM } from 'jsdom';
-import { FileHelpers } from '../helpers/FileHelpers';
-import { execScript } from '../helpers/execScript';
+import md = require('markdown-it');
+import { ArgumentsHelper, execScript, FileHelpers, FolderHelpers, FrontMatterHelper, HeaderHelper, ListHelpers, Logger, MarkdownHelper, NavigationHelper, SiteHelpers } from '../helpers';
 import { Observable } from 'rxjs';
-import { FolderHelpers } from '../helpers/FolderHelpers';
-import { NavigationHelper } from '../helpers/NavigationHelper';
-import { CommandArguments } from '../models/CommandArguments';
 import { Authenticate } from './authenticate';
-import { PublishOutput } from '../models/PublishOutput';
-import { Logger } from '../helpers/logger';
-import { FrontMatterHelper } from '../helpers/FrontMatterHelper';
-import { MarkdownHelper } from '../helpers/MarkdownHelper';
-import { ArgumentsHelper } from '../helpers/ArgumentsHelper';
-import { Page } from '../models/Page';
-import { HeaderHelper } from './../helpers/HeaderHelper';
-import { PageTemplate } from '../models/PageTemplate';
-import { File } from '../models/File';
-import { ListHelpers } from '../helpers/ListHelpers';
+import { CommandArguments, Page, PublishOutput, File, PageTemplate, MarkdownSettings } from '../models';
 
 export class Publish {
   private static pages: File[] = [];
@@ -112,7 +98,7 @@ export class Publish {
    */
   private static async processMDFiles(ctx: any, options: CommandArguments, output: PublishOutput): Promise<Observable<string>> {
     const { webUrl, webPartTitle, skipExistingPages } = options;
-    const converter = new showdown.Converter();
+    const converter = new md({ html: true, breaks: true });
 
     return new Observable(observer => {
       (async () => {
@@ -132,10 +118,11 @@ export class Publish {
               if (contents) {
 
                 let markup = parseMarkdown(contents);
-                const htmlMarkup = converter.makeHtml(contents);
-                const htmlElm = new JSDOM(htmlMarkup);
-                const imgElms = [...htmlElm.window.document.querySelectorAll('img') as any] as HTMLImageElement[];
-                const anchorElms = [...htmlElm.window.document.querySelectorAll('a') as any] as HTMLAnchorElement[];
+                const htmlMarkup = converter.render(contents);
+
+                const $ = cheerio.load(htmlMarkup, { xmlMode: true });
+                const imgElms = $(`img`).toArray();
+                const anchorElms = $(`a`).toArray();
 
                 // Check if the required data for the article is present
                 if (markup && !markup.data) {
@@ -153,7 +140,7 @@ export class Publish {
                 if (imgElms && imgElms.length > 0) {
                   observer.next(`Uploading images referenced in ${filename}`);
 
-                  markup = await this.processImages(imgElms, file, contents, options, output);
+                  markup = await this.processImages($, imgElms, file, contents, options, output);
                 }
 
                 // Anchor processing
@@ -163,7 +150,7 @@ export class Publish {
                   Logger.debug(`Number of links in ${filename}: ${anchorElms.length}`)
 
                   try {
-                    markup.content = this.processLinks(anchorElms, file, markup.content, options);
+                    markup.content = this.processLinks($, anchorElms, file, markup.content, options);
                   } catch (e) {
                     throw e.message;
                   }
@@ -194,7 +181,7 @@ export class Publish {
                     if (controlData) {
                       const webparts = JSON.parse(controlData);
                       const markdownWp = webparts.find((c: any) => c.title === webPartTitle);   
-                      await this.insertOrCreateControl(webPartTitle, markup.content, slug, webUrl, markdownWp ? markdownWp.id : null);
+                      await this.insertOrCreateControl(webPartTitle, markup.content, slug, webUrl, markdownWp ? markdownWp.id : null, options.markdown);
                     }
 
                     // Check if metadata needs to be added to the page
@@ -244,21 +231,24 @@ export class Publish {
 
   /**
    * Process images referenced in the file
+   * @param $ 
    * @param imgElms 
    * @param filePath 
    * @param contents 
    * @param options 
    * @param output 
    */
-  private static async processImages(imgElms: HTMLImageElement[], filePath: string, contents: string, options: CommandArguments, output: PublishOutput) {
+  private static async processImages($: cheerio.Root, imgElms: cheerio.Element[], filePath: string, contents: string, options: CommandArguments, output: PublishOutput) {
     const { startFolder, assetLibrary, webUrl, overwriteImages } = options;
+    
+    const imgSources = imgElms.filter(i => !$(i).attr("src").startsWith(`http`)).map(img => $(img).attr('src'));
+    const uImgSources = [...new Set(imgSources)];
 
-    const imgs = imgElms.filter(i => !i.src.startsWith(`http`));
-    for (const img of imgs) {
-      Logger.debug(`Adding image: ${img.src} - ${imgs.length}`)
+    for (const imgSource of uImgSources) {
+      Logger.debug(`Adding image: ${imgSource} - ${imgSources.length}`)
 
-      const imgDirectory = path.join(path.dirname(filePath), path.dirname(img.src));
-      const imgPath = path.join(path.dirname(filePath), img.src);
+      const imgDirectory = path.join(path.dirname(filePath), path.dirname(imgSource));
+      const imgPath = path.join(path.dirname(filePath), imgSource);
 
       const uniStartPath = startFolder.replace(/\\/g, '/');
       const folders = imgDirectory.replace(/\\/g, '/').replace(uniStartPath, '').split('/');
@@ -269,7 +259,8 @@ export class Publish {
 
       try {
         await FileHelpers.create(crntFolder, imgPath, webUrl, overwriteImages);
-        contents = contents.replace(new RegExp(img.src, 'g'), `${webUrl}/${crntFolder}/${path.basename(img.src)}`);
+        const imgUrl = (`${webUrl}/${crntFolder}/${path.basename(imgSource)}`).replace(/ /g, "%20");
+        contents = contents.replace(new RegExp(imgSource, 'g'), imgUrl);
         ++output.imagesProcessed;
       } catch (e) {
         return Promise.reject(new Error(`Something failed while uploading the image asset. ${e.message}`));
@@ -282,27 +273,31 @@ export class Publish {
 
   /**
    * Process the links referenced in the markdown files
+   * @param $ 
    * @param linkElms 
    * @param filePath 
    * @param content 
    * @param options 
    */
-  private static processLinks(linkElms: HTMLAnchorElement[], filePath: string, content: string, options: CommandArguments) {
+  private static processLinks($: cheerio.Root, linkElms: cheerio.Element[], filePath: string, content: string, options: CommandArguments) {
     const { webUrl, startFolder } = options;
 
-    for (const link of linkElms.filter(i => !i.href.startsWith(`http`))) {
+    const fLinks = linkElms.filter(i => !$(i).attr("href").startsWith(`http`));
+    const uLinks = [...new Set(fLinks)];
 
-      const fileLink = link.href;
+    for (const link of uLinks) {
+      const $link = $(link);
+      const fileLink = $link.attr('href');
       let mdFile = "";
 
       Logger.debug(`Processing link: ${fileLink} for ${filePath}`);
 
       if (fileLink.endsWith(`.md`)) {
-        mdFile = link.href;
+        mdFile = $link.attr('href');
       } else if (fileLink === ".") {
         mdFile = path.basename(filePath);
       } else {
-        mdFile = `${link.href}.md`;
+        mdFile = `${$link.attr('href')}.md`;
       }
 
       const mdFilePath = path.join(path.dirname(filePath), mdFile);
@@ -328,6 +323,8 @@ export class Publish {
 
         // Update the link in the markdown
         content = content.replace(`(${fileLink})`, `(${spUrl})`);
+        content = content.replace(`"${fileLink}"`, `"${spUrl}"`);
+        content = content.replace(`'${fileLink}`, `'${spUrl}'`);
       } else {
         Logger.debug(`Referenced file not found`);
       }
@@ -348,7 +345,7 @@ export class Publish {
 
       if (skipExistingPages) {
         if (this.pages && this.pages.length > 0) {
-          const page = this.pages.find(page => page.FileRef.toLowerCase() === relativeUrl.toLowerCase());
+          const page = this.pages.find((page: File) => page.FileRef.toLowerCase() === relativeUrl.toLowerCase());
           if (page) {
             // Page already existed
             return true;
@@ -356,7 +353,7 @@ export class Publish {
         }
       }
       
-      let pageData = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --output json`));
+      let pageData = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --metadataOnly --output json`));
       if (pageData && typeof pageData === "string") {
         pageData = JSON.parse(pageData);
       }
@@ -434,8 +431,8 @@ export class Publish {
    * @param webPartTitle 
    * @param markdown 
    */
-  private static async insertOrCreateControl(webPartTitle: string, markdown: string, slug: string, webUrl: string, wpId: string = null) {
-    const wpData = MarkdownHelper.getJsonData(webPartTitle, markdown);
+  private static async insertOrCreateControl(webPartTitle: string, markdown: string, slug: string, webUrl: string, wpId: string = null, mdOptions: MarkdownSettings | null) {
+    const wpData = await MarkdownHelper.getJsonData(webPartTitle, markdown, mdOptions);
     
     if (wpId) {
       // Web part needs to be updated
@@ -504,7 +501,7 @@ export class Publish {
    */
   private static async getPageId(webUrl: string, slug: string) {
     if (!this.processedPages[slug]) {
-      let pageData: any = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --output json`));
+      let pageData: any = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --metadataOnly --output json`));
       if (pageData && typeof pageData === "string") {
         pageData = JSON.parse(pageData);
 

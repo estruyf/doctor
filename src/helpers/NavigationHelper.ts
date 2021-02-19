@@ -1,3 +1,4 @@
+import { NavigationItem } from "../models";
 import { Menu, MenuItem, MenuType } from "../models/Menu";
 import { ArgumentsHelper } from "./ArgumentsHelper";
 import { execScript } from "./execScript";

@@ -82,7 +82,9 @@ export class OptionsHelper {
       cleanStart: args["--cleanStart"] || false,
       confirm: args["--confirm"] || false,
       outputFolder: args["--outputFolder"] || "",
-      siteDesign: options["siteDesign"] || null
+      siteDesign: options["siteDesign"] || null,
+      markdown: options["markdown"] || null,
+      shortcodesFolder: options["markdown"] && options["markdown"]["shortcodesFolder"] ? options["markdown"]["shortcodesFolder"] : "./shortcodes"
     };
   }
 
