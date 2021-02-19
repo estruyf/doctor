@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.6.2]
+
+- Added build and package tasks
+
 ## [1.6.1]
 
 - Just because of an issue in the package generation

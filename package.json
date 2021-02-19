@@ -15,7 +15,9 @@
     "start": "npm run build",
     "build": "npm run clean && tsc",
     "watch": "tsc -w",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublish": "npm run build",
+    "prepack": "npm run build"
   },
   "keywords": [
     "cli",
