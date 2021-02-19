@@ -17,11 +17,14 @@ export async function cli(args: string[]) {
   
   try {
     if (options.task === "help") {
-      console.log('The static site generator for SharePoint. Created by Valo.');
       console.log('');
-      console.log(`The current version you're running: ${version} supports the following commands: ${Object.keys(Command).join(', ')}.`);
+      console.log(kleur.blue('Maintain your documenation on SharePoint without pain!'));
+      console.log('');
+      console.log(`The current version you're running (v${version}), supports the following commands: ${Object.keys(Command).join(', ')}.`);
       console.log('');
       console.log('Documentation: https://github.com/estruyf/doctor');
+      console.log('');
+      console.log(kleur.blue().italic('Created by Elio Struyf - https://www.eliostruyf.com - @eliostruyf'));
       console.log('');
     } else {
       await Commands.start(options);

@@ -328,7 +328,7 @@ Example:
 ```json
 {
   "siteDesign": {
-    "logo: "./assets/valo-doctor.png",
+    "logo: "./assets/doctor.png",
     "theme": "Red",
     "chrome": {
       "headerLayout": "Compact",
