@@ -1,10 +1,10 @@
 <h1 align="center">
   <a href="hhttps://github.com/estruyf/doctor">
-    <img alt="Doctor" src="./assets/valo-doctor.svg" height="200">
+    <img alt="Doctor" src="./assets/doctor.svg" height="200">
   </a>
 </h1>
 
-<h2 align="center">The static site generator for SharePoint</h2>
+<h2 align="center">Maintain your documenation on SharePoint without pain</h2>
 
 <p align="center">
   <img src="https://github.com/estruyf/doctor/workflows/Does%20it%20build%20and%20publish%3F/badge.svg?branch=dev"
@@ -21,7 +21,7 @@
   </a>
 </p>
 
-`Doctor` is a tool created and provided by Valo. Initially, we started `doctor` as an internal tool to dogfood our products and keep documentation in one place. For our team, this is SharePoint.
+`Doctor` was originally created for having a uniformal way of providing the documentation internally at Valo Solutions. The main driver for `doctor` was to dogfood the Valo products and make it easier for users to maintain documenation on SharePoint.
 
 As we understand that it is not the best experience for developers to write documentation on SharePoint, we created this tool to simplify the process. `Doctor` allows developers to use tools/applications they are used to, like VSCode and Markdown, and still provide the information on your SharePoint environment.
 
@@ -30,6 +30,8 @@ As we understand that it is not the best experience for developers to write docu
 `Doctor` is a bit different, as instead of creating HTML files, it makes SharePoint pages instead. 
 
 Under the hood, it makes use of the [CLI for Microsoft 365](https://pnp.github.io/cli-microsoft365/).
+
+> Today `doctor` is maintained by `Elio Struyf`.
 
 ## Installation
 
@@ -179,7 +181,7 @@ metadata:
 title: Home
 slug: home.aspx
 layout: Article
-description: "The Valo Doctor documentation homepage"
+description: "The Doctor documentation homepage"
 
 metadata:
   Category: "Choice 1"
