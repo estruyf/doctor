@@ -15,7 +15,8 @@
     "start": "npm run build",
     "build": "npm run clean && tsc",
     "watch": "tsc -w",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "test:e2e": "cypress open"
   },
   "keywords": [
     "cli",
@@ -45,13 +46,16 @@
       "url": "https://www.eliostruyf.com"
     }
   ],
-  "funding": [{
+  "funding": [
+    {
       "type": "github",
       "url": "https://github.com/sponsors/estruyf"
-    }, {
+    },
+    {
       "type": "buymeacoffee",
       "url": "https://www.buymeacoffee.com/zMeFRy9"
-  }],
+    }
+  ],
   "devDependencies": {
     "@pnp/cli-microsoft365": "^3.6.0-beta.35acab9",
     "@types/cheerio": "0.22.24",
@@ -60,7 +64,9 @@
     "@types/inquirer": "7.3.1",
     "@types/listr": "0.14.2",
     "@types/markdown-it": "12.0.1",
-    "@types/mime": "2.0.3"
+    "@types/mime": "2.0.3",
+    "cypress": "6.5.0",
+    "node-sp-auth": "3.0.3"
   },
   "dependencies": {
     "@uifabric/icons": "7.5.21",

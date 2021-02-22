@@ -9,7 +9,7 @@ import md = require('markdown-it');
 import { ArgumentsHelper, execScript, FileHelpers, FolderHelpers, FrontMatterHelper, HeaderHelper, ListHelpers, Logger, MarkdownHelper, NavigationHelper, SiteHelpers } from '../helpers';
 import { Observable } from 'rxjs';
 import { Authenticate } from './authenticate';
-import { CommandArguments, Page, PublishOutput, File, PageTemplate, MarkdownSettings } from '../models';
+import { CommandArguments, Page, PublishOutput, File, PageTemplate, MarkdownSettings, Control } from '../models';
 
 export class Publish {
   private static pages: File[] = [];
@@ -179,8 +179,8 @@ export class Publish {
                     const controlData: string = await this.getPageControls(webUrl, slug);
                     
                     if (controlData) {
-                      const webparts = JSON.parse(controlData);
-                      const markdownWp = webparts.find((c: any) => c.title === webPartTitle);   
+                      const webparts: Control[] = JSON.parse(controlData);
+                      const markdownWp: Control = webparts.find((c: Control) => c.webPartData && c.webPartData.title === webPartTitle);   
                       await this.insertOrCreateControl(webPartTitle, markup.content, slug, webUrl, markdownWp ? markdownWp.id : null, options.markdown);
                     }
 
@@ -422,8 +422,11 @@ export class Publish {
    * @param slug 
    */
   private static async getPageControls(webUrl: string, slug: string): Promise<string> {
-    const output = await execScript<string>(ArgumentsHelper.parse(`spo page control list --webUrl "${webUrl}" --name "${slug}" -o json`));
-    return output;
+    let output = await execScript<any | string>(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" -o json`));
+    if (output && typeof output === "string") {
+      output = JSON.parse(output);
+    }
+    return output.CanvasContentJson;
   }
 
   /**

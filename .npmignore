@@ -5,3 +5,5 @@ src
 .vscode
 scripts
 tsconfig.json
+cypress
+cypress.json

@@ -6,3 +6,4 @@ screenshots
 
 *.pem
 *.pfx
+cypress.json

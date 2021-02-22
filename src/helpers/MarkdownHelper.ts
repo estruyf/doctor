@@ -19,8 +19,8 @@ export class MarkdownHelper {
           return `<pre class="hljs"><code>${hljs.highlight(lang, str, true).value}</code></pre>`;
         } catch (__) {}
       }
-  
-      return '<pre class="hljs"><code>' + (md as any).utils.escapeHtml(str) + '</code></pre>';
+
+      return `<pre class="hljs"><code>${hljs.highlightAuto(str).value}</code></pre>`;
     }});
     // .use(shortcode_plugin, await ShortcodesHelpers.get());
 

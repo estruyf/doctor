@@ -1,5 +1,6 @@
 export * from './Chrome';
 export * from './CommandArguments';
+export * from './Control';
 export * from './File';
 export * from './Folder';
 export * from './HeaderOptions';
