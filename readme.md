@@ -4,7 +4,7 @@
   </a>
 </h1>
 
-<h2 align="center">Maintain your documenation on SharePoint without pain</h2>
+<h2 align="center">Maintain your documentation on SharePoint without pain</h2>
 
 <p align="center">
   <img src="https://github.com/estruyf/doctor/workflows/Does%20it%20build%20and%20publish%3F/badge.svg?branch=dev"
@@ -21,7 +21,7 @@
   </a>
 </p>
 
-`Doctor` was originally created for having a uniformal way of providing the documentation internally at Valo Solutions. The main driver for `doctor` was to dogfood the Valo products and make it easier for users to maintain documenation on SharePoint.
+`Doctor` was originally created for having a uniformal way of providing the documentation internally at Valo Solutions. The main driver for `doctor` was to dogfood the Valo products and make it easier for users to maintain documentation on SharePoint.
 
 As we understand that it is not the best experience for developers to write documentation on SharePoint, we created this tool to simplify the process. `Doctor` allows developers to use tools/applications they are used to, like VSCode and Markdown, and still provide the information on your SharePoint environment.
 

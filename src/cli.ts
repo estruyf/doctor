@@ -18,7 +18,7 @@ export async function cli(args: string[]) {
   try {
     if (options.task === "help") {
       console.log('');
-      console.log(kleur.blue('Maintain your documenation on SharePoint without pain!'));
+      console.log(kleur.blue('Maintain your documentation on SharePoint without pain!'));
       console.log('');
       console.log(`The current version you're running (v${version}), supports the following commands: ${Object.keys(Command).join(', ')}.`);
       console.log('');
