@@ -22,6 +22,9 @@ text_color_dark = "#38322E"
 white_color = "#ffffff"
 light_color = "#efefef"
 
+# font family
+font_family = "lato"
+
 # Social
 
 [[params.social]]

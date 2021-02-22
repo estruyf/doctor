@@ -8,15 +8,14 @@ keywords:
   - ''
 ---
 
-## Shortcodes provided by Doctor
-
 Shortcodes are HTML snippets inside your content files calling built-in or custom templates. You can use these shortcodes like custom HTML elements. Similar like custom web components.
 
-Example:
+`Doctor` has built-in shortcodes, but also supports you to create your own shortcodes. If you are missing something, or have a special requirement, this will allow you to make it possible.
 
-```html
-<icon name="Share" />
-```
+At the moment, `doctor` has the following built-in shortcodes:
+
+- [Callouts](./callouts)
+- [Icon](./icon)
 
 ## Provide your own shortcodes
 
