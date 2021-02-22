@@ -1,7 +1,7 @@
 {
   "name": "@estruyf/doctor",
   "version": "1.7.0",
-  "description": "Maintain your documenation on SharePoint without pain.",
+  "description": "Maintain your documentation on SharePoint without pain.",
   "main": "dist/main.js",
   "homepage": "https://github.com/estruyf/doctor",
   "bin": {

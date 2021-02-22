@@ -7,7 +7,7 @@ theme = "Dot"
 unsafe = true
 
 [params]
-description = "Maintain your documenation on SharePoint without pain"
+description = "Maintain your documentation on SharePoint without pain"
 
 # github
 github_main = "https://github.com/estruyf/doctor"
@@ -36,7 +36,7 @@ link = "https://github.com/estruyf/doctor"
 [Languages.en.params.banner]
 title = "Doctor"
 bg_image = "images/doctor_no-text.svg"
-subtitle = "Maintain your documenation on SharePoint without pain"
+subtitle = "Maintain your documentation on SharePoint without pain"
 placeholder = "Search in the documentation"
 
 # Menu

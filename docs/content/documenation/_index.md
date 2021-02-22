@@ -1,12 +1,12 @@
 ---
-title: Documenation
+title: documentation
 date: 2021-02-22T10:10:32.941Z
 icon: ti-book
 description: Jump into the documentation of Doctor
 type: docs
 ---
 
-`Doctor` was originally created for having a uniformal way of providing the documentation internally at Valo Solutions. The main driver for `doctor` was to dogfood the Valo products and make it easier for users to maintain documenation on SharePoint.
+`Doctor` was originally created for having a uniformal way of providing the documentation internally at Valo Solutions. The main driver for `doctor` was to dogfood the Valo products and make it easier for users to maintain documentation on SharePoint.
 
 As we understand that it is not the best experience for developers to write documentation on SharePoint, we created this tool to simplify the process. `Doctor` allows developers to use tools/applications they are used to, like VSCode and Markdown, and still provide the information on your SharePoint environment.
 
