@@ -2,7 +2,8 @@
 
 ## [1.7.0]
 
-- [#6](https://github.com/estruyf/doctor/issues/6): Enhancement to allow Doctor to generate the HTML instead of the Markdown Web Part.
+- [#5](https://github.com/estruyf/doctor/issues/5): Documentation site created [getdoctor.io](https://getdoctor.io)
+- [#6](https://github.com/estruyf/doctor/issues/6): Enhancement to allow Doctor to generate the HTML instead of the Markdown Web Part
 - [#50](https://github.com/estruyf/doctor/issues/50): Fix for skipping pages
 - [#51](https://github.com/estruyf/doctor/issues/51): Enhancement making skipping pages faster without the need to check each page
 - [#52](https://github.com/estruyf/doctor/issues/51): Enhancements to make it possible to change the look and feel of the site
