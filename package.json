@@ -16,7 +16,8 @@
     "build": "npm run clean && tsc",
     "watch": "tsc -w",
     "clean": "rm -rf dist",
-    "test:e2e": "cypress open"
+    "test:e2e": "cypress open",
+    "docs": "cd docs && hogo serve"
   },
   "keywords": [
     "cli",

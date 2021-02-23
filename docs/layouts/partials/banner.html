@@ -23,8 +23,14 @@
 							{{ end }}
 						];
 
-						$( "#search" ).autocomplete({
-							source: projects
+						$("#search")
+						.autocomplete({
+							source: projects,
+							select: function(event, ui) {
+								if (ui && ui.item && ui.item.url) {
+									document.location.href = ui.item.url;
+								}
+							}
 						})
 						.data( "ui-autocomplete" )._renderItem = function( ul, item ) {
 							return $( "<li>" )

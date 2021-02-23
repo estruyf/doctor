@@ -1,10 +1,25 @@
 ---
-title: documentation
+title: Documentation
 date: 2021-02-22T10:10:32.941Z
 icon: ti-book
 description: Jump into the documentation of Doctor
 type: docs
 ---
+
+<p align="center">
+  <img src="https://github.com/estruyf/doctor/workflows/Does%20it%20build%20and%20publish%3F/badge.svg?branch=dev"
+      alt="Does it build and publish?" style="display: inline-block" />
+
+  <a href="https://www.npmjs.com/package/@estruyf/doctor">
+    <img src="https://img.shields.io/npm/v/@estruyf/doctor/latest?style=flat-square"
+      alt="npm @estruyf/doctor@latest" style="display: inline-block" />
+  </a>
+  
+  <a href="https://www.npmjs.com/package/@estruyf/doctor">
+    <img src="https://img.shields.io/npm/v/@estruyf/doctor/next?style=flat-square"
+      alt="npm @estruyf/doctor@next" style="display: inline-block" />
+  </a>
+</p>
 
 `Doctor` was originally created for having a uniformal way of providing the documentation internally at Valo Solutions. The main driver for `doctor` was to dogfood the Valo products and make it easier for users to maintain documentation on SharePoint.
 

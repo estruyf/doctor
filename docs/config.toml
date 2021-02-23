@@ -53,25 +53,7 @@ weight = 1
 [[Languages.en.menu.main]]
 weight = 2
 name = "docs"
-hasChildren = true
-
-  [[Languages.en.menu.main]]
-  parent = "docs"
-  name = "Installation"
-  url = "installation"
-  weight = 1
-
-  [[Languages.en.menu.main]]
-  parent = "docs"
-  name = "Billing and Pricing"
-  url = "billing-pricing"
-  weight = 2
-
-  [[Languages.en.menu.main]]
-  parent = "docs"
-  name = "Features"
-  url = "features"
-  weight = 3
+url = "/documenation"
 
 [[Languages.en.menu.main]]
 name = "GitHub"
