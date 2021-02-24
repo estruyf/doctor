@@ -171,16 +171,17 @@ export class Publish {
                   // Check if the page already exists
                   const existed = await this.createPageIfNotExists(webUrl, slug, title, layout, comments, description, template, skipExistingPages);
 
+                  Logger.debug(`Page existed: ${existed} - Skipping existing pages: ${skipExistingPages}`);
+
                   if (!existed || (existed && !skipExistingPages)) {
                     // Check if the header of the page needs to be changed
                     await HeaderHelper.set(file, webUrl, slug, header, options, !!template);
         
                     // Retrieving all the controls from the page, so that we can start replacing the 
                     const controlData: string = await this.getPageControls(webUrl, slug);
-                    
                     if (controlData) {
                       const webparts: Control[] = JSON.parse(controlData);
-                      const markdownWp: Control = webparts.find((c: Control) => c.webPartData && c.webPartData.title === webPartTitle);   
+                      const markdownWp: Control = webparts.find((c: Control) => c.webPartData && c.webPartData.title === webPartTitle);
                       await this.insertOrCreateControl(webPartTitle, markup.content, slug, webUrl, markdownWp ? markdownWp.id : null, options.markdown);
                     }
 
@@ -207,8 +208,8 @@ export class Publish {
                   }
                 }
 
-                // Check if the file contains a menu element to add too
-                if (output.navigation && markup && markup.data && markup.data.menu) {
+                // Check if the file contains a menu element to add too and if not in draft status (cannot add draft pages to navigation)
+                if (output.navigation && markup && markup.data && markup.data.menu && !markup.data.draft) {
                   Logger.debug(`Adding item to the navigation: ${slug} - ${title} - ${JSON.stringify(markup.data.menu)} `);
 
                   output.navigation = NavigationHelper.hierarchy(webUrl, output.navigation, markup.data.menu, slug, title);
@@ -403,7 +404,7 @@ export class Publish {
           const templateUrl = pageTemplate.Url.toLowerCase().replace("sitepages/", "");
           await execScript(ArgumentsHelper.parse(`spo page copy --webUrl "${webUrl}" --sourceName "${templateUrl}" --targetUrl "${slug}"`));
           await execScript(ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" --publish`));
-          return this.createPageIfNotExists(webUrl, slug, title, layout, comments, description, null, skipExistingPages);
+          return await this.createPageIfNotExists(webUrl, slug, title, layout, comments, description, null, skipExistingPages);
         } else {
           console.log(`Template "${template}" not found on the site, will create a default page instead.`)
         }
@@ -422,11 +423,15 @@ export class Publish {
    * @param slug 
    */
   private static async getPageControls(webUrl: string, slug: string): Promise<string> {
-    let output = await execScript<any | string>(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" -o json`));
+    Logger.debug(`Get page controls for ${slug}`);
+
+    let output = await execScript<any | string>(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --output json`));
     if (output && typeof output === "string") {
       output = JSON.parse(output);
     }
-    return output.CanvasContentJson;
+    
+    Logger.debug(JSON.stringify(output.canvasContentJson || "[]"));
+    return output.canvasContentJson || "[]";
   }
 
   /**
@@ -435,6 +440,8 @@ export class Publish {
    * @param markdown 
    */
   private static async insertOrCreateControl(webPartTitle: string, markdown: string, slug: string, webUrl: string, wpId: string = null, mdOptions: MarkdownSettings | null) {
+    Logger.debug(`Insert the markdown webpart for the page ${slug} - Control ID: ${wpId}`);
+
     const wpData = await MarkdownHelper.getJsonData(webPartTitle, markdown, mdOptions);
     
     if (wpId) {

@@ -8,7 +8,7 @@ keywords:
   - ''
 ---
 
-The `icon` shortcode allows you to include icons from [Fluent UI](https://developer.microsoft.com/en-us/fluentui#/styles/web/icons).
+The `icon` shortcode allows you to include icons from [Fluent UI](https://github.com/microsoft/fluentui-system-icons/blob/master/icons.md).
 
 ![](./assets/share.png)
 

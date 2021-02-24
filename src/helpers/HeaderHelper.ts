@@ -5,6 +5,7 @@ import { execScript } from './execScript';
 import * as path from 'path';
 import { FolderHelpers } from './FolderHelpers';
 import { FileHelpers } from './FileHelpers';
+import { Logger } from '.';
 
 
 export class HeaderHelper {
@@ -19,6 +20,8 @@ export class HeaderHelper {
    */
   public static async set(filePath: string, webUrl: string, slug: string, header: HeaderOptions, options: CommandArguments, isCopy: boolean = false) {
     const { assetLibrary, startFolder, overwriteImages } = options;
+
+    Logger.debug(`Setting the page header for ${slug}`);
 
     let setPageHeader = `spo page header set --webUrl "${webUrl}" --pageName "${slug}"`;
     

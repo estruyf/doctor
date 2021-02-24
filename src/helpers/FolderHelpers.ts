@@ -18,6 +18,7 @@ export class FolderHelpers {
       const folderToProcess = `/${crntFolder}/${folder}`
       if (folder) {
         Logger.debug(`Folder: ${folder} - Folder path: ${folderToProcess}`);
+        
         if (this.checkedFolders.indexOf(folderToProcess) === -1) {
           try {
             let scriptData: any = await execScript(ArgumentsHelper.parse(`spo folder get --webUrl "${webUrl}" --folderUrl "${folderToProcess}" -o json`));

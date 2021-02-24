@@ -58,7 +58,7 @@
     }
   ],
   "devDependencies": {
-    "@pnp/cli-microsoft365": "^3.6.0-beta.35acab9",
+    "@pnp/cli-microsoft365": "3.6.0-beta.328c4fe",
     "@types/cheerio": "0.22.24",
     "@types/cross-spawn": "6.0.2",
     "@types/highlight.js": "10.1.0",
@@ -70,6 +70,7 @@
     "node-sp-auth": "3.0.3"
   },
   "dependencies": {
+    "@fluentui/svg-icons": "1.1.99",
     "@uifabric/icons": "7.5.21",
     "@uifabric/styling": "7.18.0",
     "arg": "4.1.3",
