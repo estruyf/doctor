@@ -22,27 +22,6 @@ export class SiteHelpers {
     Logger.debug(`Start changing the look of the site with the following options:`);
     Logger.debug(JSON.stringify(siteDesign, null, 2));
 
-    if (typeof siteDesign.logo !== "undefined") {
-      try {
-        let imgUrl = siteDesign.logo;
-
-        if (imgUrl) {
-          const imgPath = path.join(process.cwd(), path.dirname(siteDesign.logo));
-
-          let crntFolder = `${assetLibrary}/site`;
-          crntFolder = await FolderHelpers.create(crntFolder, ["site"], webUrl);
-          
-          await FileHelpers.create(crntFolder, imgPath, webUrl, overwriteImages);
-
-          imgUrl = (`${webUrl}/${crntFolder}/${path.basename(path.basename(imgPath))}`).replace(/ /g, "%20");
-        }
-        
-        await execScript(ArgumentsHelper.parse(`spo site set --url "${webUrl}" --siteLogoUrl "${imgUrl}"`));
-      } catch (e) {
-        return Promise.reject(new Error(`Something failed while setting the site logo. ${e.message}`));
-      }
-    }
-
     if (siteDesign.theme) {
       try {
         // Try to enable a custom theme
@@ -90,6 +69,29 @@ export class SiteHelpers {
       }
 
       await execScript(ArgumentsHelper.parse(cmdChrome));
+    }
+    
+    if (typeof siteDesign.logo !== "undefined") {
+      try {
+        let imgUrl = siteDesign.logo;
+
+        if (imgUrl) {
+          const imgPath = path.join(process.cwd(), siteDesign.logo);
+
+          Logger.debug(`Setting site logo with the following path: "${imgPath}"`);
+          
+          let crntFolder = `${assetLibrary}`;
+          crntFolder = await FolderHelpers.create(crntFolder, ["site"], webUrl);
+          
+          await FileHelpers.create(crntFolder, imgPath, webUrl, overwriteImages);
+
+          imgUrl = (`${webUrl}/${crntFolder}/${path.basename(path.basename(imgPath))}`).replace(/ /g, "%20");
+        }
+        
+        await execScript(ArgumentsHelper.parse(`spo site set --url "${webUrl}" --siteLogoUrl "${imgUrl}"`));
+      } catch (e) {
+        return Promise.reject(new Error(`Something failed while setting the site logo. ${e.message}`));
+      }
     }
   }
 }

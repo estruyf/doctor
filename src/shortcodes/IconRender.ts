@@ -1,36 +1,32 @@
-// import { initializeIcons } from '@uifabric/icons';
-// import { getIcon, getIconClassName } from '@uifabric/styling';
-
-// initializeIcons(undefined, { warnOnMissingIcons: true, disableWarnings: false });
+import * as fs from 'fs';
+import * as path from 'path';
+import { Logger } from "../helpers";
 
 export const IconRenderer = {
-  render: async function (attrs: any, markup: string): Promise<string> {
+  render: async function (attrs: { name: string }, markup: string): Promise<string> {
 
     if (!attrs || !attrs.name) {
       return "";
     }
-    
-    // const icon = getIcon(attrs.name);    
-    
-    // if (icon && icon.code && icon.subset) {
-    //   const className = getIconClassName(attrs.name);
-    //   const cssStyles = `<style>
-    //     .${className} {
-    //       display: inline-block;
-    //       font-family: ${icon.subset.fontFace.fontFamily};
-    //       font-style: ${icon.subset.fontFace.fontStyle || 'normal'};
-    //       font-weight: ${icon.subset.fontFace.fontWeight || 'normal'};
-    //       speak: none;
-    //     }
-    //     .${className}:before{content:"${icon.code}"}
-    //   </style>
-    //   <i data-icon-name="${attrs.name}" role="presentation" aria-hidden="true" class="ms-Icon doctor-Icon ${className}" style="">${icon.code}</i>`;
-    //   return cssStyles;
-    // }
 
-    const icon = await require(`@fluentui/svg-icons/icons/${attrs.name.toLowerCase().replace('ic_fluent_', '')}`);
-    if (icon) {
-      return icon;
+    const iconName = `${attrs.name.toLowerCase().replace('ic_fluent_', '')}.svg`;
+    const iconPath = path.join(__dirname, `../../node_modules/@fluentui/svg-icons/icons/${iconName}`);
+    Logger.debug(`Fetching icon: ${iconPath}`);
+    try {
+      if (fs.existsSync(iconPath)) {
+        const icon = fs.readFileSync(iconPath, { encoding: "utf-8" });
+        Logger.debug(icon);
+        return `
+          <i data-icon-name="${attrs.name}" role="presentation" aria-hidden="true">
+            ${icon}
+          </i>
+        `;
+      } else {
+        Logger.debug(`Icon SVG "${iconPath}" doesn't exist.`);
+      }
+    } catch (e) {
+      // The SVG didn't exist
+      Logger.debug(`Icon SVG "${iconPath}" failed to be retrieved.`);
     }
 
     return "";

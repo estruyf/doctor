@@ -8,7 +8,6 @@ describe('home.aspx tests', function() {
    * Before visiting SharePoint, we first need to authenticate
    */
   before(() =>  {
-    cy.viewport(1200, 1000);
     cy.visitSP(PAGE_URL);
   });
   
@@ -18,7 +17,7 @@ describe('home.aspx tests', function() {
   });
 
   it('2. Check if the color of the header is changed to red', () => {
-    cy.get(`[data-automationid="SiteHeader"]`).parents('div[class*=root]').should('exist').should('have.css', 'background-color', 'rgb(164, 38, 44)');  
+    cy.get(`[data-automationid="SiteHeader"]`).parents('div[class*=root]').should('exist').should('have.css', 'background-color', 'rgb(251, 244, 244)');  
   });
 
   it('3. Check if the Markdown web part contains the doctor image', () => {
@@ -33,7 +32,20 @@ describe('home.aspx tests', function() {
     cy.get(`[data-automationid="HorizontalNav-link"]`)
       .should('exist')
       .should('contain.text', 'Doctor')
-      .should('contain.text', 'tests');
+      .should('contain.text', 'Test pages');
+  });
+
+  it('6. Check if doctor nav item contains the right children', () => {
+    cy.contains(`[data-automationid="HorizontalNav-link"]`, 'Doctor')
+      .should('exist')
+      .trigger('mouseover');
+    
+    cy.get('.ms-Menu-section')
+      .should('exist')
+      .should('contain.text', 'Options')
+      .should('contain.text', 'Installation')
+      .should('contain.text', 'Page creation')
+      .should('contain.text', 'Commands');
   });
 
 });
