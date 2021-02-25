@@ -61,7 +61,7 @@ jobs:
           startClean="--cleanStart --confirm"
         fi
 
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}" $startClean
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}" --cleanStart --confirm
 
 
   #############################################
@@ -109,7 +109,7 @@ jobs:
           $startClean = "--cleanStart --confirm"
         }
 
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}" $startClean
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}" --cleanStart --confirm
       shell: powershell
 
 
@@ -155,7 +155,7 @@ jobs:
 
         IF "%GITHUB_REF%"=="refs/heads/main" (SET startClean="--cleanStart --confirm")
 
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS }}" %startClean%
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS }}" --cleanStart --confirm
       shell: cmd
 
 
