@@ -30,6 +30,7 @@ export class FileHelpers {
    * @param override 
    */
   public static async create(crntFolder: string, imgPath: string, webUrl: string, override: boolean = false) {
+    Logger.debug(`Create file "${imgPath}" to ${crntFolder}"`);
     if (this.checkedFiles.indexOf(imgPath) === -1) {
       if (override) {
         await this.upload(webUrl, crntFolder, imgPath);
@@ -38,7 +39,8 @@ export class FileHelpers {
           // Check if file exists
           const filePath = `${crntFolder}/${path.basename(imgPath)}`;
           const relativeUrl = this.getRelUrl(webUrl, filePath);
-          await execScript(ArgumentsHelper.parse(`spo file get --webUrl "${webUrl}" --url "${relativeUrl}"`));
+          const fileData = await execScript(ArgumentsHelper.parse(`spo file get --webUrl "${webUrl}" --url "${relativeUrl}"`));
+          Logger.debug(`File data retrieved: ${JSON.stringify(fileData)}`);
         } catch (e) {
           await this.upload(webUrl, crntFolder, imgPath);
         }
