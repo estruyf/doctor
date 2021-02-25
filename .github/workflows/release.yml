@@ -1,0 +1,263 @@
+name: Release Doctor
+
+on:
+  push:
+    branches:
+      - dev
+  release:
+    types:
+      - published
+  schedule:
+    - cron:  '0 */6 * * *'
+
+jobs:
+  #####################################
+  ### Publishing on macOS and Linux ###
+  #####################################
+  build:
+    name: Build ${{ matrix.os }} - Bash
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        include:
+          - node: 14
+            os: macos-latest
+            siteUrl: SITEURL_MACOS
+          - node: 14
+            os: ubuntu-latest
+            siteUrl: SITEURL_LINUX
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node }}
+        registry-url: https://registry.npmjs.org/
+
+    - name: Cache node modules
+      uses: actions/cache@v2
+      with:
+        # npm cache files are stored in `~/.npm` on Linux/macOS
+        path: ~/.npm
+        key: ${{ matrix.os }}-release-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ matrix.os }}-release-
+  
+    - run: npm ci
+      
+    - run: npm start
+
+    - run: npm link
+
+    - run: | 
+        git clone https://github.com/estruyf/doctor-sample
+        cd doctor-sample
+
+        startClean=""
+        # Check on which branch it is running
+        if [[ ${GITHUB_REF} == "refs/heads/main" ]]; then
+          startClean="--cleanStart --confirm"
+        fi
+
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}" $startClean
+
+
+  #############################################
+  ### Publishing on Windows with PowerShell ###
+  ############################################
+  build_pwsh:
+    name: Build windows-latest - powershell
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+      with:
+        node-version: 14
+        registry-url: https://registry.npmjs.org/
+    
+    - name: Get npm cache directory
+      id: npm-cache
+      run: |
+        echo "::set-output name=dir::$(npm config get cache)"
+
+    - uses: actions/cache@v2
+      with:
+        path: ${{ steps.npm-cache.outputs.dir }}
+        key: ${{ runner.os }}-release-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-release-
+  
+    - run: npm ci
+      shell: powershell
+      
+    - run: npm start
+      shell: powershell
+
+    - run: npm link
+      shell: powershell
+
+    - run: | 
+        git clone https://github.com/estruyf/doctor-sample
+        cd doctor-sample
+
+        startClean=""
+        # Check on which branch it is running
+        if [[ ${GITHUB_REF} == "refs/heads/main" ]]; then
+          startClean="--cleanStart --confirm"
+        fi
+
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}" $startClean
+      shell: powershell
+
+
+  ######################################
+  ### Publishing on Windows with CMD ###
+  ######################################
+  build_cmd:
+    name: Build windows-latest - cmd
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+      with:
+        node-version: 14
+        registry-url: https://registry.npmjs.org/
+    
+    - name: Get npm cache directory
+      id: npm-cache
+      run: |
+        echo "::set-output name=dir::$(npm config get cache)"
+
+    - uses: actions/cache@v2
+      with:
+        path: ${{ steps.npm-cache.outputs.dir }}
+        key: ${{ runner.os }}-release-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-release-
+  
+    - run: npm ci
+      shell: cmd
+      
+    - run: npm start
+      shell: cmd
+
+    - run: npm link
+      shell: cmd
+
+    - run: | 
+        git clone https://github.com/estruyf/doctor-sample
+        cd doctor-sample
+
+        startClean=""
+        # Check on which branch it is running
+        if [[ ${GITHUB_REF} == "refs/heads/main" ]]; then
+          startClean="--cleanStart --confirm"
+        fi
+
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS }}" $startClean
+      shell: cmd
+
+
+  ##############################
+  ### Start E2E with Cypress ###
+  #############################
+  e2e_testing:
+    name: Cypress E2E Testing for ${{ matrix.testTitle }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [build, build_pwsh, build_cmd]
+
+    strategy:
+      matrix:
+        include:
+          - node: 14
+            testTitle: macOS
+            siteUrl: SITEURL_MACOS
+            browser: chrome
+          - node: 14
+            testTitle: Linux
+            siteUrl: SITEURL_LINUX
+            browser: firefox
+          - node: 14
+            testTitle: Windows PowerShell
+            siteUrl: SITEURL_WINDOWS_POWERSHELL
+            browser: edge
+          - node: 14
+            testTitle: Windows
+            siteUrl: SITEURL_WINDOWS
+            browser: edge
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+      with:
+        node-version: 14
+        registry-url: https://registry.npmjs.org/
+
+    - uses: actions/cache@v2
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-release-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-release-
+
+    - run: |
+        npm ci
+
+        node ./script/prepare-e2e.js
+
+        VERIFY_CMD="./node_modules/.bin/cypress verify"
+        RUN_CMD="./node_modules/.bin/cypress run --browser ${{ matrix.browser }}"
+      env:
+        USER_NAME: ${{ secrets.USERNAME }}
+        PASSWORD: ${{ secrets.PASSWORD }}
+        SITEURL_WINDOWS: ${{ secrets.SITEURL_WINDOWS }}
+        SITEURL_WINDOWS_POWERSHELL: ${{ secrets.SITEURL_WINDOWS_POWERSHELL }}
+        SITEURL_MACOS: ${{ secrets.SITEURL_MACOS }}
+        SITEURL_LINUX: ${{ secrets.SITEURL_LINUX }}
+    - uses: actions/upload-artifact@v2
+      with:
+        name: Screenshots
+        path: screenshots/**/*.png
+        
+
+  ###############################
+  ### Release the new version ###
+  ###############################
+  release:
+    name: Release the new version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [e2e_testing]
+    if: ${{ github.event_name != 'schedule' }}
+
+    steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+      with:
+        node-version: 14
+        registry-url: https://registry.npmjs.org/
+  
+    - run: npm ci
+      
+    - run: npm start
+
+    - name: Publish release
+      run: npm publish --access public
+      if: startsWith(github.ref, 'refs/tags/v')
+      env:
+        NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+        
+    - name: Update the package version
+      if: github.ref == 'refs/heads/dev'
+      run: node scripts/update-package-version.js $GITHUB_RUN_ID
+        
+    - name: Publish beta release
+      run: npm publish --tag next --access public
+      if: github.ref == 'refs/heads/dev'
+      env:
+        NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

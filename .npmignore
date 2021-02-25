@@ -7,4 +7,5 @@ scripts
 tsconfig.json
 cypress
 cypress.json
+cypress.sample.json
 docs

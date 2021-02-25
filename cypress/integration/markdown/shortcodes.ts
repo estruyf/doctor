@@ -8,12 +8,12 @@ describe('Microsoft Teams', function() {
    * Before visiting SharePoint, we first need to authenticate
    */
   before(() =>  {
-    cy.viewport(1200, 1000);
     cy.visitSP(PAGE_URL);
   });
 
   it('1. Check if the code snippet background is using the right background', () => {
-    cy.get(`pre.hljs`).first().should('exist').should('have.css', 'background-color', 'rgb(39, 40, 34)');
+    cy.screenshot();
+    cy.get(`pre.hljs`).first().should('exist').should('have.css', 'background-color', 'rgb(248, 248, 248)');
   });
 
   it('2. Check if the page contains icons', () => {
@@ -25,7 +25,7 @@ describe('Microsoft Teams', function() {
       .should('exist')
       .should("have.length", 2)
       .last()
-      .should('have.css', 'background-color', 'rgb(225 223 221)');
+      .should('have.css', 'background-color', 'rgb(225, 223, 221)');
   });
 
   it('3. Check if callout tip exists', () => {
@@ -33,7 +33,7 @@ describe('Microsoft Teams', function() {
       .should('exist')
       .should("have.length", 2)
       .first()
-      .should('have.css', 'background-color', 'rgb(186 216 10)');
+      .should('have.css', 'background-color', 'rgb(186, 216, 10)');
 
     cy.get(`.callout-tip h5`)
       .last()
@@ -44,21 +44,21 @@ describe('Microsoft Teams', function() {
     cy.get(`.callout-info`)
       .should('exist')
       .should("have.length", 1)
-      .should('have.css', 'background-color', 'rgb(0 183 195)');
+      .should('have.css', 'background-color', 'rgb(0, 183, 195)');
   });
 
   it('5. Check if callout caution exists', () => {
     cy.get(`.callout-caution`)
       .should('exist')
       .should("have.length", 1)
-      .should('have.css', 'background-color', 'rgb(255 170 68)');
+      .should('have.css', 'background-color', 'rgb(255, 170, 68)');
   });
 
   it('6. Check if callout danger exists', () => {
-    cy.get(`.callout-caution`)
+    cy.get(`.callout-danger`)
       .should('exist')
       .should("have.length", 1)
-      .should('have.css', 'background-color', 'rgb(209 52 56)');
+      .should('have.css', 'background-color', 'rgb(209, 52, 56)');
   });
 
   it('7. check if custom shortcode is created correctly', () => {
