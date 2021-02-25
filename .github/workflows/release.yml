@@ -52,6 +52,7 @@ jobs:
 
     - run: | 
         git clone https://github.com/estruyf/doctor-sample
+        node ./scripts/prepare-sample.js
         cd doctor-sample
 
         startClean=""
@@ -100,6 +101,7 @@ jobs:
 
     - run: | 
         git clone https://github.com/estruyf/doctor-sample
+        node ./scripts/prepare-sample.js
         cd doctor-sample
 
         $startClean = ""
@@ -148,6 +150,7 @@ jobs:
 
     - run: | 
         git clone https://github.com/estruyf/doctor-sample
+        node ./scripts/prepare-sample.js
         cd doctor-sample
 
         IF "%GITHUB_REF%"=="refs/heads/main" (SET startClean="--cleanStart --confirm")
@@ -202,7 +205,7 @@ jobs:
     - run: |
         npm ci
 
-        node ./script/prepare-e2e.js
+        node ./scripts/prepare-e2e.js
 
         VERIFY_CMD="./node_modules/.bin/cypress verify"
         RUN_CMD="./node_modules/.bin/cypress run --browser ${{ matrix.browser }}"
