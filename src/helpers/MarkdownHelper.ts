@@ -45,7 +45,12 @@ export class MarkdownHelper {
       let htmlMarkup = converter.render(markdown);
       htmlMarkup = await ShortcodesHelpers.parse(htmlMarkup);
       htmlMarkup = `${htmlMarkup}<style>${this.getEditorStyles(theme === "light")} ${this.getCalloutStyles()}</style>`;
-      htmlMarkup = htmlMarkup.replace(/\\/g, `\\\\`).replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/\"/g, `\\\"`);
+      htmlMarkup = htmlMarkup.replace(/\\/g, `\\\\`).replace(/\r/g, '\\r').replace(/\n/g, '\\n');
+      if (isWIn) {
+        htmlMarkup = htmlMarkup.replace(/\"/g, `""`)
+      } else {
+        htmlMarkup = htmlMarkup.replace(/\"/g, `\\\"`)
+      }
       wpData = wpData.replace(htmlPh, htmlMarkup);
     }
 
