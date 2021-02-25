@@ -7,3 +7,5 @@ screenshots
 *.pem
 *.pfx
 cypress.json
+cypress/screenshots
+cypress/videos

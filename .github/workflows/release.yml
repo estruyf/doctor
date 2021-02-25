@@ -226,12 +226,12 @@ jobs:
     - uses: actions/upload-artifact@v2
       with:
         name: screenshots-${{ matrix.testTitle }}
-        path: cypress/screenshots/**/*.png
+        path: ./**/screenshots/**/*.png
 
     - uses: actions/upload-artifact@v2
       with:
         name: videos-${{ matrix.testTitle }}
-        path: cypress/videos/**/*.png
+        path: ./**/cypress/videos/**/*.png
         
 
   ###############################

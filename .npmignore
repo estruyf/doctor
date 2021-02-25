@@ -1,6 +1,7 @@
 node_modules
 src
 .gitignore
+.gitmodules
 .github
 .vscode
 scripts
