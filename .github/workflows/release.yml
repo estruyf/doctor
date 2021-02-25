@@ -50,7 +50,8 @@ jobs:
 
     - run: npm link
 
-    - run: | 
+    - name: Publish via Doctor
+      run: | 
         git clone https://github.com/estruyf/doctor-sample
         node ./scripts/prepare-sample.js
         cd doctor-sample
@@ -62,6 +63,8 @@ jobs:
         fi
 
         doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}" --cleanStart --confirm
+      env:
+        DEBUG: ${{ secrets.DEBUG }}
 
 
   #############################################
@@ -99,7 +102,8 @@ jobs:
     - run: npm link
       shell: powershell
 
-    - run: | 
+    - name: Publish via Doctor
+      run: | 
         git clone https://github.com/estruyf/doctor-sample
         node ./scripts/prepare-sample.js
         cd doctor-sample
@@ -111,6 +115,8 @@ jobs:
 
         doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}" --cleanStart --confirm
       shell: powershell
+      env:
+        DEBUG: ${{ secrets.DEBUG }}
 
 
   ######################################
@@ -148,7 +154,8 @@ jobs:
     - run: npm link
       shell: cmd
 
-    - run: | 
+    - name: Publish via Doctor
+      run: | 
         git clone https://github.com/estruyf/doctor-sample
         node ./scripts/prepare-sample.js
         cd doctor-sample
@@ -157,6 +164,8 @@ jobs:
 
         doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS }}" --cleanStart --confirm
       shell: cmd
+      env:
+        DEBUG: ${{ secrets.DEBUG }}
 
 
   ##############################
@@ -212,10 +221,7 @@ jobs:
       env:
         USER_NAME: ${{ secrets.USERNAME }}
         PASSWORD: ${{ secrets.PASSWORD }}
-        SITEURL_WINDOWS: ${{ secrets.SITEURL_WINDOWS }}
-        SITEURL_WINDOWS_POWERSHELL: ${{ secrets.SITEURL_WINDOWS_POWERSHELL }}
-        SITEURL_MACOS: ${{ secrets.SITEURL_MACOS }}
-        SITEURL_LINUX: ${{ secrets.SITEURL_LINUX }}
+        SITEURL: ${{ matrix.siteUrl }}
     
     - uses: actions/upload-artifact@v2
       with:

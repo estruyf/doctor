@@ -117,6 +117,7 @@ export class FileHelpers {
    * @param imgPath 
    */
   private static async upload(webUrl: string, crntFolder: string, imgPath: string) {
+    Logger.debug(`Uploading file "${imgPath}" to ${crntFolder}"`);
     await execScript(ArgumentsHelper.parse(`spo file add --webUrl "${webUrl}" --folder "${crntFolder}" --path "${imgPath}"`));
   }
 }

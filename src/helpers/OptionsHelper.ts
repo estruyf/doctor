@@ -78,7 +78,7 @@ export class OptionsHelper {
       skipExistingPages: args["--skipExistingPages"] as any || options["skipExistingPages"] || false,
       continueOnError: args["--continueOnError"] as any || options["continueOnError"] || false,
       menu: options["menu"] || null,
-      debug: args["--debug"] || false,
+      debug: (process.env.DEBUG && process.env.DEBUG === "true") || args["--debug"] || false,
       cleanStart: args["--cleanStart"] || false,
       confirm: args["--confirm"] || false,
       outputFolder: args["--outputFolder"] || "",
