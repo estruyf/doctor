@@ -47,7 +47,7 @@ export class MarkdownHelper {
       htmlMarkup = `${htmlMarkup}<style>${this.getEditorStyles(theme === "light")} ${this.getCalloutStyles()}</style>`;
       htmlMarkup = htmlMarkup.replace(/\\/g, `\\\\`).replace(/\r/g, '\\r').replace(/\n/g, '\\n');
       if (isWIn) {
-        htmlMarkup = htmlMarkup.replace(/\"/g, `""""`)
+        htmlMarkup = htmlMarkup.replace(/\"/g, `\\\\\\"`)
       } else {
         htmlMarkup = htmlMarkup.replace(/\"/g, `\\\"`)
       }
