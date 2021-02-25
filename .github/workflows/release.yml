@@ -102,11 +102,10 @@ jobs:
         git clone https://github.com/estruyf/doctor-sample
         cd doctor-sample
 
-        startClean=""
-        # Check on which branch it is running
-        if [[ ${GITHUB_REF} == "refs/heads/main" ]]; then
-          startClean="--cleanStart --confirm"
-        fi
+        $startClean = ""
+        If (${env:GITHUB_REF} -eq 'refs/heads/main') {
+          $startClean = "--cleanStart --confirm"
+        }
 
         doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}" $startClean
       shell: powershell
@@ -151,13 +150,9 @@ jobs:
         git clone https://github.com/estruyf/doctor-sample
         cd doctor-sample
 
-        startClean=""
-        # Check on which branch it is running
-        if [[ ${GITHUB_REF} == "refs/heads/main" ]]; then
-          startClean="--cleanStart --confirm"
-        fi
+        IF "%GITHUB_REF%"=="refs/heads/main" (SET startClean="--cleanStart --confirm")
 
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS }}" $startClean
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS }}" %startClean%
       shell: cmd
 
 
@@ -218,10 +213,16 @@ jobs:
         SITEURL_WINDOWS_POWERSHELL: ${{ secrets.SITEURL_WINDOWS_POWERSHELL }}
         SITEURL_MACOS: ${{ secrets.SITEURL_MACOS }}
         SITEURL_LINUX: ${{ secrets.SITEURL_LINUX }}
+    
     - uses: actions/upload-artifact@v2
       with:
-        name: Screenshots
-        path: screenshots/**/*.png
+        name: screenshots-${{ matrix.testTitle }}
+        path: cypress/screenshots/**/*.png
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: videos-${{ matrix.testTitle }}
+        path: cypress/videos/**/*.png
         
 
   ###############################

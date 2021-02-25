@@ -17,6 +17,7 @@
     "watch": "tsc -w",
     "clean": "rm -rf dist",
     "test:e2e": "cypress open",
+    "test:e2e:run": "cypress run --browser edge",
     "docs": "cd docs && hogo serve"
   },
   "keywords": [

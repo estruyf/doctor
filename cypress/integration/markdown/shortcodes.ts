@@ -1,7 +1,7 @@
 /// <reference types="cypress" />
 /// <reference types="../../support" />
 
-describe('Microsoft Teams', function() {
+describe('Doctor shortcodes', function() {
   const PAGE_URL = "sitepages/tests/shortcodes.aspx";
 
   /**
