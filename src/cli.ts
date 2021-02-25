@@ -2,6 +2,7 @@ import kleur = require("kleur");
 import { Command } from "./commands/Command";
 import { Version } from "./commands/version";
 import { OptionsHelper } from "./helpers/OptionsHelper";
+import { TempDataHelper } from "./helpers/TempDataHelper";
 import { Commands } from "./main";
 import { CommandArguments } from "./models/CommandArguments";
 
@@ -28,9 +29,11 @@ export async function cli(args: string[]) {
       console.log('');
     } else {
       await Commands.start(options);
+      TempDataHelper.clear();
     }
     process.exit(0);
   } catch (e: any | Error) {
+    TempDataHelper.clear();
     console.log(kleur.bgRed().bold().white(` ERROR: `), kleur.bold().red(e.message.toString()));
     process.exit(1);
   }

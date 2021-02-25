@@ -4,6 +4,7 @@ import hljs = require('highlight.js');
 import { MarkdownSettings } from '../models';
 import { ShortcodesHelpers } from './ShortcodesHelpers';
 import { encode } from 'html-entities';
+import { TempDataHelper } from './TempDataHelper';
 
 export class MarkdownHelper {
 
@@ -22,56 +23,42 @@ export class MarkdownHelper {
 
       return `<pre class="hljs"><code>${hljs.highlightAuto(str).value}</code></pre>`;
     }});
-    // .use(shortcode_plugin, await ShortcodesHelpers.get());
-
-    const tilePh = `WEBPARTTITLE-PLACEHOLDER`;
-    const markdownPh = `MARKDOWN-PLACEHOLDER`;
-    const htmlPh = `HTML-PLACEHOLDER`;
 
     const allowHtml = mdOptions && mdOptions.allowHtml;
     const theme = mdOptions && mdOptions.theme ? mdOptions.theme.toLowerCase() : "dark";
 
-    let wpData = `'{"title":"${tilePh}","serverProcessedContent": { ${allowHtml ? `"htmlStrings": \{ "html": "${htmlPh}" },` : ""}"searchablePlainTexts": {"code": "${markdownPh}"}},"dataVersion": "2.0","properties": {"displayPreview": true,"lineWrapping": true,"miniMap": {"enabled": false},"previewState": "Show","theme": "${theme === "dark" ? "Monokai" : "Base16Light"}"}}'`;
-
-    // Update the quotes for Windows
-    const isWIn = process.platform === "win32";
-    if (isWIn) {
-      wpData = wpData.replace(/\"/g, `""`).replace(/\'/g, `"`);
+    let wpData = {
+      title: webPartTitle,
+      serverProcessedContent: {
+        searchablePlainTexts: {
+          code: encode(markdown)
+        }
+      },
+      dataVersion: "2.0",
+      properties: {
+        displayPreview: true,
+        lineWrapping: true,
+        miniMap: {
+          enabled: false
+        },
+        previewState: "Show",
+        theme: theme === "dark" ? "Monokai" : "Base16Light"
+      }
     }
-    const mdConverted = this.parseMarkdown(markdown, isWIn);
-    wpData = wpData.replace(tilePh, webPartTitle).replace(markdownPh, encode(mdConverted));
 
     if (allowHtml) {
       let htmlMarkup = converter.render(markdown);
       htmlMarkup = await ShortcodesHelpers.parse(htmlMarkup);
       htmlMarkup = `${htmlMarkup}<style>${this.getEditorStyles(theme === "light")} ${this.getCalloutStyles()}</style>`;
-      htmlMarkup = htmlMarkup.replace(/\\/g, `\\\\`).replace(/\r/g, '\\r').replace(/\n/g, '\\n');
-      if (isWIn) {
-        htmlMarkup = htmlMarkup.replace(/\"/g, `\\\\\\"`)
-      } else {
-        htmlMarkup = htmlMarkup.replace(/\"/g, `\\\"`)
+
+      if (htmlMarkup) {
+        wpData.serverProcessedContent["htmlStrings"] = {
+          html: htmlMarkup
+        }
       }
-      wpData = wpData.replace(htmlPh, htmlMarkup);
     }
 
-    return wpData;
-  }
-
-  /**
-   * make the markdown ready for cross-platform publishing
-   * @param markdown 
-   * @param isWin 
-   */
-  private static parseMarkdown(markdown: string, isWin: boolean = false) {
-    markdown = markdown.replace(/\r/g, '~r~').replace(/\n/g, '~n~');
-    markdown = markdown.replace(/\\/g, `\\\\`);
-    markdown = markdown.replace(/</g, `&lt;`);
-    markdown = markdown.replace(/>/g, `&gt;`);
-    markdown = markdown.replace(/~r~/g, '\\r').replace(/~n~/g, '\\n');
-    if (isWin) {
-      return markdown.replace(/\"/g, `&quot;`);
-    }
-    return markdown.replace(/"/g, `&quot;`);
+    return TempDataHelper.create(wpData);
   }
 
   /**

@@ -446,10 +446,10 @@ export class Publish {
     
     if (wpId) {
       // Web part needs to be updated
-      await execScript([...ArgumentsHelper.parse(`spo page control set --webUrl "${webUrl}" --name "${slug}" --id "${wpId}" --webPartData`), wpData]);
+      await execScript(ArgumentsHelper.parse(`spo page control set --webUrl "${webUrl}" --name "${slug}" --id "${wpId}" --webPartData @${wpData}`));
     } else {
       // Add new markdown web part
-      await execScript([...ArgumentsHelper.parse(`spo page clientsidewebpart add --webUrl "${webUrl}" --pageName "${slug}" --webPartId 1ef5ed11-ce7b-44be-bc5e-4abd55101d16 --webPartData`), wpData]);
+      await execScript(ArgumentsHelper.parse(`spo page clientsidewebpart add --webUrl "${webUrl}" --pageName "${slug}" --webPartId 1ef5ed11-ce7b-44be-bc5e-4abd55101d16 --webPartData @${wpData}`));
     }
   }
 
