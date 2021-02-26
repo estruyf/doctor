@@ -182,19 +182,19 @@ jobs:
         include:
           - node: 14
             testTitle: macOS
-            siteUrl: ${{ secrets.SITEURL_MACOS }}
+            siteUrl: SITEURL_MACOS
             browser: chrome
           - node: 14
             testTitle: Linux
-            siteUrl: ${{ secrets.SITEURL_LINUX }}
+            siteUrl: SITEURL_LINUX
             browser: firefox
           - node: 14
             testTitle: Windows PowerShell
-            siteUrl: ${{ secrets.SITEURL_WINDOWS_POWERSHELL }}
+            siteUrl: SITEURL_WINDOWS_POWERSHELL
             browser: edge
           - node: 14
             testTitle: Windows
-            siteUrl: ${{ secrets.SITEURL_WINDOWS }}
+            siteUrl: SITEURL_WINDOWS
             browser: edge
 
     steps:
@@ -226,7 +226,7 @@ jobs:
       env:
         USER_NAME: ${{ secrets.USERNAME }}
         PASSWORD: ${{ secrets.PASSWORD }}
-        SITEURL: ${{ matrix.siteUrl }}
+        SITEURL: ${{ secrets[matrix.siteUrl] }}
     
     - name: Upload screenshots
       uses: actions/upload-artifact@v2
