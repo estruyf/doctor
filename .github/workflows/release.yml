@@ -224,18 +224,20 @@ jobs:
         eval $VERIFY_CMD
         eval $RUN_CMD
       env:
-        USER_NAME: ${{ secrets.USERNAME }}
+        USERNAME: ${{ secrets.USERNAME }}
         PASSWORD: ${{ secrets.PASSWORD }}
         SITEURL: ${{ secrets[matrix.siteUrl] }}
     
     - name: Upload screenshots
       uses: actions/upload-artifact@v2
+      if: ${{ always() }} # To make sure we can see what went wrong
       with:
         name: screenshots-${{ matrix.testTitle }}
         path: ./**/screenshots/**/*.png
 
     - name: Upload videos
       uses: actions/upload-artifact@v2
+      if: ${{ always() }} # To make sure we can see what went wrong
       with:
         name: videos-${{ matrix.testTitle }}
         path: ./**/cypress/videos/**/*.png
