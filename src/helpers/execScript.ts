@@ -6,15 +6,32 @@ import { Logger } from './logger';
 /**
  * Execute script with retry logic
  * @param args 
+ * @param shouldRetry 
  * @param shouldSpawn 
- * @param toMask 
- * @param retry 
+ * @param toMask
  */
-export const execScript = async <T>(args: string[] = [], shouldSpawn: boolean = false, toMask: string[] = [], retry: boolean = false): Promise<T> => {
+export const execScript = async <T>(args: string[] = [], shouldRetry: boolean = false, shouldSpawn: boolean = false, toMask: string[] = []): Promise<T> => {
+  try {
+    return await promiseExecScript<T>(args, shouldSpawn, toMask);
+  } catch (err) {
+    if (shouldRetry) {
+      Logger.debug(`Doctor will retry to execute the command again.`);
+      try {
+        return await promiseExecScript(args, shouldSpawn, toMask);
+      } catch (err) {
+        return Promise.reject(err);
+      }
+    }
+    return Promise.reject(err);
+  }
+}
+
+
+const promiseExecScript = async <T>(args: string[] = [], shouldSpawn: boolean = false, toMask: string[] = []): Promise<T> => {
   return new Promise<T>((resolve, reject) => {
     Logger.debug(``);
     const cmdToExec = Logger.mask(`${CliCommand.getName()} ${args.join(' ')}`, toMask);
-    Logger.debug(`Command: ${cmdToExec}${retry ? ` - command failed and will be executed again` : ""}`);
+    Logger.debug(`Command: ${cmdToExec}`);
 
     if (shouldSpawn) {
       const execution = spawn(CliCommand.getName(), [...args]);
@@ -27,27 +44,15 @@ export const execScript = async <T>(args: string[] = [], shouldSpawn: boolean = 
         resolve(data);
       });
 
-      execution.stderr.on('data', (error) => {
+      execution.stderr.on('data', async (error) => {
         error = Logger.mask(error, toMask);
-
-        if (CliCommand.getRetry() && !retry) {
-          retry = true;
-          return execScript(args, shouldSpawn, toMask, retry);
-        }
-
         reject(new Error(error));
       });
     } else {
-        exec(`${CliCommand.getName()} ${args.join(' ')}`, (err: Error, stdOut: string, stdErr: string) => {
+      exec(`${CliCommand.getName()} ${args.join(' ')}`, async (err: Error, stdOut: string, stdErr: string) => {
         if (err || stdErr) {
           let error = err && err.message ? err.message : stdErr;
           error = Logger.mask(error, toMask);
-
-          if (CliCommand.getRetry() && !retry) {
-            retry = true;
-            return execScript(args, shouldSpawn, toMask, retry);
-          }
-
           reject(new Error(error));
           return;
         }

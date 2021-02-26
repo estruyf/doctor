@@ -6,7 +6,7 @@ import Listr = require('listr');
 import parseMarkdown = require('frontmatter');
 import kleur = require('kleur');
 import md = require('markdown-it');
-import { ArgumentsHelper, execScript, FileHelpers, FolderHelpers, FrontMatterHelper, HeaderHelper, ListHelpers, Logger, MarkdownHelper, NavigationHelper, SiteHelpers } from '../helpers';
+import { ArgumentsHelper, CliCommand, execScript, FileHelpers, FolderHelpers, FrontMatterHelper, HeaderHelper, ListHelpers, Logger, MarkdownHelper, NavigationHelper, SiteHelpers } from '../helpers';
 import { Observable } from 'rxjs';
 import { Authenticate } from './authenticate';
 import { CommandArguments, Page, PublishOutput, File, PageTemplate, MarkdownSettings, Control } from '../models';
@@ -353,7 +353,7 @@ export class Publish {
         }
       }
       
-      let pageData = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --metadataOnly --output json`));
+      let pageData = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --metadataOnly --output json`), false);
       if (pageData && typeof pageData === "string") {
         pageData = JSON.parse(pageData);
       }
@@ -379,7 +379,7 @@ export class Publish {
       }
 
       if (cmdArgs) {
-        await execScript(ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" ${cmdArgs}`));
+        await execScript(ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" ${cmdArgs}`), CliCommand.getRetry());
       }
 
       return true;
@@ -391,7 +391,7 @@ export class Publish {
       }
 
       if (template) {
-        let templates: PageTemplate[] | string = await execScript(ArgumentsHelper.parse(`spo page template list --webUrl "${webUrl}" --output json`));
+        let templates: PageTemplate[] | string = await execScript(ArgumentsHelper.parse(`spo page template list --webUrl "${webUrl}" --output json`), CliCommand.getRetry());
         if (templates && typeof templates === "string") {
           templates = JSON.parse(templates);
         }
@@ -401,8 +401,8 @@ export class Publish {
         const pageTemplate = (templates as PageTemplate[]).find(t => t.Title === template);
         if (pageTemplate) {
           const templateUrl = pageTemplate.Url.toLowerCase().replace("sitepages/", "");
-          await execScript(ArgumentsHelper.parse(`spo page copy --webUrl "${webUrl}" --sourceName "${templateUrl}" --targetUrl "${slug}"`));
-          await execScript(ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" --publish`));
+          await execScript(ArgumentsHelper.parse(`spo page copy --webUrl "${webUrl}" --sourceName "${templateUrl}" --targetUrl "${slug}"`), CliCommand.getRetry());
+          await execScript(ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" --publish`), CliCommand.getRetry());
           return await this.createPageIfNotExists(webUrl, slug, title, layout, comments, description, null, skipExistingPages);
         } else {
           console.log(`Template "${template}" not found on the site, will create a default page instead.`)
@@ -410,7 +410,7 @@ export class Publish {
       }
 
       // File doesn't exist
-      await execScript(ArgumentsHelper.parse(`spo page add --webUrl "${webUrl}" --name "${slug}" --title "${title}" --layoutType "${layout}" ${comments ? "--commentsEnabled" : ""} --description "${description}"`));
+      await execScript(ArgumentsHelper.parse(`spo page add --webUrl "${webUrl}" --name "${slug}" --title "${title}" --layoutType "${layout}" ${comments ? "--commentsEnabled" : ""} --description "${description}"`), CliCommand.getRetry());
 
       return false;
     }
@@ -445,10 +445,10 @@ export class Publish {
     
     if (wpId) {
       // Web part needs to be updated
-      await execScript(ArgumentsHelper.parse(`spo page control set --webUrl "${webUrl}" --name "${slug}" --id "${wpId}" --webPartData @${wpData}`));
+      await execScript(ArgumentsHelper.parse(`spo page control set --webUrl "${webUrl}" --name "${slug}" --id "${wpId}" --webPartData @${wpData}`), CliCommand.getRetry());
     } else {
       // Add new markdown web part
-      await execScript(ArgumentsHelper.parse(`spo page clientsidewebpart add --webUrl "${webUrl}" --pageName "${slug}" --webPartId 1ef5ed11-ce7b-44be-bc5e-4abd55101d16 --webPartData @${wpData}`));
+      await execScript(ArgumentsHelper.parse(`spo page clientsidewebpart add --webUrl "${webUrl}" --pageName "${slug}" --webPartId 1ef5ed11-ce7b-44be-bc5e-4abd55101d16 --webPartData @${wpData}`), CliCommand.getRetry());
     }
   }
 
@@ -470,7 +470,7 @@ export class Publish {
         }
       }
 
-      await execScript(ArgumentsHelper.parse(metadataCommand));
+      await execScript(ArgumentsHelper.parse(metadataCommand), CliCommand.getRetry());
     }
   }
 
@@ -484,7 +484,7 @@ export class Publish {
     const pageId = await this.getPageId(webUrl, slug);
     const pageList = await ListHelpers.getSitePagesList(webUrl);
     if (pageId && pageList) {
-      await execScript(ArgumentsHelper.parse(`spo listitem set --listTitle "${pageList.Title}" --id ${pageId} --webUrl "${webUrl}" --Description "${description}" --systemUpdate`));
+      await execScript(ArgumentsHelper.parse(`spo listitem set --listTitle "${pageList.Title}" --id ${pageId} --webUrl "${webUrl}" --Description "${description}" --systemUpdate`), CliCommand.getRetry());
     }
   }
 
@@ -496,11 +496,11 @@ export class Publish {
   private static async publishPageIfNeeded(webUrl: string, slug: string) {
     const relativeUrl = FileHelpers.getRelUrl(webUrl, `sitepages/${slug}`);
     try {
-      await execScript(ArgumentsHelper.parse(`spo file checkin --webUrl "${webUrl}" --fileUrl "${relativeUrl}"`));
+      await execScript(ArgumentsHelper.parse(`spo file checkin --webUrl "${webUrl}" --fileUrl "${relativeUrl}"`), false);
     } catch (e) {
       // Might be that the file doesn't need to be checked in
     }
-    await execScript(ArgumentsHelper.parse(`spo page set --name "${slug}" --webUrl "${webUrl}" --publish`));
+    await execScript(ArgumentsHelper.parse(`spo page set --name "${slug}" --webUrl "${webUrl}" --publish`), CliCommand.getRetry());
   }
 
   /**
@@ -510,7 +510,7 @@ export class Publish {
    */
   private static async getPageId(webUrl: string, slug: string) {
     if (!this.processedPages[slug]) {
-      let pageData: any = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --metadataOnly --output json`));
+      let pageData: any = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --metadataOnly --output json`), CliCommand.getRetry());
       if (pageData && typeof pageData === "string") {
         pageData = JSON.parse(pageData);
 

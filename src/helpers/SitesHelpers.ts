@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { FileHelpers, FolderHelpers } from '.';
+import { CliCommand, FileHelpers, FolderHelpers } from '.';
 import { CommandArguments } from "../models/CommandArguments";
 import { ArgumentsHelper } from "./ArgumentsHelper";
 import { execScript } from "./execScript";
@@ -25,11 +25,11 @@ export class SiteHelpers {
     if (siteDesign.theme) {
       try {
         // Try to enable a custom theme
-        await execScript(ArgumentsHelper.parse(`spo theme apply --webUrl "${webUrl}" --name "${siteDesign.theme}"`));
+        await execScript(ArgumentsHelper.parse(`spo theme apply --webUrl "${webUrl}" --name "${siteDesign.theme}"`), false);
       } catch (e) {
         Logger.debug(`It seems that the "${siteDesign.theme}" is not a custom theme. Doctor will try to enable it as a known SharePoint theme.`)
         // Try to enable a known SharePoint theme
-        await execScript(ArgumentsHelper.parse(`spo theme apply --webUrl "${webUrl}" --name "${siteDesign.theme}" --sharePointTheme`));
+        await execScript(ArgumentsHelper.parse(`spo theme apply --webUrl "${webUrl}" --name "${siteDesign.theme}" --sharePointTheme`), false);
       }
     }
 
@@ -68,7 +68,7 @@ export class SiteHelpers {
         cmdChrome = `${cmdChrome} --logoAlignment "${siteDesign.chrome.logoAlignment}"`;
       }
 
-      await execScript(ArgumentsHelper.parse(cmdChrome));
+      await execScript(ArgumentsHelper.parse(cmdChrome), CliCommand.getRetry());
     }
     
     if (typeof siteDesign.logo !== "undefined") {
@@ -86,7 +86,7 @@ export class SiteHelpers {
           imgUrl = await FileHelpers.create(crntFolder, imgPath, webUrl, overwriteImages);
         }
         
-        await execScript(ArgumentsHelper.parse(`spo site set --url "${webUrl}" --siteLogoUrl "${imgUrl}"`));
+        await execScript(ArgumentsHelper.parse(`spo site set --url "${webUrl}" --siteLogoUrl "${imgUrl}"`), CliCommand.getRetry());
       } catch (e) {
         return Promise.reject(new Error(`Something failed while setting the site logo. ${e.message}`));
       }

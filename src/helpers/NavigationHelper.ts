@@ -1,3 +1,4 @@
+import { CliCommand } from ".";
 import { NavigationItem } from "../models";
 import { Menu, MenuItem, MenuType } from "../models/Menu";
 import { ArgumentsHelper } from "./ArgumentsHelper";
@@ -176,7 +177,7 @@ export class NavigationHelper {
    */
   private static async removeNavigationElm(webUrl: string, type: LocationType, id: number) {
     if (id) {
-      await execScript(ArgumentsHelper.parse(`spo navigation node remove --webUrl "${webUrl}" --location "${type}" --id "${id}" --confirm`));
+      await execScript(ArgumentsHelper.parse(`spo navigation node remove --webUrl "${webUrl}" --location "${type}" --id "${id}" --confirm`), CliCommand.getRetry());
     }
   }
 
@@ -190,7 +191,7 @@ export class NavigationHelper {
   private static async createNavigationElm(webUrl: string, type: LocationType, name: string, url: string, id: number = null): Promise<NavigationItem | null> {
     const rootElm = id ? `--parentNodeId "${id}"` : '';
     if (name) {
-      const item = await execScript(ArgumentsHelper.parse(`spo navigation node add --webUrl "${webUrl}" --location "${type}" --title "${name}" --url "${url}" ${rootElm} -o json`));
+      const item = await execScript(ArgumentsHelper.parse(`spo navigation node add --webUrl "${webUrl}" --location "${type}" --title "${name}" --url "${url}" ${rootElm} -o json`), CliCommand.getRetry());
 
       return typeof item === "string" ? JSON.parse(item) : item;
     }

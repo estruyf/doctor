@@ -1,3 +1,4 @@
+import { CliCommand } from ".";
 import { ListData } from "../models/ListData";
 import { ArgumentsHelper } from "./ArgumentsHelper";
 import { execScript } from "./execScript";
@@ -12,7 +13,7 @@ export class ListHelpers {
    */
   public static async getSitePagesList(webUrl: string) {
     if (!this.pageList) {
-      let listData: any = await execScript(ArgumentsHelper.parse(`spo list list --webUrl "${webUrl}" --output json`));
+      let listData: any = await execScript(ArgumentsHelper.parse(`spo list list --webUrl "${webUrl}" --output json`), CliCommand.getRetry());
       if (listData && typeof listData === "string") {
         listData = JSON.parse(listData);
       }

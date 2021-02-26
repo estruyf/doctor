@@ -6,6 +6,7 @@ import { Logger } from './logger';
 import { File } from '../models/File';
 import { Folder } from '../models/Folder';
 import { ListHelpers } from './ListHelpers';
+import { CliCommand } from '.';
 
 export class FileHelpers {
   private static allPages: File[] = [];
@@ -40,7 +41,7 @@ export class FileHelpers {
           // Check if file exists
           const filePath = `${crntFolder}/${path.basename(imgPath)}`;
           const relativeUrl = this.getRelUrl(webUrl, filePath);
-          const fileData = await execScript(ArgumentsHelper.parse(`spo file get --webUrl "${webUrl}" --url "${relativeUrl}"`));
+          const fileData = await execScript(ArgumentsHelper.parse(`spo file get --webUrl "${webUrl}" --url "${relativeUrl}"`), false);
           Logger.debug(`File data retrieved: ${JSON.stringify(fileData)}`);
         } catch (e) {
           await this.upload(webUrl, crntFolder, imgPath);
@@ -123,6 +124,6 @@ export class FileHelpers {
    */
   private static async upload(webUrl: string, crntFolder: string, imgPath: string) {
     Logger.debug(`Uploading file "${imgPath}" to ${crntFolder}"`);
-    await execScript(ArgumentsHelper.parse(`spo file add --webUrl "${webUrl}" --folder "${crntFolder}" --path "${imgPath}"`));
+    await execScript(ArgumentsHelper.parse(`spo file add --webUrl "${webUrl}" --folder "${crntFolder}" --path "${imgPath}"`), CliCommand.getRetry());
   }
 }

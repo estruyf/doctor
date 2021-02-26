@@ -5,7 +5,7 @@ import { execScript } from './execScript';
 import * as path from 'path';
 import { FolderHelpers } from './FolderHelpers';
 import { FileHelpers } from './FileHelpers';
-import { Logger } from '.';
+import { CliCommand, Logger } from '.';
 
 
 export class HeaderHelper {
@@ -89,7 +89,7 @@ export class HeaderHelper {
       if (headerLength === setPageHeader.length) {
         return;
       }
-      await execScript(ArgumentsHelper.parse(`${setPageHeader}`));
+      await execScript(ArgumentsHelper.parse(`${setPageHeader}`), CliCommand.getRetry());
     }
   }
 }
