@@ -213,20 +213,19 @@ jobs:
 
     - run: |
         npm ci
-    
+        
     - name: Cypress E2E testing
       run: |
         node ./scripts/prepare-e2e.js
-
-        VERIFY_CMD="./node_modules/.bin/cypress verify"
-        RUN_CMD="./node_modules/.bin/cypress run --browser ${{ matrix.browser }}"
-
-        eval $VERIFY_CMD
-        eval $RUN_CMD
       env:
         USERNAME: ${{ secrets.USERNAME }}
         PASSWORD: ${{ secrets.PASSWORD }}
         SITEURL: ${{ secrets[matrix.siteUrl] }}
+    
+    - name: Cypress E2E testing
+      run: |
+        ./node_modules/.bin/cypress verify
+        ./node_modules/.bin/cypress run --browser ${{ matrix.browser }}
     
     - name: Upload screenshots
       uses: actions/upload-artifact@v2

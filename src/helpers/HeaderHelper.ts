@@ -24,6 +24,7 @@ export class HeaderHelper {
     Logger.debug(`Setting the page header for ${slug}`);
 
     let setPageHeader = `spo page header set --webUrl "${webUrl}" --pageName "${slug}"`;
+    const headerLength = setPageHeader.length;
     
     if (header) {
       if (header.type) {
@@ -84,6 +85,10 @@ export class HeaderHelper {
     }
     
     if (header || !header && !isCopy) {
+      // Check if header is changed
+      if (headerLength === setPageHeader.length) {
+        return;
+      }
       await execScript(ArgumentsHelper.parse(`${setPageHeader}`));
     }
   }

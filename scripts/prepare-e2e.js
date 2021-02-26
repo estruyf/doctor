@@ -9,6 +9,10 @@ if (fs.existsSync(config)) {
   if (content) {
     const configJson = JSON.parse(content);
     configJson.baseUrl = process.env.SITEURL;
+    configJson.env = {};
+    configJson.env.USERNAME = process.env.USERNAME;
+    configJson.env.PASSWORD = process.env.PASSWORD;
+    configJson.env.SITEURL = process.env.SITEURL;
     fs.writeFileSync(newPath, JSON.stringify(configJson), { encoding: "utf-8" });
   }
 }
