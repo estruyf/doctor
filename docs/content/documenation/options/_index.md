@@ -65,6 +65,9 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 `--commandName <commandName>`
 : In case you want to use the locally installed `CLI for Microsoft 365`, you can use this flag. By default, it uses the version specified in the `doctor` tool. You can use the a locally installed version as follows: `--commandName m365`.
 
+`--retryWhenFailed`
+: Specifying this flag will retry the command if it failed. In some cases it can be that SharePoint failes to process your request, and this allows you to try again without running the whole flow from scratch.
+
 ### `doctor.json`
 
 You can provide the same flags and values like in the parameters. Parameters can override what is defined in the `doctor.json`. Be sure to use the whole argument names, and not the shortcodes.

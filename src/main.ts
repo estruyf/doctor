@@ -23,7 +23,7 @@ export class Commands {
       process.env['CLIMICROSOFT365_NOUPDATE'] = '1';
 
       Logger.init(options.debug);        
-      CliCommand.init(options.commandName);
+      CliCommand.init(options.commandName, options.retryWhenFailed);
 
       console.log('');
       console.log(kleur.bold().bgMagenta().white(` START: `), `${options.task} job`);

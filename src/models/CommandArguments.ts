@@ -14,6 +14,7 @@ export interface CommandArguments {
   cleanStart: boolean;
   confirm: boolean;
   continueOnError: boolean;
+  retryWhenFailed: boolean;
 
   menu?: Menu;
 

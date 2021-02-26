@@ -11,6 +11,7 @@
 - [#55](https://github.com/estruyf/doctor/issues/55): Enhancements to minify the HTML and CSS provided to the Markdown web part
 - [#56](https://github.com/estruyf/doctor/issues/56): Enhancements to set the site its logo
 - [#57](https://github.com/estruyf/doctor/issues/57): Fix for only retrieving the page its metadata so that encoding of the page its content would not lead to issues
+- [#62](https://github.com/estruyf/doctor/issues/62): Enhancement to specify to retry the command execution if it failed
 
 ## [1.6.0]
 

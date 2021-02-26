@@ -3,11 +3,18 @@ import { exec } from 'child_process';
 import { spawn } from 'cross-spawn';
 import { Logger } from './logger';
 
-export const execScript = async <T>(args: string[] = [], shouldSpawn: boolean = false, toMask: string[] = []): Promise<T> => {
+/**
+ * Execute script with retry logic
+ * @param args 
+ * @param shouldSpawn 
+ * @param toMask 
+ * @param retry 
+ */
+export const execScript = async <T>(args: string[] = [], shouldSpawn: boolean = false, toMask: string[] = [], retry: boolean = false): Promise<T> => {
   return new Promise<T>((resolve, reject) => {
     Logger.debug(``);
     const cmdToExec = Logger.mask(`${CliCommand.getName()} ${args.join(' ')}`, toMask);
-    Logger.debug(`Command: ${cmdToExec}`);
+    Logger.debug(`Command: ${cmdToExec}${retry ? ` - command failed and will be executed again` : ""}`);
 
     if (shouldSpawn) {
       const execution = spawn(CliCommand.getName(), [...args]);
@@ -22,6 +29,12 @@ export const execScript = async <T>(args: string[] = [], shouldSpawn: boolean = 
 
       execution.stderr.on('data', (error) => {
         error = Logger.mask(error, toMask);
+
+        if (CliCommand.getRetry() && !retry) {
+          retry = true;
+          return execScript(args, shouldSpawn, toMask, retry);
+        }
+
         reject(new Error(error));
       });
     } else {
@@ -29,6 +42,12 @@ export const execScript = async <T>(args: string[] = [], shouldSpawn: boolean = 
         if (err || stdErr) {
           let error = err && err.message ? err.message : stdErr;
           error = Logger.mask(error, toMask);
+
+          if (CliCommand.getRetry() && !retry) {
+            retry = true;
+            return execScript(args, shouldSpawn, toMask, retry);
+          }
+
           reject(new Error(error));
           return;
         }
