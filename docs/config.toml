@@ -49,13 +49,17 @@ name = "Home"
 url = "/"
 weight = 1
 
-# Dropdown menu
 [[Languages.en.menu.main]]
 weight = 2
-name = "docs"
-url = "/documenation"
+name = "documentation"
+url = "/docs"
+
+[[Languages.en.menu.main]]
+weight = 3
+name = "changelog"
+url = "/changelog"
 
 [[Languages.en.menu.main]]
 name = "GitHub"
 url = "https://github.com/estruyf/doctor"
-weight = 3
+weight = 4

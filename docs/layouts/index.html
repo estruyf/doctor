@@ -17,7 +17,7 @@
           <h2 class="section-title">{{ i18n "topics_title" | safeHTML }}</h2>
         </div>
         {{ "<!-- topic-item -->" | safeHTML }}
-        {{ range (where .Site.Pages "Type" "docs") }}
+        {{ range (where .Site.Pages "Type" "docs-main") }}
         <div class="col-lg-4 col-sm-6 mb-4">
           <a href="{{ .Permalink }}" class="px-4 py-5 bg-white shadow text-center d-block match-height">
             {{ with .Params.icon}}<i class="{{.}} icon text-primary d-block mb-4"></i>{{end}}
