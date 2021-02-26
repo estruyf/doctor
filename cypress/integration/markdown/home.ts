@@ -10,9 +10,12 @@ describe('General tests for homepage', function() {
   before(() =>  {
     cy.visitSP(PAGE_URL);
   });
+
+  after(() => {
+    cy.screenshot();
+  });
   
   it('1. Check if the topic header of the page contains "Doctor"', () => {
-    cy.screenshot();
     cy.get(`[data-automation-id="topicHeaderText"]`).should(`exist`).contains('Doctor');
   });
 

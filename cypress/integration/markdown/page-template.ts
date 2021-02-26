@@ -11,8 +11,11 @@ describe('Page template usage validation', function() {
     cy.visitSP(PAGE_URL);
   });
 
-  it('1. Check if the code snippet background is using the right background', () => {
+  after(() => {
     cy.screenshot();
+  });
+
+  it('1. Check if the code snippet background is using the right background', () => {
     cy.get(`h2#page-template-content`).should('exist').parent().should("contain.text", "This is some content to test out the page template.");
   });
 });

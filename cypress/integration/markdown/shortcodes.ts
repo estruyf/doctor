@@ -11,8 +11,11 @@ describe('Doctor shortcodes', function() {
     cy.visitSP(PAGE_URL);
   });
 
-  it('1. Check if the code snippet background is using the right background', () => {
+  after(() => {
     cy.screenshot();
+  });
+
+  it('1. Check if the code snippet background is using the right background', () => {
     cy.get(`pre.hljs`).first().should('exist').should('have.css', 'background-color', 'rgb(248, 248, 248)');
   });
 

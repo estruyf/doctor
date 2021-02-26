@@ -11,8 +11,11 @@ describe('Special character tests', function() {
     cy.visitSP(PAGE_URL);
   });
 
-  it('1. Check markdown web part exists', () => {
+  after(() => {
     cy.screenshot();
+  });
+
+  it('1. Check markdown web part exists', () => {
     cy.get(`[data-viewport-id*="MarkdownWebPart"]`).should('exist');
   });
 
