@@ -30,8 +30,9 @@ export class FileHelpers {
    * @param override 
    */
   public static async create(crntFolder: string, imgPath: string, webUrl: string, override: boolean = false) {
-    Logger.debug(`Create file "${imgPath}" to ${crntFolder}"`);
-    if (this.checkedFiles.indexOf(imgPath) === -1) {
+    Logger.debug(`Create file "${imgPath}" to "${crntFolder}"`);
+    const cacheKey = `${imgPath.replace(/ /g, '%20')}-${crntFolder.replace(/ /g, '%20')}`;
+    if (this.checkedFiles && this.checkedFiles.indexOf(cacheKey) === -1) {
       if (override) {
         await this.upload(webUrl, crntFolder, imgPath);
       } else {
@@ -46,8 +47,10 @@ export class FileHelpers {
         }
       }
     
-      this.checkedFiles.push(imgPath);
+      this.checkedFiles.push(cacheKey);
     }
+
+    return (`${webUrl}/${crntFolder}/${path.basename(imgPath)}`).replace(/ /g, "%20");
   }
 
   /**

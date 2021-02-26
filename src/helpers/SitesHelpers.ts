@@ -83,9 +83,7 @@ export class SiteHelpers {
           let crntFolder = `${assetLibrary}`;
           crntFolder = await FolderHelpers.create(crntFolder, ["site"], webUrl);
           
-          await FileHelpers.create(crntFolder, imgPath, webUrl, overwriteImages);
-
-          imgUrl = (`${webUrl}/${crntFolder}/${path.basename(path.basename(imgPath))}`).replace(/ /g, "%20");
+          imgUrl = await FileHelpers.create(crntFolder, imgPath, webUrl, overwriteImages);
         }
         
         await execScript(ArgumentsHelper.parse(`spo site set --url "${webUrl}" --siteLogoUrl "${imgUrl}"`));

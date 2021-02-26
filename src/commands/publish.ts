@@ -259,8 +259,7 @@ export class Publish {
       crntFolder = await FolderHelpers.create(crntFolder, folders, webUrl);
 
       try {
-        await FileHelpers.create(crntFolder, imgPath, webUrl, overwriteImages);
-        const imgUrl = (`${webUrl}/${crntFolder}/${path.basename(imgSource)}`).replace(/ /g, "%20");
+        const imgUrl = await FileHelpers.create(crntFolder, imgPath, webUrl, overwriteImages);
         contents = contents.replace(new RegExp(imgSource, 'g'), imgUrl);
         ++output.imagesProcessed;
       } catch (e) {
