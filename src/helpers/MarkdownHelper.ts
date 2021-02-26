@@ -5,6 +5,7 @@ import { MarkdownSettings } from '../models';
 import { ShortcodesHelpers } from './ShortcodesHelpers';
 import { encode } from 'html-entities';
 import { TempDataHelper } from './TempDataHelper';
+import * as CleanCSS from 'clean-css';
 
 export class MarkdownHelper {
 
@@ -47,9 +48,10 @@ export class MarkdownHelper {
     }
 
     if (allowHtml) {
+      const cleanCss = new CleanCSS({});
       let htmlMarkup = converter.render(markdown);
       htmlMarkup = await ShortcodesHelpers.parse(htmlMarkup);
-      htmlMarkup = `${htmlMarkup}<style>${this.getEditorStyles(theme === "light")} ${this.getCalloutStyles()}</style>`;
+      htmlMarkup = `${htmlMarkup}<style>${cleanCss.minify(this.getEditorStyles(theme === "light")).styles} ${cleanCss.minify(this.getCalloutStyles()).styles}</style>`;
 
       if (htmlMarkup) {
         wpData.serverProcessedContent["htmlStrings"] = {

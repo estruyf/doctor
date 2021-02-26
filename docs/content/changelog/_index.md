@@ -14,7 +14,7 @@ type: docs-main
 - [#51](https://github.com/estruyf/doctor/issues/51): Enhancement making skipping pages faster without the need to check each page
 - [#52](https://github.com/estruyf/doctor/issues/51): Enhancements to make it possible to change the look and feel of the site
 - [#54](https://github.com/estruyf/doctor/issues/54): Enhancements to set the code editor theme for Markdown
-- [#55](https://github.com/estruyf/doctor/issues/55): Enhancements to minify the HTML and CSS provided to the Markdown web part
+- [#55](https://github.com/estruyf/doctor/issues/55): Enhancements to minify the CSS provided to the Markdown web part
 - [#56](https://github.com/estruyf/doctor/issues/56): Enhancements to set the site its logo
 - [#57](https://github.com/estruyf/doctor/issues/57): Fix for only retrieving the page its metadata so that encoding of the page its content would not lead to issues
 - [#62](https://github.com/estruyf/doctor/issues/62): Enhancement to specify to retry the command execution if it failed
