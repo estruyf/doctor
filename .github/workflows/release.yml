@@ -182,19 +182,19 @@ jobs:
         include:
           - node: 14
             testTitle: macOS
-            siteUrl: SITEURL_MACOS
+            siteUrl: ${{ secrets.SITEURL_MACOS }}
             browser: chrome
           - node: 14
             testTitle: Linux
-            siteUrl: SITEURL_LINUX
+            siteUrl: ${{ secrets.SITEURL_LINUX }}
             browser: firefox
           - node: 14
             testTitle: Windows PowerShell
-            siteUrl: SITEURL_WINDOWS_POWERSHELL
+            siteUrl: ${{ secrets.SITEURL_WINDOWS_POWERSHELL }}
             browser: edge
           - node: 14
             testTitle: Windows
-            siteUrl: SITEURL_WINDOWS
+            siteUrl: ${{ secrets.SITEURL_WINDOWS }}
             browser: edge
 
     steps:
