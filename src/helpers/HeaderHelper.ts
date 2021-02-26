@@ -40,9 +40,9 @@ export class HeaderHelper {
 
         // Start folder creation process
         crntFolder = await FolderHelpers.create(crntFolder, folders, webUrl);
-        const absImgUrl = await FileHelpers.create(crntFolder, imgPath, webUrl, overwriteImages);
+        await FileHelpers.create(crntFolder, imgPath, webUrl, overwriteImages);
 
-        const imgUrl = FileHelpers.getRelUrl(webUrl, `${absImgUrl}`);
+        const imgUrl = FileHelpers.getRelUrl(webUrl, `${crntFolder}/${path.basename(header.image)}`);
         setPageHeader = `${setPageHeader} --imageUrl "${imgUrl}"`;
 
         if (header.altText) {
