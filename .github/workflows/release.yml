@@ -214,7 +214,7 @@ jobs:
     - run: |
         npm ci
         
-    - name: Cypress E2E testing
+    - name: Preparing the Cypress config
       run: |
         node ./scripts/prepare-e2e.js
       env:
