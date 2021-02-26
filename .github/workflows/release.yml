@@ -191,11 +191,11 @@ jobs:
           - node: 14
             testTitle: Windows PowerShell
             siteUrl: SITEURL_WINDOWS_POWERSHELL
-            browser: edge
+            browser: chrome
           - node: 14
             testTitle: Windows
             siteUrl: SITEURL_WINDOWS
-            browser: edge
+            browser: firefox
 
     steps:
     - uses: actions/checkout@v2
