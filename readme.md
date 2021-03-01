@@ -7,8 +7,8 @@
 <h2 align="center">Maintain your documentation on SharePoint without pain</h2>
 
 <p align="center">
-  <img src="https://github.com/estruyf/doctor/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/estruyf/doctor/actions/workflows/release.yml"
-      alt="Does it build and publish?" />
+  <img src="https://github.com/estruyf/doctor/actions/workflows/release.yml/badge.svg"
+      alt="Test and release" />
 
   <a href="https://www.npmjs.com/package/@estruyf/doctor">
     <img src="https://img.shields.io/npm/v/@estruyf/doctor/latest?style=flat-square"
