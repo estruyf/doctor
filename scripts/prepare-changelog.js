@@ -24,7 +24,10 @@ if (changelog && changelog.length > 0) {
   }
 
   if (markdown.length > 2) {
-    fs.writeFileSync('CHANGELOG.md', markdown.join('\n'), { encoding: "utf-8" });
+    const changelogMain = `# Changelog
+    
+${markdown.join('\n')}`;
+    fs.writeFileSync('CHANGELOG.md', changelogMain, { encoding: "utf-8" });
     
     const changelogDocs = `---
 title: Changelog
