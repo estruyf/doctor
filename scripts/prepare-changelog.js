@@ -5,9 +5,6 @@ const path = require('path');
 if (changelog && changelog.length > 0) {
   const markdown = [];
 
-  markdown.push(`# Changelog`);
-  markdown.push(``);
-
   // Loop over all the change log versions
   for (const version of changelog) {
     if (version.title !== "template") {
