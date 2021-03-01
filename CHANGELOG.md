@@ -14,14 +14,6 @@
 - [#57](https://github.com/estruyf/doctor/issues/57): Fix for only retrieving the page its metadata so that encoding of the page its content would not lead to issues.
 - [#62](https://github.com/estruyf/doctor/issues/62): Enhancement to specify to retry the command execution if it failed.
 
-## [1.6.2]
-
-- Added build and package tasks
-
-## [1.6.1]
-
-- Just because of an issue in the package generation
-
 ## [1.6.0]
 
 
