@@ -7,7 +7,7 @@ type: docs-main
 ---
 
 <p align="center">
-  <img src="https://github.com/estruyf/doctor/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/estruyf/doctor/actions/workflows/release.yml"
+  <img src="https://github.com/estruyf/doctor/actions/workflows/release.yml/badge.svg"
       alt="Does it build and publish?" style="display: inline-block" />
 
   <a href="https://www.npmjs.com/package/@estruyf/doctor">
