@@ -1,7 +1,7 @@
 baseURL = "https://getdoctor.io"
 languageCode = "en-us"
 title = "Doctor"
-theme = "Dot"
+theme = "dot"
 
 [authors]
 name = "Elio Struyf"
