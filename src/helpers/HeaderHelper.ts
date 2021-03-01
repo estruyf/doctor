@@ -5,6 +5,7 @@ import { execScript } from './execScript';
 import * as path from 'path';
 import { FolderHelpers } from './FolderHelpers';
 import { FileHelpers } from './FileHelpers';
+import { CliCommand, Logger } from '.';
 
 
 export class HeaderHelper {
@@ -20,7 +21,10 @@ export class HeaderHelper {
   public static async set(filePath: string, webUrl: string, slug: string, header: HeaderOptions, options: CommandArguments, isCopy: boolean = false) {
     const { assetLibrary, startFolder, overwriteImages } = options;
 
+    Logger.debug(`Setting the page header for ${slug}`);
+
     let setPageHeader = `spo page header set --webUrl "${webUrl}" --pageName "${slug}"`;
+    const headerLength = setPageHeader.length;
     
     if (header) {
       if (header.type) {
@@ -81,7 +85,11 @@ export class HeaderHelper {
     }
     
     if (header || !header && !isCopy) {
-      await execScript(ArgumentsHelper.parse(`${setPageHeader}`));
+      // Check if header is changed
+      if (headerLength === setPageHeader.length) {
+        return;
+      }
+      await execScript(ArgumentsHelper.parse(`${setPageHeader}`), CliCommand.getRetry());
     }
   }
 }

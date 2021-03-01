@@ -1,30 +1,18 @@
 import * as path from 'path';
 import * as fg from 'fast-glob';
 import * as fs from 'fs';
+import * as cheerio from 'cheerio';
 import Listr = require('listr');
 import parseMarkdown = require('frontmatter');
-import showdown = require('showdown');
 import kleur = require('kleur');
-import { JSDOM } from 'jsdom';
-import { FileHelpers } from '../helpers/FileHelpers';
-import { execScript } from '../helpers/execScript';
+import md = require('markdown-it');
+import { ArgumentsHelper, CliCommand, execScript, FileHelpers, FolderHelpers, FrontMatterHelper, HeaderHelper, ListHelpers, Logger, MarkdownHelper, NavigationHelper, SiteHelpers } from '../helpers';
 import { Observable } from 'rxjs';
-import { FolderHelpers } from '../helpers/FolderHelpers';
-import { NavigationHelper } from '../helpers/NavigationHelper';
-import { CommandArguments } from '../models/CommandArguments';
 import { Authenticate } from './authenticate';
-import { PublishOutput } from '../models/PublishOutput';
-import { Logger } from '../helpers/logger';
-import { FrontMatterHelper } from '../helpers/FrontMatterHelper';
-import { MarkdownHelper } from '../helpers/MarkdownHelper';
-import { ArgumentsHelper } from '../helpers/ArgumentsHelper';
-import { Page } from '../models/Page';
-import { HeaderHelper } from './../helpers/HeaderHelper';
-import { ListData } from './../models/ListData';
-import { PageTemplate } from '../models/PageTemplate';
+import { CommandArguments, Page, PublishOutput, File, PageTemplate, MarkdownSettings, Control } from '../models';
 
 export class Publish {
-  private static pageList: ListData = null;
+  private static pages: File[] = [];
   private static processedPages: { [slug: string]: number } = {};
 
   /**
@@ -73,6 +61,11 @@ export class Publish {
       {
         title: `Updating navigation`,
         task: async () => await NavigationHelper.update(webUrl, ouput.navigation)
+      },
+      {
+        title: `Change the look of the site`,
+        task: async (ctx: any) => await SiteHelpers.changeLook(ctx, options),
+        enabled: () => !!options.siteDesign
       }
     ]).run().catch(err => {
       throw err;
@@ -104,15 +97,19 @@ export class Publish {
    * @param ctx 
    */
   private static async processMDFiles(ctx: any, options: CommandArguments, output: PublishOutput): Promise<Observable<string>> {
-    const { webUrl, webPartTitle } = options;
-    const converter = new showdown.Converter();
+    const { webUrl, webPartTitle, skipExistingPages } = options;
+    const converter = new md({ html: true, breaks: true });
 
     return new Observable(observer => {
       (async () => {
         const { files } = ctx;
+        this.pages = await FileHelpers.getAllPages(webUrl, 'sitepages');
+        Logger.debug(`Existing pages`);
+        Logger.debug(this.pages);
 
         for (const file of files) {
           try {
+
             if (file.endsWith('.md')) {
               const filename = path.basename(file);
               observer.next(`Started processing: ${filename}`);
@@ -121,10 +118,11 @@ export class Publish {
               if (contents) {
 
                 let markup = parseMarkdown(contents);
-                const htmlMarkup = converter.makeHtml(contents);
-                const htmlElm = new JSDOM(htmlMarkup);
-                const imgElms = [...htmlElm.window.document.querySelectorAll('img') as any] as HTMLImageElement[];
-                const anchorElms = [...htmlElm.window.document.querySelectorAll('a') as any] as HTMLAnchorElement[];
+                const htmlMarkup = converter.render(contents);
+
+                const $ = cheerio.load(htmlMarkup, { xmlMode: true });
+                const imgElms = $(`img`).toArray();
+                const anchorElms = $(`a`).toArray();
 
                 // Check if the required data for the article is present
                 if (markup && !markup.data) {
@@ -135,14 +133,14 @@ export class Publish {
                   }
                 }
 
-                let { title, description, draft, comments, layout, header, template, skipExistingPages, metadata } = markup.data;
+                let { title, description, draft, comments, layout, header, template, metadata } = markup.data;
                 let slug = FrontMatterHelper.getSlug(markup.data, options.startFolder, file);
 
                 // Image processing
                 if (imgElms && imgElms.length > 0) {
                   observer.next(`Uploading images referenced in ${filename}`);
 
-                  markup = await this.processImages(imgElms, file, contents, options, output);
+                  markup = await this.processImages($, imgElms, file, contents, options, output);
                 }
 
                 // Anchor processing
@@ -152,7 +150,7 @@ export class Publish {
                   Logger.debug(`Number of links in ${filename}: ${anchorElms.length}`)
 
                   try {
-                    markup.content = this.processLinks(anchorElms, file, markup.content, options);
+                    markup.content = this.processLinks($, anchorElms, file, markup.content, options);
                   } catch (e) {
                     throw e.message;
                   }
@@ -173,17 +171,18 @@ export class Publish {
                   // Check if the page already exists
                   const existed = await this.createPageIfNotExists(webUrl, slug, title, layout, comments, description, template, skipExistingPages);
 
+                  Logger.debug(`Page existed: ${existed} - Skipping existing pages: ${skipExistingPages}`);
+
                   if (!existed || (existed && !skipExistingPages)) {
                     // Check if the header of the page needs to be changed
                     await HeaderHelper.set(file, webUrl, slug, header, options, !!template);
         
                     // Retrieving all the controls from the page, so that we can start replacing the 
                     const controlData: string = await this.getPageControls(webUrl, slug);
-                    
                     if (controlData) {
-                      const webparts = JSON.parse(controlData);
-                      const markdownWp = webparts.find((c: any) => c.title === webPartTitle);   
-                      await this.insertOrCreateControl(webPartTitle, markup.content, slug, webUrl, markdownWp ? markdownWp.id : null);
+                      const webparts: Control[] = JSON.parse(controlData);
+                      const markdownWp: Control = webparts.find((c: Control) => c.webPartData && c.webPartData.title === webPartTitle);
+                      await this.insertOrCreateControl(webPartTitle, markup.content, slug, webUrl, markdownWp ? markdownWp.id : null, options.markdown);
                     }
 
                     // Check if metadata needs to be added to the page
@@ -209,8 +208,8 @@ export class Publish {
                   }
                 }
 
-                // Check if the file contains a menu element to add too
-                if (output.navigation && markup && markup.data && markup.data.menu) {
+                // Check if the file contains a menu element to add too and if not in draft status (cannot add draft pages to navigation)
+                if (output.navigation && markup && markup.data && markup.data.menu && !markup.data.draft) {
                   Logger.debug(`Adding item to the navigation: ${slug} - ${title} - ${JSON.stringify(markup.data.menu)} `);
 
                   output.navigation = NavigationHelper.hierarchy(webUrl, output.navigation, markup.data.menu, slug, title);
@@ -233,21 +232,24 @@ export class Publish {
 
   /**
    * Process images referenced in the file
+   * @param $ 
    * @param imgElms 
    * @param filePath 
    * @param contents 
    * @param options 
    * @param output 
    */
-  private static async processImages(imgElms: HTMLImageElement[], filePath: string, contents: string, options: CommandArguments, output: PublishOutput) {
+  private static async processImages($: cheerio.Root, imgElms: cheerio.Element[], filePath: string, contents: string, options: CommandArguments, output: PublishOutput) {
     const { startFolder, assetLibrary, webUrl, overwriteImages } = options;
+    
+    const imgSources = imgElms.filter(i => !$(i).attr("src").startsWith(`http`)).map(img => $(img).attr('src'));
+    const uImgSources = [...new Set(imgSources)];
 
-    const imgs = imgElms.filter(i => !i.src.startsWith(`http`));
-    for (const img of imgs) {
-      Logger.debug(`Adding image: ${img.src} - ${imgs.length}`)
+    for (const imgSource of uImgSources) {
+      Logger.debug(`Adding image: ${imgSource} - ${imgSources.length}`)
 
-      const imgDirectory = path.join(path.dirname(filePath), path.dirname(img.src));
-      const imgPath = path.join(path.dirname(filePath), img.src);
+      const imgDirectory = path.join(path.dirname(filePath), path.dirname(imgSource));
+      const imgPath = path.join(path.dirname(filePath), imgSource);
 
       const uniStartPath = startFolder.replace(/\\/g, '/');
       const folders = imgDirectory.replace(/\\/g, '/').replace(uniStartPath, '').split('/');
@@ -257,8 +259,8 @@ export class Publish {
       crntFolder = await FolderHelpers.create(crntFolder, folders, webUrl);
 
       try {
-        await FileHelpers.create(crntFolder, imgPath, webUrl, overwriteImages);
-        contents = contents.replace(new RegExp(img.src, 'g'), `${webUrl}/${crntFolder}/${path.basename(img.src)}`);
+        const imgUrl = await FileHelpers.create(crntFolder, imgPath, webUrl, overwriteImages);
+        contents = contents.replace(new RegExp(imgSource, 'g'), imgUrl);
         ++output.imagesProcessed;
       } catch (e) {
         return Promise.reject(new Error(`Something failed while uploading the image asset. ${e.message}`));
@@ -271,27 +273,31 @@ export class Publish {
 
   /**
    * Process the links referenced in the markdown files
+   * @param $ 
    * @param linkElms 
    * @param filePath 
    * @param content 
    * @param options 
    */
-  private static processLinks(linkElms: HTMLAnchorElement[], filePath: string, content: string, options: CommandArguments) {
+  private static processLinks($: cheerio.Root, linkElms: cheerio.Element[], filePath: string, content: string, options: CommandArguments) {
     const { webUrl, startFolder } = options;
 
-    for (const link of linkElms.filter(i => !i.href.startsWith(`http`))) {
+    const fLinks = linkElms.filter(i => !$(i).attr("href").startsWith(`http`));
+    const uLinks = [...new Set(fLinks)];
 
-      const fileLink = link.href;
+    for (const link of uLinks) {
+      const $link = $(link);
+      const fileLink = $link.attr('href');
       let mdFile = "";
 
       Logger.debug(`Processing link: ${fileLink} for ${filePath}`);
 
       if (fileLink.endsWith(`.md`)) {
-        mdFile = link.href;
+        mdFile = $link.attr('href');
       } else if (fileLink === ".") {
         mdFile = path.basename(filePath);
       } else {
-        mdFile = `${link.href}.md`;
+        mdFile = `${$link.attr('href')}.md`;
       }
 
       const mdFilePath = path.join(path.dirname(filePath), mdFile);
@@ -317,6 +323,8 @@ export class Publish {
 
         // Update the link in the markdown
         content = content.replace(`(${fileLink})`, `(${spUrl})`);
+        content = content.replace(`"${fileLink}"`, `"${spUrl}"`);
+        content = content.replace(`'${fileLink}`, `'${spUrl}'`);
       } else {
         Logger.debug(`Referenced file not found`);
       }
@@ -333,17 +341,24 @@ export class Publish {
    */
   private static async createPageIfNotExists(webUrl: string, slug: string, title: string, layout: string = "Article", comments: boolean = false, description: string = "", template: string | null = null, skipExistingPages: boolean = false): Promise<boolean> {
     try {
-      let pageData = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --output json`));
+      const relativeUrl = FileHelpers.getRelUrl(webUrl, `sitepages/${slug}`);
+
+      if (skipExistingPages) {
+        if (this.pages && this.pages.length > 0) {
+          const page = this.pages.find((page: File) => page.FileRef.toLowerCase() === relativeUrl.toLowerCase());
+          if (page) {
+            // Page already existed
+            return true;
+          }
+        }
+      }
+      
+      let pageData = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --metadataOnly --output json`), false);
       if (pageData && typeof pageData === "string") {
         pageData = JSON.parse(pageData);
       }
 
       Logger.debug(pageData);
-
-      if (skipExistingPages) {
-        // Page already existed
-        return true;
-      }
 
       let cmdArgs = ``;
 
@@ -364,7 +379,7 @@ export class Publish {
       }
 
       if (cmdArgs) {
-        await execScript(ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" ${cmdArgs}`));
+        await execScript(ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" ${cmdArgs}`), CliCommand.getRetry());
       }
 
       return true;
@@ -376,7 +391,7 @@ export class Publish {
       }
 
       if (template) {
-        let templates: PageTemplate[] | string = await execScript(ArgumentsHelper.parse(`spo page template list --webUrl "${webUrl}" --output json`));
+        let templates: PageTemplate[] | string = await execScript(ArgumentsHelper.parse(`spo page template list --webUrl "${webUrl}" --output json`), CliCommand.getRetry());
         if (templates && typeof templates === "string") {
           templates = JSON.parse(templates);
         }
@@ -386,16 +401,16 @@ export class Publish {
         const pageTemplate = (templates as PageTemplate[]).find(t => t.Title === template);
         if (pageTemplate) {
           const templateUrl = pageTemplate.Url.toLowerCase().replace("sitepages/", "");
-          await execScript(ArgumentsHelper.parse(`spo page copy --webUrl "${webUrl}" --sourceName "${templateUrl}" --targetUrl "${slug}"`));
-          await execScript(ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" --publish`));
-          return this.createPageIfNotExists(webUrl, slug, title, layout, comments, description, null, skipExistingPages);
+          await execScript(ArgumentsHelper.parse(`spo page copy --webUrl "${webUrl}" --sourceName "${templateUrl}" --targetUrl "${slug}"`), CliCommand.getRetry());
+          await execScript(ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" --publish`), CliCommand.getRetry());
+          return await this.createPageIfNotExists(webUrl, slug, title, layout, comments, description, null, skipExistingPages);
         } else {
           console.log(`Template "${template}" not found on the site, will create a default page instead.`)
         }
       }
 
       // File doesn't exist
-      await execScript(ArgumentsHelper.parse(`spo page add --webUrl "${webUrl}" --name "${slug}" --title "${title}" --layoutType "${layout}" ${comments ? "--commentsEnabled" : ""} --description "${description}"`));
+      await execScript(ArgumentsHelper.parse(`spo page add --webUrl "${webUrl}" --name "${slug}" --title "${title}" --layoutType "${layout}" ${comments ? "--commentsEnabled" : ""} --description "${description}"`), CliCommand.getRetry());
 
       return false;
     }
@@ -407,8 +422,15 @@ export class Publish {
    * @param slug 
    */
   private static async getPageControls(webUrl: string, slug: string): Promise<string> {
-    const output = await execScript<string>(ArgumentsHelper.parse(`spo page control list --webUrl "${webUrl}" --name "${slug}" -o json`));
-    return output;
+    Logger.debug(`Get page controls for ${slug}`);
+
+    let output = await execScript<any | string>(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --output json`));
+    if (output && typeof output === "string") {
+      output = JSON.parse(output);
+    }
+    
+    Logger.debug(JSON.stringify(output.canvasContentJson || "[]"));
+    return output.canvasContentJson || "[]";
   }
 
   /**
@@ -416,15 +438,17 @@ export class Publish {
    * @param webPartTitle 
    * @param markdown 
    */
-  private static async insertOrCreateControl(webPartTitle: string, markdown: string, slug: string, webUrl: string, wpId: string = null) {
-    const wpData = MarkdownHelper.getJsonData(webPartTitle, markdown);
+  private static async insertOrCreateControl(webPartTitle: string, markdown: string, slug: string, webUrl: string, wpId: string = null, mdOptions: MarkdownSettings | null) {
+    Logger.debug(`Insert the markdown webpart for the page ${slug} - Control ID: ${wpId}`);
+
+    const wpData = await MarkdownHelper.getJsonData(webPartTitle, markdown, mdOptions);
     
     if (wpId) {
       // Web part needs to be updated
-      await execScript([...ArgumentsHelper.parse(`spo page control set --webUrl "${webUrl}" --name "${slug}" --id "${wpId}" --webPartData`), wpData]);
+      await execScript(ArgumentsHelper.parse(`spo page control set --webUrl "${webUrl}" --name "${slug}" --id "${wpId}" --webPartData @${wpData}`), CliCommand.getRetry());
     } else {
       // Add new markdown web part
-      await execScript([...ArgumentsHelper.parse(`spo page clientsidewebpart add --webUrl "${webUrl}" --pageName "${slug}" --webPartId 1ef5ed11-ce7b-44be-bc5e-4abd55101d16 --webPartData`), wpData]);
+      await execScript(ArgumentsHelper.parse(`spo page clientsidewebpart add --webUrl "${webUrl}" --pageName "${slug}" --webPartId 1ef5ed11-ce7b-44be-bc5e-4abd55101d16 --webPartData @${wpData}`), CliCommand.getRetry());
     }
   }
 
@@ -436,7 +460,7 @@ export class Publish {
    */
   private static async setPageMetadata(webUrl: string, slug: string, metadata: { [fieldName: string]: any } = null) {
     const pageId = await this.getPageId(webUrl, slug);
-    const pageList = await this.getSitePagesList(webUrl);
+    const pageList = await ListHelpers.getSitePagesList(webUrl);
     if (pageId && pageList) {
       let metadataCommand: string = `spo listitem set --listTitle "${pageList.Title}" --id ${pageId} --webUrl "${webUrl}"`;
 
@@ -446,7 +470,7 @@ export class Publish {
         }
       }
 
-      await execScript(ArgumentsHelper.parse(metadataCommand));
+      await execScript(ArgumentsHelper.parse(metadataCommand), CliCommand.getRetry());
     }
   }
 
@@ -458,9 +482,9 @@ export class Publish {
    */
   private static async setPageDescription(webUrl: string, slug: string, description: string) {
     const pageId = await this.getPageId(webUrl, slug);
-    const pageList = await this.getSitePagesList(webUrl);
+    const pageList = await ListHelpers.getSitePagesList(webUrl);
     if (pageId && pageList) {
-      await execScript(ArgumentsHelper.parse(`spo listitem set --listTitle "${pageList.Title}" --id ${pageId} --webUrl "${webUrl}" --Description "${description}" --systemUpdate`));
+      await execScript(ArgumentsHelper.parse(`spo listitem set --listTitle "${pageList.Title}" --id ${pageId} --webUrl "${webUrl}" --Description "${description}" --systemUpdate`), CliCommand.getRetry());
     }
   }
 
@@ -472,26 +496,11 @@ export class Publish {
   private static async publishPageIfNeeded(webUrl: string, slug: string) {
     const relativeUrl = FileHelpers.getRelUrl(webUrl, `sitepages/${slug}`);
     try {
-      await execScript(ArgumentsHelper.parse(`spo file checkin --webUrl "${webUrl}" --fileUrl "${relativeUrl}"`));
+      await execScript(ArgumentsHelper.parse(`spo file checkin --webUrl "${webUrl}" --fileUrl "${relativeUrl}"`), false);
     } catch (e) {
       // Might be that the file doesn't need to be checked in
     }
-    await execScript(ArgumentsHelper.parse(`spo page set --name "${slug}" --webUrl "${webUrl}" --publish`));
-  }
-
-  /**
-   * Retrieve the site pages library
-   * @param webUrl 
-   */
-  private static async getSitePagesList(webUrl: string) {
-    if (!this.pageList) {
-      let listData: any = await execScript(ArgumentsHelper.parse(`spo list list --webUrl "${webUrl}" --output json`));
-      if (listData && typeof listData === "string") {
-        listData = JSON.parse(listData);
-      }
-      this.pageList = (listData as ListData[]).find(l => l.Url.toLowerCase().includes("/sitepages"));
-    }
-    return this.pageList;
+    await execScript(ArgumentsHelper.parse(`spo page set --name "${slug}" --webUrl "${webUrl}" --publish`), CliCommand.getRetry());
   }
 
   /**
@@ -501,7 +510,7 @@ export class Publish {
    */
   private static async getPageId(webUrl: string, slug: string) {
     if (!this.processedPages[slug]) {
-      let pageData: any = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --output json`));
+      let pageData: any = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --metadataOnly --output json`), CliCommand.getRetry());
       if (pageData && typeof pageData === "string") {
         pageData = JSON.parse(pageData);
 

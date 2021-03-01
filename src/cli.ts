@@ -2,6 +2,7 @@ import kleur = require("kleur");
 import { Command } from "./commands/Command";
 import { Version } from "./commands/version";
 import { OptionsHelper } from "./helpers/OptionsHelper";
+import { TempDataHelper } from "./helpers/TempDataHelper";
 import { Commands } from "./main";
 import { CommandArguments } from "./models/CommandArguments";
 
@@ -17,17 +18,22 @@ export async function cli(args: string[]) {
   
   try {
     if (options.task === "help") {
-      console.log('The static site generator for SharePoint. Created by Valo.');
       console.log('');
-      console.log(`The current version you're running: ${version} supports the following commands: ${Object.keys(Command).join(', ')}.`);
+      console.log(kleur.blue('Maintain your documentation on SharePoint without pain!'));
+      console.log('');
+      console.log(`The current version you're running (v${version}), supports the following commands: ${Object.keys(Command).join(', ')}.`);
       console.log('');
       console.log('Documentation: https://github.com/estruyf/doctor');
       console.log('');
+      console.log(kleur.blue().italic('Created by Elio Struyf - https://www.eliostruyf.com - @eliostruyf'));
+      console.log('');
     } else {
       await Commands.start(options);
+      TempDataHelper.clear();
     }
     process.exit(0);
   } catch (e: any | Error) {
+    TempDataHelper.clear();
     console.log(kleur.bgRed().bold().white(` ERROR: `), kleur.bold().red(e.message.toString()));
     process.exit(1);
   }

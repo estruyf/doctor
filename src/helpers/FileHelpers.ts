@@ -5,8 +5,11 @@ import { CommandArguments } from '../models/CommandArguments';
 import { Logger } from './logger';
 import { File } from '../models/File';
 import { Folder } from '../models/Folder';
+import { ListHelpers } from './ListHelpers';
+import { CliCommand } from '.';
 
 export class FileHelpers {
+  private static allPages: File[] = [];
   private static checkedFiles: string[] = [];
 
   /**
@@ -28,7 +31,9 @@ export class FileHelpers {
    * @param override 
    */
   public static async create(crntFolder: string, imgPath: string, webUrl: string, override: boolean = false) {
-    if (this.checkedFiles.indexOf(imgPath) === -1) {
+    Logger.debug(`Create file "${imgPath}" to "${crntFolder}"`);
+    const cacheKey = `${imgPath.replace(/ /g, '%20')}-${crntFolder.replace(/ /g, '%20')}`;
+    if (this.checkedFiles && this.checkedFiles.indexOf(cacheKey) === -1) {
       if (override) {
         await this.upload(webUrl, crntFolder, imgPath);
       } else {
@@ -36,14 +41,17 @@ export class FileHelpers {
           // Check if file exists
           const filePath = `${crntFolder}/${path.basename(imgPath)}`;
           const relativeUrl = this.getRelUrl(webUrl, filePath);
-          await execScript(ArgumentsHelper.parse(`spo file get --webUrl "${webUrl}" --url "${relativeUrl}"`));
+          const fileData = await execScript(ArgumentsHelper.parse(`spo file get --webUrl "${webUrl}" --url "${relativeUrl}"`), false);
+          Logger.debug(`File data retrieved: ${JSON.stringify(fileData)}`);
         } catch (e) {
           await this.upload(webUrl, crntFolder, imgPath);
         }
       }
     
-      this.checkedFiles.push(imgPath);
+      this.checkedFiles.push(cacheKey);
     }
+
+    return (`${webUrl}/${crntFolder}/${path.basename(imgPath)}`).replace(/ /g, "%20");
   }
 
   /**
@@ -88,12 +96,34 @@ export class FileHelpers {
   }
 
   /**
+   * Retrieve all pages
+   * @param webUrl 
+   * @param crntFolder 
+   */
+  public static async getAllPages(webUrl: string, crntFolder: string): Promise<File[]> {
+    if (this.allPages && this.allPages.length > 0) {
+      return this.allPages;
+    }
+
+    const pageList = await ListHelpers.getSitePagesList(webUrl);
+
+    let filesData: File[] | string =  await execScript<string>(ArgumentsHelper.parse(`spo listitem list --webUrl "${webUrl}" --title "${pageList.Title}" --fields "ID,Title,FileRef" -o json`));
+    if (filesData && typeof filesData === "string") {
+      filesData = JSON.parse(filesData);
+    }
+
+    this.allPages = filesData as File[];
+    return this.allPages;
+  }
+
+  /**
    * Upload the file
    * @param webUrl 
    * @param crntFolder 
    * @param imgPath 
    */
   private static async upload(webUrl: string, crntFolder: string, imgPath: string) {
-    await execScript(ArgumentsHelper.parse(`spo file add --webUrl "${webUrl}" --folder "${crntFolder}" --path "${imgPath}"`));
+    Logger.debug(`Uploading file "${imgPath}" to ${crntFolder}"`);
+    await execScript(ArgumentsHelper.parse(`spo file add --webUrl "${webUrl}" --folder "${crntFolder}" --path "${imgPath}"`), CliCommand.getRetry());
   }
 }

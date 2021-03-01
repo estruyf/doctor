@@ -1,13 +1,13 @@
 <h1 align="center">
-  <a href="hhttps://github.com/estruyf/doctor">
-    <img alt="Doctor" src="./assets/valo-doctor.svg" height="200">
+  <a href="https://github.com/estruyf/doctor">
+    <img alt="Doctor" src="./assets/doctor.svg" height="200">
   </a>
 </h1>
 
-<h2 align="center">The static site generator for SharePoint</h2>
+<h2 align="center">Maintain your documentation on SharePoint without pain</h2>
 
 <p align="center">
-  <img src="https://github.com/estruyf/doctor/workflows/Does%20it%20build%20and%20publish%3F/badge.svg?branch=dev"
+  <img src="https://github.com/estruyf/doctor/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/estruyf/doctor/actions/workflows/release.yml"
       alt="Does it build and publish?" />
 
   <a href="https://www.npmjs.com/package/@estruyf/doctor">
@@ -21,7 +21,7 @@
   </a>
 </p>
 
-`Doctor` is a tool created and provided by Valo. Initially, we started `doctor` as an internal tool to dogfood our products and keep documentation in one place. For our team, this is SharePoint.
+`Doctor` was originally created for having a uniformal way of providing the documentation internally at Valo Solutions. The main driver for `doctor` was to dogfood the Valo products and make it easier for users to maintain documentation on SharePoint.
 
 As we understand that it is not the best experience for developers to write documentation on SharePoint, we created this tool to simplify the process. `Doctor` allows developers to use tools/applications they are used to, like VSCode and Markdown, and still provide the information on your SharePoint environment.
 
@@ -30,6 +30,8 @@ As we understand that it is not the best experience for developers to write docu
 `Doctor` is a bit different, as instead of creating HTML files, it makes SharePoint pages instead. 
 
 Under the hood, it makes use of the [CLI for Microsoft 365](https://pnp.github.io/cli-microsoft365/).
+
+> Today `doctor` is maintained by `Elio Struyf`.
 
 ## Installation
 
@@ -179,7 +181,7 @@ metadata:
 title: Home
 slug: home.aspx
 layout: Article
-description: "The Valo Doctor documentation homepage"
+description: "The Doctor documentation homepage"
 
 metadata:
   Category: "Choice 1"
@@ -304,6 +306,67 @@ You can provide the same flags and values like in the parameters. Parameters can
 }
 ```
 
+#### Site look and feel
+
+If you want, you can define the site its look and feel. This needs to be done on global level in the `doctor.json` file.
+
+- **siteDesign**: `SiteDesign` - Allows you to set the theme and header/footer chrome
+  - **logo**: `string` - The path to your logo you want to use for the site. If the value is empty `""` it will be used to unset the site its logo.
+  - **theme**: `string` - The name of the theme to set
+  - **chrome**: `Chrome` - Settings for the header/footer chrome
+    - **headerLayout**: `string` - Specifies the header layout to set on the site. Options: `Standard|Compact|Minimal|Extended`.
+    - **headerEmphasis**: `string` - Specifies the header its background color to set. Options: `Lightest|Light|Dark|Darkest`.
+    - **logoAlignment**: `string` - When using the `Extended` header, you can set the logo its position. Otherwise this setting will be ignored. Options: `Left|Center|Right`.
+    - **footerLayout**: `string` - Specifies the footer layout to set on the site. Options: `Simple|Extended`.
+    - **footerEmphasis**: `string` - Specifies the footer its background color to set. Options: `Lightest|Light|Dark|Darkest`.
+    - **disableMegaMenu**: `boolean` - Specify to disable the mega menu. This results in using the cascading navigation (classic experience).
+    - **hideTitleInHeader**: `boolean` - Specify to hide the site title in the header.
+    - **disableFooter**: `boolean` - Specify to disable the footer on the site.
+
+Example:
+
+```json
+{
+  "siteDesign": {
+    "logo: "./assets/doctor.png",
+    "theme": "Red",
+    "chrome": {
+      "headerLayout": "Compact",
+      "headerEmphasis": "Darkest",
+      "disableMegaMenu": false,
+      "footerEnabled": true
+    }
+  }
+}
+```
+
+> **Info**: All properties you define in the `siteDesign` object are optional.
+
+#### Markdown publishing settings
+
+The `markdown` property allows you to define how you want to render the HTML in SharePoint. By default, `Doctor` lets the HTML being rendered by the Markdown web part. This property allows you to override these settings, and define to let `Doctor` take over for the HTML rendering.
+
+- **markdown**
+  - **allowHtml**: `boolean` - By default SharePoint renders the HTML. If you set this to `true`, it will allow Doctor to generate the HTML and allows you to make use of all HTML capabilities the tool has to offer. When you enable this, you can also make use of [shortcodes](#markdown-shortcodes) in markdown to make more HTML rich pages.
+  - **theme**: `string` - Specify the theme to use for the code blocks. You can use `Dark` or `Light`. Default is `Dark`.
+  - **shortcodesFolder**: `string` - Specifies where custom shortcodes can be retrieved. Check [shortcodes](#markdown-shortcodes) section to learn more about how shortcodes can be used. Default folder location `Doctor` expects is `./shortcodes`. If you want to change this, you can use the `shortcodesFolder` property and update it appropriate.
+
+Example:
+
+```json
+{
+  "markdown": {
+    "allowHtml": true,
+    "theme": "light",
+    "shortcodesFolder": "./shortcodes"
+  }
+}
+```
+
+> **Important**: When allowing `Doctor` to take over for rendering the HTML, be aware that the pages can best not be modified on SharePoint. Otherwise the web part will override the HTML completly.
+
+#### Global navigation structure
+
 You can also define a static navigation structure in the `doctor.json` file. Example:
 
 ```json
@@ -323,6 +386,30 @@ You can also define a static navigation structure in the `doctor.json` file. Exa
 The menu property can contain a `QuickLaunch` and/or `TopNavigationBar` elment with their corresponding static navigation links under the `items` property. More information about navigation items can be found in the [menu section](#Menu).
 
 > **Important**: If you specify arguments during command execution, they will be used instead of the values defined in the `doctor.json` file.
+
+### Markdown shortcodes
+
+Shortcodes are HTML snippets inside your content files calling built-in or custom templates. You can use these shortcodes like custom HTML elements. Similar like custom web components.
+
+Example:
+
+```html
+<icon name="Share" />
+```
+
+#### Custom shortcodes
+
+You can add custom shortcodes to your project by adding a JavaScript file to the `shortcodes` folder (If you want, you can change this location - [Markdown publishing settings](#markdown-publishing-settings)). The contents of the JavaScript file should contain the following:
+
+```javascript
+// Usage in Markdown: <shortcode-name name="name attribute">the content</shortcode-name>
+module.exports = {
+  name: "shortcode-name",
+  render: (attributes, html) => {
+    return `<div>Name: ${attributes.name} - HTML: ${html}</div>`
+  }
+};
+```
 
 ### Certificate authentication
 
@@ -351,6 +438,8 @@ If you want to use certificate authentication, you will need to follow the next 
 
 - Converted the certificate into the `PKCS` format using `openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem`
   - It will ask for a password. This is yours to pick. Be aware, if you specify a password, you will also need to pass it to the `doctor` command with the `--password <password>` argument.
+
+- Get the `base64` string from the `pfx` file. Execute: `cat cert.pfx | base64`
   - Use the `Base64` output as the input for the `--certificateBase64Encoded <certificateBase64Encoded>` argument.
 
 Once you did the previous steps, you are ready to make use of the `doctor` tool. You can run `doctor` with the certificate authentication as follows: `doctor publish --auth certificate --certificateBase64Encoded <certificateBase64Encoded> --appId <appId> --tenant <tenant> --url <url>`.

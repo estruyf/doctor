@@ -1,5 +1,4 @@
-import { Menu } from "./Menu";
-
+import { MarkdownSettings, Menu, SiteDesign } from ".";
 export interface CommandArguments {
   task: string;
   auth: "deviceCode" | "password" | "certificate";
@@ -15,6 +14,7 @@ export interface CommandArguments {
   cleanStart: boolean;
   confirm: boolean;
   continueOnError: boolean;
+  retryWhenFailed: boolean;
 
   menu?: Menu;
 
@@ -25,4 +25,7 @@ export interface CommandArguments {
   appId?: string;
   certificateBase64Encoded?: string;
   commandName?: string;
+  siteDesign?: SiteDesign;
+  markdown?: MarkdownSettings;
+  shortcodesFolder?: string;
 }

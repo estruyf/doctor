@@ -26,6 +26,7 @@ export class Logger {
           try {
             const toReplace = new RegExp(mask, "g");
             value = value.replace(toReplace, "*****");
+            value = value.replace(mask, "*****");
           } catch {
             value = value.replace(mask, "*****");
           }

@@ -1,0 +1,73 @@
+baseURL = "https://getdoctor.io"
+languageCode = "en-us"
+title = "Doctor"
+theme = "Dot"
+
+[authors]
+name = "Elio Struyf"
+
+[markup.goldmark.renderer]
+unsafe = true
+
+[params]
+description = "Maintain your documentation on SharePoint without pain"
+
+# github
+github_main = "https://github.com/estruyf/doctor"
+github_issue = "https://github.com/estruyf/doctor/issues"
+github_issue_submit = "https://github.com/estruyf/doctor/issues/new/choose"
+
+# Colors
+primary_color = "#24BAA4"
+body_color = "#f9f9f9"
+text_color = "#38322E"
+text_color_dark = "#38322E"
+white_color = "#ffffff"
+light_color = "#efefef"
+
+# font family
+font_family = "lato"
+
+# Social
+
+[[params.social]]
+icon = "ti-twitter-alt"
+link = "https://twitter.com/eliostruyf"
+  
+[[params.social]]
+icon = "ti-github"
+link = "https://github.com/estruyf/doctor"
+
+# banner
+[Languages.en.params.banner]
+title = "Doctor"
+bg_image = "images/doctor_no-text.svg"
+subtitle = "Maintain your documentation on SharePoint without pain"
+placeholder = "Search in the documentation"
+
+# Menu
+
+[[Languages.en.menu.main]]
+name = "Home"
+url = "/"
+weight = 1
+
+[[Languages.en.menu.main]]
+weight = 2
+name = "documentation"
+url = "/docs"
+
+[[Languages.en.menu.main]]
+weight = 3
+name = "changelog"
+url = "/changelog"
+
+[[Languages.en.menu.main]]
+weight = 4
+name = "license"
+url = "/license"
+
+[[Languages.en.menu.main]]
+name = "GitHub"
+url = "https://github.com/estruyf/doctor"
+weight = 5

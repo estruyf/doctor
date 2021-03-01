@@ -1,0 +1,136 @@
+[
+  {
+    "title": "template",
+    "updates": [
+      { "id": null, "title": "" }
+    ]
+  },
+  {
+    "title": "1.7.0",
+    "updates": [
+      { "id": 5, "title": "Documentation site created [getdoctor.io](https://getdoctor.io)." },
+      { "id": 6, "title": "Enhancement to allow Doctor to generate the HTML instead of the Markdown Web Part." },
+      { "id": 50, "title": "Fix for skipping pages." },
+      { "id": 51, "title": "Enhancement making skipping pages faster without the need to check each page." },
+      { "id": 52, "title": "Enhancements to make it possible to change the look and feel of the site." },
+      { "id": 54, "title": "Enhancements to set the code editor theme for Markdown." },
+      { "id": 55, "title": "Enhancements to minify the CSS provided to the Markdown web part." },
+      { "id": 56, "title": "Enhancements to set the site its logo." },
+      { "id": 57, "title": "Fix for only retrieving the page its metadata so that encoding of the page its content would not lead to issues." },
+      { "id": 62, "title": "Enhancement to specify to retry the command execution if it failed." }
+    ]
+  },
+  {
+    "title": "1.6.0",
+    "updates": [
+      { "id": 3, "title": "Added metadata support for pages." },
+      { "id": 34, "title": "Add support for certificate authentication (provided by [Gustavo Covas](https://github.com/gustavocovas))." },
+      { "id": 44, "title": "Enhancement: Be able to specify which version of CLI for Microsoft 365 you want to use." },
+      { "id": 47, "title": "Fix for issue with encoding `<` and `>` in the markdown." },
+      { "id": 48, "title": "Enhancement: Masking the password and certificate Base64 string in the console." },
+      { "id": 49, "title": "Enhancement: Debug configuration for `vscode` added to the project." }
+    ]
+  },
+  {
+    "title": "1.5.0",
+    "updates": [
+      { "id": 33, "title": "Page template support added." },
+      { "id": 36, "title": "Enhancement: Added `--skipExistingPages` support." },
+      { "id": 37, "title": "Fix issue with encoding special characters." },
+      { "id": 38, "title": "Enhancement: Added `--continueOnError` support." },
+      { "id": 39, "title": "Fix for navigation command execution." },
+      { "id": 40, "title": "Fix issue with multiple images on pages." },
+      { "id": 41, "title": "Fix issue with 2nd level navigation items." }
+    ]
+  },
+  {
+    "title": "1.4.0",
+    "updates": [
+      { "id": 17, "title": "Enhancement: Add support for page description." },
+      { "id": 18, "title": "Enhancement: Support for setting header image of the page." },
+      { "id": 20, "title": "Enhancement: Add support for title area layout." },
+      { "id": 25, "title": "Make `draft` optional." },
+      { "id": 26, "title": "Include folder name for slug when not set in front matter." },
+      { "id": 27, "title": "Add support in Front Matter to enable or disable page comments. By default they are disabled." },
+      { "id": 32, "title": "Added MIT license to the project." }
+    ]
+  },
+  {
+    "title": "1.3.1",
+    "updates": [
+      { "id": 28, "title": "Fix for `cleanStart` when comfirm flag is not provided. Thanks to [Mark Heptinstall](https://github.com/mheptinstall)." }
+    ]
+  },
+  {
+    "title": "1.3.0",
+    "updates": [
+      { "id": 7, "title": "Added parameter to clean up all pages and assets before publishing." },
+      { "id": 19, "title": "Added support for specifying the `layoutType` from within the front matter." },
+      { "id": 21, "title": "Implemented easier command execution from within the tool." },
+      { "id": 22, "title": "Enhanced the test actions with screenshots." },
+      { "id": 23, "title": "Added process exit codes to make sure it correctly outputs a success or failure status." }
+    ]
+  },
+  {
+    "title": "[1.2.1] 2020-12-18",
+    "updates": [
+      { "id": 16, "title": "Fix for specified webPartData is not a valid JSON string." }
+    ]
+  },
+  {
+    "title": "[1.2.0] 2020-12-18",
+    "updates": [
+      {
+        "id": 9,
+        "title": "Removed the `jq` dependency with a fallback to JSON parsing in the tool itself."
+      },
+      {
+        "id": 11,
+        "title": "Unknown arguments do not blow up the command execution + `--help` added to the main command."
+      },
+      {
+        "id": 12,
+        "title": "Added cross-platform support."
+      },
+      {
+        "id": 14,
+        "title": "Cross-platform builds and publishing setup on GitHub Actions."
+      },
+      {
+        "id": null,
+        "title": "Updated the CLI for Microsoft 365 to 3.4.0 as this has huge performance improvements"
+      }
+    ]
+  },
+  {
+    "title": "[1.1.0] 2020-12-16",
+    "updates": [
+      {
+        "id": 2,
+        "title": "Added support for linking pages in Markdown."
+      },
+      {
+        "id": null,
+        "title": "Added `outputFolder` argument which when provided, will ouput the processed Markdown files with updated image and page links."
+      }
+    ]
+  },
+  {
+    "title": "[1.0.1] 2020-12-15",
+    "updates": [
+      {
+        "id": 1,
+        "title": "Fix for when `m365` tool is not globally available"
+      }
+    ]
+  },
+  {
+    "title": "[1.0.0] 2020-12-15",
+    "updates": [
+      {
+        "id": null,
+        "title": "Initial release"
+      }
+    ]
+  }
+]

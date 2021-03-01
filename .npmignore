@@ -1,7 +1,21 @@
-node_modules
-src
-.gitignore
+# Folders
 .github
 .vscode
+.husky
+
+assets
+cypress
+docs
+node_modules
+schema
 scripts
+src
+
+#Files
+.gitignore
+.gitmodules
+
+changelog.json
+cypress.json
+cypress.sample.json
 tsconfig.json

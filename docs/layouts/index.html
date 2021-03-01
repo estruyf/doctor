@@ -1,0 +1,47 @@
+{{ define "main" }}
+
+  <section class="section">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-12 text-center">
+          <img src="/images/doctor_no-text.svg" alt="Doctor logo" height="250px" class="mb-4" />
+        </div>
+        
+        <div class="col-12">
+          {{ .Content }}
+        </div>
+      </div>
+
+      <div class="row justify-content-center">
+        <div class="col-12 text-center">
+          <h2 class="section-title">{{ i18n "topics_title" | safeHTML }}</h2>
+        </div>
+        {{ "<!-- topic-item -->" | safeHTML }}
+        {{ range (where .Site.Pages "Type" "docs-main") }}
+        <div class="col-lg-4 col-sm-6 mb-4">
+          <a href="{{ .Permalink }}" class="px-4 py-5 bg-white shadow text-center d-block match-height">
+            {{ with .Params.icon}}<i class="{{.}} icon text-primary d-block mb-4"></i>{{end}}
+            <h3 class="mb-3 mt-0">{{ .Title }}</h3>
+            {{with .Params.description}}<p class="mb-0">{{. | markdownify}}</p>{{end}}
+          </a>
+        </div>
+        {{ end }}
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <div class="row">
+        <div class="col-12">
+          <div class="section px-3 bg-white shadow text-center">
+            <h2 class="mb-4">Found an issue or have feedback?</h2>
+            <p class="mb-4">If you want to submit an issue or provide feedback about the project. Feel free to do so by starting a new discussion or issue in the Doctor repository.</p>
+            <a href="{{ .Site.Params.github_issue_submit }}" class="btn btn-primary">Submit an issue or provide feedback</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+{{ end }}
