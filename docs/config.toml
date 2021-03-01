@@ -3,6 +3,9 @@ languageCode = "en-us"
 title = "Doctor"
 theme = "Dot"
 
+[authors]
+name = "Elio Struyf"
+
 [markup.goldmark.renderer]
 unsafe = true
 
