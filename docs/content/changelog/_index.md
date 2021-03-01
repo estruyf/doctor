@@ -6,8 +6,6 @@ description: The changelog of Doctor
 type: docs-main
 ---
 
-# Changelog
-
 ## [1.7.0]
 
 
