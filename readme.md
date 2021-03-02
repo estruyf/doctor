@@ -35,6 +35,12 @@ Under the hood, it makes use of the [CLI for Microsoft 365](https://pnp.github.i
 
 > Today `doctor` is maintained by `Elio Struyf`.
 
+## Documentation
+
+More information about how you can use `doctor` can be found in our documentation: [getdoctor.io](https://getdoctor.io).
+
+> The beta docs can be found on [beta.getdoctor.io](https://beta.getdoctor.io).
+
 ## Installation
 
 Thank you for your interest in the `doctor`. The following information will help you install `doctor`.
@@ -52,10 +58,6 @@ yarn global add @estruyf/doctor
 ```
 
 To quickly get started, we provided a [sample repository](https://github.com/estruyf/doctor-sample) which allows you to test out all the functionalities of `Doctor`.
-
-## Usage
-
-More information about how you can use `doctor` can be found in our documentation: [getdoctor.io](https://getdoctor.io).
 
 ## Todo
 
