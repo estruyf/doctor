@@ -41,6 +41,16 @@
         {{ end }}
         {{ end }}
 
+        {{ $branch := getenv "HUGO_GIT_COMMIT_REF" }}
+        {{ if ne $branch "main" }}
+          <li class="nav-item">
+            <a class="nav-link text-dark" href="{{ .Site.Params.github_dev }}" target="_blank" rel="noopener noreferrer">GitHub</a>
+          </li>
+        {{ else }}
+          <li class="nav-item">
+            <a class="nav-link text-dark" href="{{ .Site.Params.github_main }}" target="_blank" rel="noopener noreferrer">GitHub</a>
+          </li>
+        {{ end }}        
 
         <li class="nav-item github">
           <a class="github-button" href="https://github.com/estruyf/doctor" data-icon="octicon-star" data-size="small" data-show-count="true" aria-label="Star estruyf/doctor on GitHub">Star</a>

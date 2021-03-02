@@ -14,6 +14,7 @@ description = "Maintain your documentation on SharePoint without pain"
 
 # github
 github_main = "https://github.com/estruyf/doctor"
+github_dev = "https://github.com/estruyf/doctor/tree/dev"
 github_issue = "https://github.com/estruyf/doctor/issues"
 github_issue_submit = "https://github.com/estruyf/doctor/issues/new/choose"
 
@@ -66,8 +67,3 @@ url = "/changelog"
 weight = 4
 name = "license"
 url = "/license"
-
-[[Languages.en.menu.main]]
-name = "GitHub"
-url = "https://github.com/estruyf/doctor"
-weight = 5
