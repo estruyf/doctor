@@ -6,6 +6,24 @@
         <div class="col-12 text-center">
           <img src="/images/doctor_no-text.svg" alt="Doctor logo" height="250px" class="mb-4" />
         </div>
+
+        {{ $branch := getenv "HUGO_GIT_COMMIT_REF" }}
+        {{ if ne $branch "main" }}
+          <div class="col-12 mb-4">
+            {{ $upcomingVersion := .Site.Data.upcomingVersion }}
+
+            <h2 class="text-center mb-4">Upcoming version: v{{ $upcomingVersion.title }}</h2>
+            <h3 class="text-center mb-4">Implemented changes available for testing</h3>
+            <ul class="list-group list-group-flush">
+              {{ range $upcomingVersion.updates }}
+              <li class="list-group-item" style="background-color: transparent">
+                {{ if .id }}<a href="{{$.Site.Params.github_issue}}/{{.id}}">#{{.id}}</a>:{{ end }}
+                {{ if .title }}{{.title}}{{ end }}
+              </li>
+              {{ end }}
+            </ul>
+          </div>
+        {{ end }}
         
         <div class="col-12">
           {{ .Content }}

@@ -59,7 +59,7 @@ export class Commands {
    * @param options 
    */
   private static track(options: CommandArguments): void {
-    if (!!options.disableTracking) {
+    if (!options.disableTracking) {
       appInsights.trackEvent({
         name: options.task,
         properties: {

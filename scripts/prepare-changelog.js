@@ -40,4 +40,7 @@ type: docs-main
 ${markdown.join('\n')}`;
     fs.writeFileSync(path.join(__dirname, "../docs/content/changelog/_index.md"), changelogDocs, { encoding: "utf-8" });
   }
+
+  // Prepare the beta data
+  fs.writeFileSync(path.join(__dirname, "../docs/data/upcomingVersion.json"), JSON.stringify(changelog[1]), { encoding: "utf-8" });
 }
