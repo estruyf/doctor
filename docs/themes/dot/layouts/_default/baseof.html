@@ -3,6 +3,12 @@
   {{ partial "head.html" . }}
   
   <body>
+    {{ $branch := getenv "HUGO_GIT_COMMIT_REF" }}
+    {{ if ne $branch "main" }}
+      <div class="banner-beta py-2">
+        You are currently checking the beta version of the documentation.
+      </div>
+    {{ end }}
     {{ if .IsHome }}
     {{ "<!-- header -->" | safeHTML }}
     <header class="banner {{if .Site.Params.banner.bg_image}}overlay bg-cover{{else}}bg-primary{{end}}" data-background="{{ .Site.Params.banner.bg_image | absURL }}">

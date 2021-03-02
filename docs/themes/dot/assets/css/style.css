@@ -385,6 +385,13 @@ pre {
   background: var(--white-color);
 }
 
+.banner-beta {
+  background-color: #e83e8c;
+  color: #fff;
+  font-weight: bold;
+  text-align: center;
+}
+
 .banner {
   overflow: hidden;
 }
