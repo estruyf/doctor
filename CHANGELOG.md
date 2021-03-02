@@ -1,5 +1,10 @@
 # Changelog
     
+## [1.8.0]
+
+
+- [#63](https://github.com/estruyf/doctor/issues/63): [Enhancement]: Get to know how doctor is used
+
 ## [1.7.0]
 
 
