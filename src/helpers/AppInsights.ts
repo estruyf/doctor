@@ -12,7 +12,7 @@ config.setInternalLogging(false, false);
 // append -dev to the version number when ran locally
 // to distinguish production and dev version of the CLI
 // in the telemetry
-const version: string = `${packageJSON.version}${fs.existsSync(path.join(__dirname, `..${path.sep}src`)) ? '-dev' : ''}`;
+const version: string = `${packageJSON.version}${fs.existsSync(path.join(__dirname, `..${path.sep}..${path.sep}src`)) ? '-dev' : ''}`;
 appInsights.defaultClient.commonProperties = {
   version: version,
   node: process.version

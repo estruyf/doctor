@@ -71,7 +71,7 @@ export class Commands {
           markdown: !!options.markdown,
           markdown_allowHtml: options.markdown ? !!options.markdown.allowHtml : false,
           markdown_theme: options.markdown ? !!options.markdown.theme : false,
-          siteDesign: options.siteDesign,
+          siteDesign: !!options.siteDesign,
           siteDesign_chrome: options.siteDesign ? !!options.siteDesign.chrome : false,
           siteDesign_logo: options.siteDesign ? !!options.siteDesign.logo : false,
           siteDesign_theme: options.siteDesign ? !!options.siteDesign.theme : false,
