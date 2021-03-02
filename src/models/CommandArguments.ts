@@ -15,6 +15,7 @@ export interface CommandArguments {
   confirm: boolean;
   continueOnError: boolean;
   retryWhenFailed: boolean;
+  disableTracking: boolean;
 
   menu?: Menu;
 

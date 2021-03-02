@@ -50,6 +50,7 @@ export class OptionsHelper {
         '--skipExisting': Boolean,
         '--continueOnError': Boolean,
         '--retryWhenFailed': Boolean,
+        '--disableTracking': Boolean,
         '-a': '--auth',
         '-f': '--folder',
         '-u': '--url'
@@ -79,6 +80,7 @@ export class OptionsHelper {
       skipExistingPages: args["--skipExistingPages"] as any || options["skipExistingPages"] || false,
       continueOnError: args["--continueOnError"] as any || options["continueOnError"] || false,
       retryWhenFailed: args["--retryWhenFailed"] as any || options["retryWhenFailed"] || false,
+      disableTracking: options["--disableTracking"] || false,
       menu: options["menu"] || null,
       debug: (process.env.DEBUG && process.env.DEBUG === "true") || args["--debug"] || false,
       cleanStart: args["--cleanStart"] || false,
