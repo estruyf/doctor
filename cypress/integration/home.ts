@@ -1,5 +1,5 @@
 /// <reference types="cypress" />
-/// <reference types="../../support" />
+/// <reference types="../support" />
 
 describe('General tests for homepage', function() {
   const PAGE_URL = "sitepages/home.aspx";

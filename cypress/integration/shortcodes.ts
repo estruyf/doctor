@@ -1,5 +1,5 @@
 /// <reference types="cypress" />
-/// <reference types="../../support" />
+/// <reference types="../support" />
 
 describe('Doctor shortcodes', function() {
   const PAGE_URL = "sitepages/tests/shortcodes.aspx";
@@ -31,7 +31,7 @@ describe('Doctor shortcodes', function() {
       .should('have.css', 'background-color', 'rgb(225, 223, 221)');
   });
 
-  it('3. Check if callout tip exists', () => {
+  it('4. Check if callout tip exists', () => {
     cy.get(`.callout-tip`)
       .should('exist')
       .should("have.length", 2)
@@ -43,28 +43,28 @@ describe('Doctor shortcodes', function() {
       .should('contain.text', 'OVERRIDE THE TITLE');
   });
 
-  it('4. Check if callout info exists', () => {
+  it('5. Check if callout info exists', () => {
     cy.get(`.callout-info`)
       .should('exist')
       .should("have.length", 1)
       .should('have.css', 'background-color', 'rgb(0, 183, 195)');
   });
 
-  it('5. Check if callout caution exists', () => {
+  it('6. Check if callout caution exists', () => {
     cy.get(`.callout-caution`)
       .should('exist')
       .should("have.length", 1)
       .should('have.css', 'background-color', 'rgb(255, 170, 68)');
   });
 
-  it('6. Check if callout danger exists', () => {
+  it('7. Check if callout danger exists', () => {
     cy.get(`.callout-danger`)
       .should('exist')
       .should("have.length", 1)
       .should('have.css', 'background-color', 'rgb(209, 52, 56)');
   });
 
-  it('7. check if custom shortcode is created correctly', () => {
+  it('8. check if custom shortcode is created correctly', () => {
     cy.get(`.custom-shortcode`)
       .should('exist')
       .should("have.length", 1)

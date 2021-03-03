@@ -1,5 +1,5 @@
 /// <reference types="cypress" />
-/// <reference types="../../support" />
+/// <reference types="../support" />
 
 describe('Page template usage validation', function() {
   const PAGE_URL = "sitepages/doctor/options.aspx";

@@ -1,5 +1,5 @@
 /// <reference types="cypress" />
-/// <reference types="../../support" />
+/// <reference types="../support" />
 
 describe('Special character tests', function() {
   const PAGE_URL = "sitepages/tests/characters.aspx";
