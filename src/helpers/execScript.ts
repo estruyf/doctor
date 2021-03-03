@@ -17,7 +17,10 @@ export const execScript = async <T>(args: string[] = [], shouldRetry: boolean = 
     if (shouldRetry) {
       Logger.debug(`Doctor will retry to execute the command again.`);
       try {
-        return await promiseExecScript(args, shouldSpawn, toMask);
+        // Waiting 5 seconds in order to make sure that the call did not happen too fast after the previous failure
+        setTimeout(async () => {
+          return await promiseExecScript(args, shouldSpawn, toMask);
+        }, 5000);
       } catch (err) {
         return Promise.reject(err);
       }
