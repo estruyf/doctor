@@ -1,11 +1,14 @@
+import { CommandArguments } from "src/models";
 
 export class CliCommand {
   private static cmdName: string = "localm365";
   private static retry: boolean = false;
+  private static disableTracking: boolean = false;
   
-  public static init(cmdName: string = "localm365", retry: boolean = false) {
-    CliCommand.cmdName = cmdName;
-    CliCommand.retry = retry;
+  public static init(options: CommandArguments) {
+    CliCommand.cmdName = options.commandName || `localm365`;
+    CliCommand.retry = options.retryWhenFailed || false;
+    CliCommand.disableTracking = options.disableTracking || false;
   }
 
   public static getName() {
@@ -14,5 +17,9 @@ export class CliCommand {
 
   public static getRetry() {
     return CliCommand.retry;
+  }
+
+  public static getDisableTracking() {
+    return CliCommand.disableTracking;
   }
 }

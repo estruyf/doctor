@@ -1,3 +1,4 @@
+import { TelemetryHelper } from './TelemetryHelper';
 import * as fs from 'fs';
 import * as fg from 'fast-glob';
 import * as path from 'path';
@@ -33,6 +34,8 @@ export class ShortcodesHelpers {
         }
       }
     }
+
+    TelemetryHelper.trackCustomShortcodes(files.length);
   }
 
   /**
@@ -52,6 +55,7 @@ export class ShortcodesHelpers {
     }
 
     Logger.debug(`Doctor uses ${tags.length} shortcodes for HTML parsing.`);
+    TelemetryHelper.trackShortcodeUsage(tags.length);
 
     const $ = cheerio.load(htmlMarkup, { xmlMode: true });
 
