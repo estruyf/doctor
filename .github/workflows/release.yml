@@ -61,8 +61,14 @@ jobs:
         if [[ ${GITHUB_REF} == "refs/heads/main" ]]; then
           startClean="--cleanStart --confirm"
         fi
+        
+        skipPages=""
+        # Check on which branch it is running
+        if [[ ${GITHUB_EVENT_NAME} == "schedule" ]]; then
+          skipPages="--skipExistingPages"
+        fi
 
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}" --retryWhenFailed $startClean
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}" --retryWhenFailed $startClean $skipPages
       env:
         DEBUG: ${{ secrets.DEBUG }}
 
@@ -112,8 +118,14 @@ jobs:
         If (${env:GITHUB_REF} -eq 'refs/heads/main') {
           $startClean = "--cleanStart --confirm"
         }
+        
+        $skipPages=""
+        # Check on which branch it is running
+        If (${env:GITHUB_EVENT_NAME} -eq 'schedule') {
+          $skipPages="--skipExistingPages"
+        }
 
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}" --retryWhenFailed $startClean
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}" --retryWhenFailed $startClean $skipPages
       shell: powershell
       env:
         DEBUG: ${{ secrets.DEBUG }}
@@ -162,7 +174,9 @@ jobs:
 
         IF "%GITHUB_REF%"=="refs/heads/main" (SET startClean="--cleanStart --confirm")
 
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS }}" --retryWhenFailed %startClean%
+        IF "%GITHUB_EVENT_NAME%"=="schedule" (SET skipPages="--skipExistingPages")
+
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS }}" --retryWhenFailed %startClean% %skipPages%
       shell: cmd
       env:
         DEBUG: ${{ secrets.DEBUG }}
