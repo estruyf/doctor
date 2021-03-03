@@ -9,6 +9,7 @@ type: docs-main
 ## [1.8.0]
 
 
+- [#45](https://github.com/estruyf/doctor/issues/45): [Enhancement]: Table of contents shortcode added
 - [#63](https://github.com/estruyf/doctor/issues/63): [Enhancement]: Get to know how doctor is used
 - [#65](https://github.com/estruyf/doctor/issues/65): [Enhancement]: Add a delay in the retry mechanism
 
