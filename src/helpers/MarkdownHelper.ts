@@ -23,7 +23,9 @@ export class MarkdownHelper {
       }
 
       return `<pre class="hljs"><code>${hljs.highlightAuto(str).value}</code></pre>`;
-    }});
+    }})
+    .use(require("markdown-it-anchor"), { permalink: true, permalinkClass: `toc-anchor` })
+    .use(require("markdown-it-table-of-contents"), { includeLevel: [1,2,3,4] });
 
     const allowHtml = mdOptions && mdOptions.allowHtml;
     const theme = mdOptions && mdOptions.theme ? mdOptions.theme.toLowerCase() : "dark";
@@ -49,9 +51,9 @@ export class MarkdownHelper {
 
     if (allowHtml) {
       const cleanCss = new CleanCSS({});
-      let htmlMarkup = converter.render(markdown);
-      htmlMarkup = await ShortcodesHelpers.parse(htmlMarkup);
-      htmlMarkup = `${htmlMarkup}<style>${cleanCss.minify(this.getEditorStyles(theme === "light")).styles} ${cleanCss.minify(this.getCalloutStyles()).styles}</style>`;
+      let htmlMarkup = await ShortcodesHelpers.parse(markdown);
+      htmlMarkup = converter.render(htmlMarkup);
+      htmlMarkup = `${htmlMarkup}<style>${cleanCss.minify(this.getEditorStyles(theme === "light")).styles} ${cleanCss.minify(this.getShortcodeStyles()).styles}</style>`;
 
       if (htmlMarkup) {
         wpData.serverProcessedContent["htmlStrings"] = {
@@ -233,7 +235,7 @@ export class MarkdownHelper {
     }`;
   }
 
-  private static getCalloutStyles() {
+  private static getShortcodeStyles() {
     return `
       .callout {
         padding: 1rem;
@@ -261,6 +263,24 @@ export class MarkdownHelper {
       .callout-info { background-color: #00b7c3; color: #000; }
       .callout-caution { background-color: #ffaa44; color: #000; }
       .callout-danger { background-color: #d13438; color: #000; }
+    
+      a.toc-anchor {
+        display: none;
+        text-decoration: none;
+      }
+
+      a.toc-anchor:hover {
+        text-decoration: none;
+      }
+
+      h1:hover a.toc-anchor,
+      h2:hover a.toc-anchor,
+      h3:hover a.toc-anchor,
+      h4:hover a.toc-anchor,
+      h5:hover a.toc-anchor,
+      h6:hover a.toc-anchor {
+        display: inline;
+      }
     `;
   }
 }

@@ -1,16 +1,17 @@
-import { TelemetryHelper } from './TelemetryHelper';
 import * as fs from 'fs';
 import * as fg from 'fast-glob';
 import * as path from 'path';
 import * as cheerio from 'cheerio';
-import { IconRenderer, CalloutRenderer } from '../shortcodes';
+import { IconRenderer, CalloutRenderer, TableOfContentsRenderer } from '../shortcodes';
 import { Shortcode } from '../models';
 import { Logger } from './logger';
+import { TelemetryHelper } from './TelemetryHelper';
 
 export class ShortcodesHelpers {
   private static shortcodes: Shortcode = {
     icon: IconRenderer,
-    callout: CalloutRenderer
+    callout: CalloutRenderer,
+    toc: TableOfContentsRenderer
   };
 
   /**
