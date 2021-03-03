@@ -51,8 +51,9 @@ export class MarkdownHelper {
 
     if (allowHtml) {
       const cleanCss = new CleanCSS({});
-      let htmlMarkup = await ShortcodesHelpers.parse(markdown);
+      let htmlMarkup = await ShortcodesHelpers.parseBefore(markdown);
       htmlMarkup = converter.render(htmlMarkup);
+      htmlMarkup = await ShortcodesHelpers.parseAfter(htmlMarkup);
       htmlMarkup = `${htmlMarkup}<style>${cleanCss.minify(this.getEditorStyles(theme === "light")).styles} ${cleanCss.minify(this.getShortcodeStyles()).styles}</style>`;
 
       if (htmlMarkup) {

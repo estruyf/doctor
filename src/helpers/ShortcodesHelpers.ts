@@ -31,7 +31,7 @@ export class ShortcodesHelpers {
       for (const file of files) {
         const sc = await require(path.join(process.cwd(), file));
         if (sc && sc.name && sc.render) {
-          ShortcodesHelpers.shortcodes[sc.name] = { render: sc.render };
+          ShortcodesHelpers.shortcodes[sc.name] = { render: sc.render, beforeMarkdown: !!sc.beforeMarkdown };
         }
       }
     }
@@ -40,13 +40,29 @@ export class ShortcodesHelpers {
   }
 
   /**
-   * Parse the HTML with known shortcodes
+   * Parse shortcodes before markdown was processed
    * @param htmlMarkup 
    */
-  public static async parse(htmlMarkup: string): Promise<string> {
+  public static async parseBefore(markdown: string): Promise<string> {
+    return this.parse(markdown, true);
+  }
+
+  /**
+   * Parse shortcodes after markdown was processed
+   * @param htmlMarkup 
+   */
+  public static async parseAfter(htmlMarkup: string): Promise<string> {
+    return this.parse(htmlMarkup, false);
+  }
+
+  /**
+   * Parse the markdown or HTML with the shortcodes
+   * @param htmlMarkup 
+   */
+  private static async parse(htmlMarkup: string, beforeMarkdown: boolean): Promise<string> {
     if (!ShortcodesHelpers.shortcodes) return htmlMarkup;
 
-    const tags = Object.getOwnPropertyNames(ShortcodesHelpers.get());
+    let tags = Object.getOwnPropertyNames(ShortcodesHelpers.get());
     if (!tags || tags.length < 1) return htmlMarkup;
 
     for (const tag of tags) {
@@ -54,6 +70,8 @@ export class ShortcodesHelpers {
         throw new Error(`Missing render function for shortcode tag: "${tag}"`);
       }
     }
+
+    tags = tags.filter(tag => ShortcodesHelpers.shortcodes[tag].beforeMarkdown === beforeMarkdown);
 
     Logger.debug(`Doctor uses ${tags.length} shortcodes for HTML parsing.`);
     TelemetryHelper.trackShortcodeUsage(tags.length);

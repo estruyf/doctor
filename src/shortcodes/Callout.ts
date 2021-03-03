@@ -1,3 +1,4 @@
+import { ShortcodeRender } from "src/models";
 
 const getIcon = (type: string) => {
   switch (type.toLowerCase()) {
@@ -14,7 +15,7 @@ const getIcon = (type: string) => {
   }
 };
 
-export const CalloutRenderer = {
+export const CalloutRenderer: ShortcodeRender = {
   render: function (attrs: any, markup: string) {
 
     const title = attrs.title || "";
@@ -54,5 +55,6 @@ export const CalloutRenderer = {
           <p>${markup}</p>
         </div>
       </div>`
-  }
+  },
+  beforeMarkdown: false
 };

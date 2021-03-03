@@ -29,6 +29,10 @@ module.exports = {
   name: "shortcode-name",
   render: (attributes, html) => {
     return `<div>Name: ${attributes.name} - HTML: ${html}</div>`
-  }
+  },
+  beforeMarkdown: false
 };
 ```
+
+`beforeMarkdown`
+: This is an optional property introduced to specify if you want to parse the shortcode before or after the Markdown gets processed. In case you include your own Markdown code with your shortcode, you can set this property to `true`. Otherwise you keep ot set to `false` or do not include it.

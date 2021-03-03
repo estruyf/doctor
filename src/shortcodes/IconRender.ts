@@ -1,8 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { ShortcodeRender } from 'src/models';
 import { Logger } from "../helpers";
 
-export const IconRenderer = {
+export const IconRenderer: ShortcodeRender = {
   render: async function (attrs: { name: string }, markup: string): Promise<string> {
 
     if (!attrs || !attrs.name) {
@@ -30,5 +31,6 @@ export const IconRenderer = {
     }
 
     return "";
-  }
+  },
+  beforeMarkdown: false
 };

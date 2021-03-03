@@ -1,6 +1,8 @@
+import { ShortcodeRender } from "src/models";
 
-export const TableOfContentsRenderer = {
+export const TableOfContentsRenderer: ShortcodeRender = {
   render: () => {
     return `[[toc]]`;
-  }
+  },
+  beforeMarkdown: true
 }
