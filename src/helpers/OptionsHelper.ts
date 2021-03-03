@@ -51,6 +51,9 @@ export class OptionsHelper {
         '--continueOnError': Boolean,
         '--retryWhenFailed': Boolean,
         '--disableTracking': Boolean,
+        '--skipPages': Boolean,
+        '--skipNavigation': Boolean,
+        '--skipSiteDesign': Boolean,
         '-a': '--auth',
         '-f': '--folder',
         '-u': '--url'
@@ -80,7 +83,7 @@ export class OptionsHelper {
       skipExistingPages: args["--skipExistingPages"] as any || options["skipExistingPages"] || false,
       continueOnError: args["--continueOnError"] as any || options["continueOnError"] || false,
       retryWhenFailed: args["--retryWhenFailed"] as any || options["retryWhenFailed"] || false,
-      disableTracking: options["--disableTracking"] || false,
+      disableTracking: args["--disableTracking"] || false,
       menu: options["menu"] || null,
       debug: (process.env.DEBUG && process.env.DEBUG === "true") || args["--debug"] || false,
       cleanStart: args["--cleanStart"] || false,
@@ -88,7 +91,10 @@ export class OptionsHelper {
       outputFolder: args["--outputFolder"] || "",
       siteDesign: options["siteDesign"] || null,
       markdown: options["markdown"] || null,
-      shortcodesFolder: options["markdown"] && options["markdown"]["shortcodesFolder"] ? options["markdown"]["shortcodesFolder"] : "./shortcodes"
+      shortcodesFolder: options["markdown"] && options["markdown"]["shortcodesFolder"] ? options["markdown"]["shortcodesFolder"] : "./shortcodes",
+      skipPages: args["--skipPages"] || false,
+      skipNavigation: args["--skipNavigation"] || false,
+      skipSiteDesign: args["--skipSiteDesign"] || false
     };
   }
 

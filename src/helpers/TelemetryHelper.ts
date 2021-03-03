@@ -25,7 +25,10 @@ export class TelemetryHelper {
           siteDesign_chrome: options.siteDesign ? !!options.siteDesign.chrome : false,
           siteDesign_logo: options.siteDesign ? !!options.siteDesign.logo : false,
           siteDesign_theme: options.siteDesign ? !!options.siteDesign.theme : false,
-          skipExistingPages: options.skipExistingPages
+          skipExistingPages: !!options.skipExistingPages,
+          skipPages: !!options.skipPages,
+          skipNavigation: !!options.skipNavigation,
+          skipSiteDesign: !!options.skipSiteDesign
         }
       });
       appInsights.flush();

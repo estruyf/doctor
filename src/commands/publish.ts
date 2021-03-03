@@ -52,20 +52,23 @@ export class Publish {
       },
       {
         title: `Fetch all markdown files`,
-        task: async (ctx: any) => await this.fetchMDFiles(ctx, startFolder)
+        task: async (ctx: any) => await this.fetchMDFiles(ctx, startFolder),
+        enabled: () => !options.skipPages
       },
       {
         title: `Process markdown files`,
-        task: async (ctx: any) => await this.processMDFiles(ctx, options, ouput)
+        task: async (ctx: any) => await this.processMDFiles(ctx, options, ouput),
+        enabled: () => !options.skipPages
       },
       {
         title: `Updating navigation`,
-        task: async () => await NavigationHelper.update(webUrl, ouput.navigation)
+        task: async () => await NavigationHelper.update(webUrl, ouput.navigation),
+        enabled: () => !options.skipNavigation
       },
       {
         title: `Change the look of the site`,
         task: async (ctx: any) => await SiteHelpers.changeLook(ctx, options),
-        enabled: () => !!options.siteDesign
+        enabled: () => !!options.siteDesign && !options.skipSiteDesign
       }
     ]).run().catch(err => {
       throw err;

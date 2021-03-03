@@ -10,11 +10,12 @@ keywords:
 
 Options are specified via command arguments, or within a `doctor.json` file (automatically gets created on initialization `doctor init`).
 
+## For all commands
+
 `-a, --auth <auth>`
 : Specify the authentication type to use. Values can be `deviceCode` (default) or `password` or `certificate`.
 
 > **Info**: Check out the [Certificate Authentication](../certificate-authentication) section for more information about using the `certificate` approach.
-
 
 `--username <username>`
 : When using `password` authentication, you need to pass the `username` and `password`.
@@ -23,18 +24,14 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 `--password <password>`
 : When using `password` authentication, you need to pass the `username` and `password`.
 
-
-`-f, --folder <folder>`
-: The folder location in where you will create your markdown files.
-
-
 `-u, --url <url>`
 : The URL of the site collection to use.
-
 
 `--library <library>`
 : Specified the library which you want to use in SharePoint to store your referenced images.
 
+`-f, --folder <folder>`
+: The folder location in where you will create your markdown files.
 
 `--webPartTitle <webPartTitle>`
 : This defined the title of the markdown web part to be created/updated on the page. Default value is: `doctor-placeholder`.
@@ -47,6 +44,13 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 `--debug`
 : Provides more information of what is happening during command execution.
 
+`--continueOnError`
+: Continue when an error occurs during the publishing process.
+
+`--disableTracking`
+: In order to make `doctor` better, we need to know how it is used. That is why we started to track which commands and related parameters are used. We are not tracking the values of these parameters, only if they are used or not. Still if you want to opt-out, you can do this by specifying the disable tracking flag.
+## Publish command specific options
+
 `--outputFolder <outputFolder>`
 : When providing this option, the processed markdown files will be generated in this folder.
 
@@ -56,21 +60,23 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 `--confirm`
 : Don't prompt for confirming removing the files when you specified to clean up pages and assets before publishing.
 
-`--skipExistingPages`
-: Will not overwrite pages if they already existed on the site.
-
-`--continueOnError`
-: Continue when an error occurs during the publishing process.
-
 `--commandName <commandName>`
 : In case you want to use the locally installed `CLI for Microsoft 365`, you can use this flag. By default, it uses the version specified in the `doctor` tool. You can use the a locally installed version as follows: `--commandName m365`.
+
+`--skipExistingPages`
+: Will not overwrite pages if they already existed on the site.
 
 `--retryWhenFailed`
 : Specifying this flag will retry the command if it failed. In some cases it can be that SharePoint failes to process your request, and this allows you to try again without running the whole flow from scratch.
 
-`--disableTracking`
-: In order to make `doctor` better, we need to know how it is used. That is why we started to track which commands and related parameters are used. We are not tracking the values of these parameters, only if they are used or not. Still if you want to opt-out, you can do this by specifying the disable tracking flag.
+`--skipPages`:
+: This flag allows you to skip the pages provisioning in the publish flow.
 
+`--skipNavigation`:
+: This flag allows you to skip setting the navigation in the publish flow.
+
+`--skipSiteDesign`:
+: This flag allows you to skip setting the site its look and feel in the publish flow.
 ### `doctor.json`
 
 You can provide the same flags and values like in the parameters. Parameters can override what is defined in the `doctor.json`. Be sure to use the whole argument names, and not the shortcodes.

@@ -17,6 +17,10 @@ export interface CommandArguments {
   retryWhenFailed: boolean;
   disableTracking: boolean;
 
+  skipPages: boolean;
+  skipNavigation: boolean;
+  skipSiteDesign: boolean;
+
   menu?: Menu;
 
   username?: string;
