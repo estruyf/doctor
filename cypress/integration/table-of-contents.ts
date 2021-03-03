@@ -20,11 +20,11 @@ describe('Doctor table of contents', function() {
   });
 
   it('2. Check if it contains three root elements', () => {
-    cy.get(`.table-of-contents > li`).should('exist').should("have.length", 3);
+    cy.get(`.table-of-contents > ul > li`).should('exist').should("have.length", 3);
   });
 
   it('3. Check if it contains two sub-lists', () => {
-    cy.get(`.table-of-contents > ul`).should('exist').should("have.length", 2);
+    cy.get(`.table-of-contents > ul ul`).should('exist').should("have.length", 2);
   });
 
   it('4. Check if total number of links are correct', () => {
