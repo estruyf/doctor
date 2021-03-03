@@ -10,6 +10,7 @@ type: docs-main
 
 
 - [#63](https://github.com/estruyf/doctor/issues/63): [Enhancement]: Get to know how doctor is used
+- [#65](https://github.com/estruyf/doctor/issues/65): [Enhancement]: Add a delay in the retry mechanism
 
 ## [1.7.0]
 
