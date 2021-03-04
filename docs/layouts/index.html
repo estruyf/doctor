@@ -1,19 +1,22 @@
 {{ define "main" }}
 
+  {{ $branch := getenv "HUGO_GIT_COMMIT_REF" }}
   <section class="section">
     <div class="container">
       <div class="row justify-content-center">
         <div class="col-12 text-center">
-          <img src="/images/doctor_no-text.svg" alt="Doctor logo" height="250px" class="mb-4" />
+          {{ if ne $branch "main" }}
+            <img src="/images/doctor.svg" alt="Doctor logo" height="250px" class="mb-4" />
+          {{ else }}
+            <img src="/images/doctor_no-text.svg" alt="Doctor logo" height="250px" class="mb-4" />
+          {{ end }}
         </div>
 
-        {{ $branch := getenv "HUGO_GIT_COMMIT_REF" }}
         {{ if ne $branch "main" }}
           <div class="col-12 mb-4">
             {{ $upcomingVersion := .Site.Data.upcomingVersion }}
 
             <h2 class="text-center mb-4">Upcoming version: v{{ $upcomingVersion.title }}</h2>
-            <h3 class="text-center mb-4">Implemented changes available for testing</h3>
             <ul class="list-group list-group-flush">
               {{ range $upcomingVersion.updates }}
               <li class="list-group-item" style="background-color: transparent">
@@ -35,7 +38,7 @@
           <h2 class="section-title">{{ i18n "topics_title" | safeHTML }}</h2>
         </div>
         {{ "<!-- topic-item -->" | safeHTML }}
-        {{ range (where .Site.Pages "Type" "docs-main") }}
+        {{ range (sort (where .Site.Pages "Type" "docs-main") "Title") }}
         <div class="col-lg-4 col-sm-6 mb-4">
           <a href="{{ .Permalink }}" class="px-4 py-5 bg-white shadow text-center d-block match-height">
             {{ with .Params.icon}}<i class="{{.}} icon text-primary d-block mb-4"></i>{{end}}
