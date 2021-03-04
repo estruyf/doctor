@@ -43,6 +43,7 @@ export class OptionsHelper {
       '--skipExistingPages': Boolean,
       '--debug': Boolean,
       '--cleanStart': Boolean,
+      '--cleanEnd': Boolean,
       '--cleanQuickLaunch': Boolean,
       '--cleanTopNavigation': Boolean,
       '--confirm': Boolean,

@@ -12,9 +12,9 @@ export class PagesHelper {
    * @param webUrl 
    */
   public static async getAllPages(webUrl: string): Promise<void> {
-    this.pages = await FileHelpers.getAllPages(webUrl, 'sitepages');
+    PagesHelper.pages = await FileHelpers.getAllPages(webUrl, 'sitepages');
     Logger.debug(`Existing pages`);
-    Logger.debug(this.pages);
+    Logger.debug(PagesHelper.pages);
   }
 
   /**
@@ -24,22 +24,25 @@ export class PagesHelper {
   public static async clean(webUrl: string, options: CommandArguments): Promise<Observable<string>> {
     return new Observable(observer => {
       (async () => {
-        try {
-          const untouched = this.getUntouchedPages();
-          for (const slug in untouched) {
-            if (slug && !slug.toLowerCase().startsWith('templates') && slug.endsWith('.aspx')) {
+        const untouched = this.getUntouchedPages().filter(slug => !slug.toLowerCase().startsWith('templates') && slug.endsWith('.aspx'));
+        Logger.debug(`Removing the following files`);
+        Logger.debug(untouched);
+        for (const slug of untouched) {
+          try {
+            if (slug) {
+              Logger.debug(`Cleaning up page: ${slug}`);
               observer.next(`Cleaning up page: ${slug}`);
-              const filePath = `${webUrl}${webUrl.endsWith('/') ? '' : '/'}sitepages/${slug}}`;
+              const filePath = `sitepages/${slug}`;
               const relUrl = FileHelpers.getRelUrl(webUrl, filePath);
               await execScript<string>(ArgumentsHelper.parse(`spo file remove --webUrl "${webUrl}" --url "${relUrl}" --confirm`));
             }
-          }
-        } catch (e) {
-          observer.error(e);
-          Logger.debug(e.message);
+          } catch (e) {
+            observer.error(e);
+            Logger.debug(e.message);
 
-          if (!options.continueOnError) {
-            throw e.message;
+            if (!options.continueOnError) {
+              throw e.message;
+            }
           }
         }
         observer.complete();
@@ -58,20 +61,24 @@ export class PagesHelper {
       const relativeUrl = FileHelpers.getRelUrl(webUrl, `sitepages/${slug}`);
 
       if (skipExistingPages) {
-        if (this.pages && this.pages.length > 0) {
-          const page = this.pages.find((page: File) => page.FileRef.toLowerCase() === relativeUrl.toLowerCase());
+        if (PagesHelper.pages && PagesHelper.pages.length > 0) {
+          const page = PagesHelper.pages.find((page: File) => page.FileRef.toLowerCase() === relativeUrl.toLowerCase());
           if (page) {
             // Page already existed
-            this.processedPages[slug] = page.ID;
+            PagesHelper.processedPages[slug] = page.ID;
+            Logger.debug(`Processed pages: ${JSON.stringify(PagesHelper.processedPages)}`);
             return true;
           }
         }
       }
       
-      let pageData = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --metadataOnly --output json`), false);
+      let pageData: Page | string = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --metadataOnly --output json`), false);
       if (pageData && typeof pageData === "string") {
         pageData = JSON.parse(pageData);
       }
+
+      PagesHelper.processedPages[slug] = (pageData as Page).ListItemAllFields.Id;
+      Logger.debug(`Processed pages: ${JSON.stringify(PagesHelper.processedPages)}`);
 
       Logger.debug(pageData);
 
@@ -228,7 +235,7 @@ export class PagesHelper {
    * @param slug 
    */
   private static async getPageId(webUrl: string, slug: string) {
-    if (!this.processedPages[slug]) {
+    if (!PagesHelper.processedPages[slug.toLowerCase()]) {
       let pageData: any = await execScript(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --metadataOnly --output json`), CliCommand.getRetry());
       if (pageData && typeof pageData === "string") {
         pageData = JSON.parse(pageData);
@@ -236,15 +243,15 @@ export class PagesHelper {
         Logger.debug(pageData);
 
         if (pageData.ListItemAllFields && pageData.ListItemAllFields.Id) {
-          this.processedPages[slug] = pageData.ListItemAllFields.Id;
-          return this.processedPages[slug];
+          PagesHelper.processedPages[slug.toLowerCase()] = pageData.ListItemAllFields.Id;
+          return PagesHelper.processedPages[slug.toLowerCase()];
         }
 
         return null;
       }
     }
 
-    return this.processedPages[slug];
+    return PagesHelper.processedPages[slug.toLowerCase()];
   }
 
   /**
@@ -252,10 +259,10 @@ export class PagesHelper {
    */
   private static getUntouchedPages(): string[] {
     let untouched: string[] = [];
-    for (const page of this.pages) {
+    for (const page of PagesHelper.pages) {
       const { FileRef: url } = page;
       const slug = url.toLowerCase().split('/sitepages/')[1];
-      if (!this.processedPages[slug]) {
+      if (!PagesHelper.processedPages[slug]) {
         untouched.push(slug);
       }
     }
