@@ -91,7 +91,7 @@
     "listr": "0.14.3",
     "markdown-it": "12.0.4",
     "markdown-it-shortcode-tag": "1.1.0",
-    "mime": "2.4.6",
+    "mime": "2.5.0",
     "react": "17.0.1",
     "rxjs": "6.6.3"
   }
