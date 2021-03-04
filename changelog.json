@@ -13,7 +13,8 @@
       { "id": 45, "title": "[Enhancement]: Table of contents shortcode added" },
       { "id": 4, "title": "[Enhancement]: Added `skipPages`, `skipNavigation`, and `skipSiteDesign` flags" },
       { "id": 66, "title": "[Enhancement]: Autocomplete functionality added for commands and its arguments" },
-      { "id": 71, "title": "[Enhancement]: Easier debugging with ability to attach the VSCode debugger" }
+      { "id": 71, "title": "[Enhancement]: Easier debugging with ability to attach the VSCode debugger" },
+      { "id": 70, "title": "[Enhancement]: Ability to specify to clean the `QuickLaunch` and/or `TopNavigation`" }
     ]
   },
   {
