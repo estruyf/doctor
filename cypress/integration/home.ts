@@ -51,4 +51,11 @@ describe('General tests for homepage', function() {
       .should('contain.text', 'Commands');
   });
 
+  it('7. Check if the default navigation elements were removed', () => {
+    cy.get(`[data-automationid="HorizontalNav-link"]`)
+      .should('exist')
+      .should('not.contain.text', 'Documents')
+      .should('not.contain.text', 'Pages');
+  });
+
 });

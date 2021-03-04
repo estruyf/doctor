@@ -68,7 +68,7 @@ jobs:
           skipPages="--skipExistingPages"
         fi
 
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}" --retryWhenFailed $startClean $skipPages
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}" -- --cleanQuickLaunch $startClean $skipPages
       env:
         DEBUG: ${{ secrets.DEBUG }}
 
@@ -125,7 +125,7 @@ jobs:
           $skipPages="--skipExistingPages"
         }
 
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}" --retryWhenFailed $startClean $skipPages
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}" --retryWhenFailed --cleanQuickLaunch $startClean $skipPages
       shell: powershell
       env:
         DEBUG: ${{ secrets.DEBUG }}
@@ -176,7 +176,7 @@ jobs:
 
         IF "%GITHUB_EVENT_NAME%"=="schedule" (SET skipPages="--skipExistingPages")
 
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS }}" --retryWhenFailed %startClean% %skipPages%
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS }}" --retryWhenFailed --cleanQuickLaunch %startClean% %skipPages%
       shell: cmd
       env:
         DEBUG: ${{ secrets.DEBUG }}

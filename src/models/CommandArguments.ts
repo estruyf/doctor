@@ -21,6 +21,9 @@ export interface CommandArguments {
   skipNavigation: boolean;
   skipSiteDesign: boolean;
 
+  cleanQuickLaunch: boolean;
+  cleanTopNavigation: boolean;
+
   menu?: Menu;
 
   username?: string;

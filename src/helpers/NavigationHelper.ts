@@ -21,6 +21,14 @@ export class NavigationHelper {
       return;
     }
 
+    const cleanNavigation = CliCommand.getCleanNavigation();
+    if (cleanNavigation.cleanQuickLaunch) {
+      await this.startNavigationCleanup(webUrl, "QuickLaunch");
+    }
+    if (cleanNavigation.cleanTopNavigation) {
+      await this.startNavigationCleanup(webUrl, "TopNavigationBar");
+    }
+
     Logger.debug(`Start update with the following navigation:`);
     Logger.debug(JSON.stringify(navigation, null, 2));
 
@@ -83,6 +91,21 @@ export class NavigationHelper {
     }
 
     return structure;
+  }
+
+  /**
+   * Cleans up the specified navigation
+   * @param webUrl 
+   * @param location 
+   */
+  private static async startNavigationCleanup(webUrl: string, location: LocationType) {
+    Logger.debug(`Starting ${location} clean-up job`);
+    const navElms: NavigationItem[] = await this.getNavigationElms(webUrl, location);
+    if (navElms && navElms.length > 0) {
+      for (const navElm of navElms) {
+        await this.removeNavigationElm(webUrl, location, navElm.Id);
+      }
+    }
   }
 
   /**

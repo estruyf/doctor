@@ -43,6 +43,8 @@ export class OptionsHelper {
       '--skipExistingPages': Boolean,
       '--debug': Boolean,
       '--cleanStart': Boolean,
+      '--cleanQuickLaunch': Boolean,
+      '--cleanTopNavigation': Boolean,
       '--confirm': Boolean,
       '--skipExisting': Boolean,
       '--continueOnError': Boolean,
@@ -101,7 +103,9 @@ export class OptionsHelper {
       shortcodesFolder: options["markdown"] && options["markdown"]["shortcodesFolder"] ? options["markdown"]["shortcodesFolder"] : "./shortcodes",
       skipPages: args["--skipPages"] || false,
       skipNavigation: args["--skipNavigation"] || false,
-      skipSiteDesign: args["--skipSiteDesign"] || false
+      skipSiteDesign: args["--skipSiteDesign"] || false,
+      cleanQuickLaunch: args["--cleanQuickLaunch"] || options["cleanQuickLaunch"] || false,
+      cleanTopNavigation: args["--cleanTopNavigation"] || options["cleanTopNavigation"] || false
     };
   }
 

@@ -1,7 +1,7 @@
 ---
 title: Options
 date: 2021-02-22T10:06:07.167Z
-lastmod: 2021-02-22T10:06:07.167Z
+lastmod: 2021-03-04T09:46:28.883Z
 weight: 4
 draft: false
 keywords:
@@ -44,21 +44,31 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 `--debug`
 : Provides more information of what is happening during command execution.
 
+> **Important**: This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+
 `--continueOnError`
 : Continue when an error occurs during the publishing process.
 
 `--disableTracking`
 : In order to make `doctor` better, we need to know how it is used. That is why we started to track which commands and related parameters are used. We are not tracking the values of these parameters, only if they are used or not. Still if you want to opt-out, you can do this by specifying the disable tracking flag.
+
+> **Important**: This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
 ## Publish command specific options
 
 `--outputFolder <outputFolder>`
 : When providing this option, the processed markdown files will be generated in this folder.
 
+> **Important**: This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+
 `--cleanStart`
 : Removes all pages before creation. This ensures that you that all changes made to your documentation get removed.
 
+> **Important**: This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+
 `--confirm`
 : Don't prompt for confirming removing the files when you specified to clean up pages and assets before publishing.
+
+> **Important**: This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
 
 `--commandName <commandName>`
 : In case you want to use the locally installed `CLI for Microsoft 365`, you can use this flag. By default, it uses the version specified in the `doctor` tool. You can use the a locally installed version as follows: `--commandName m365`.
@@ -72,11 +82,24 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 `--skipPages`:
 : This flag allows you to skip the pages provisioning in the publish flow.
 
+> **Important**: This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+
 `--skipNavigation`:
 : This flag allows you to skip setting the navigation in the publish flow.
 
+> **Important**: This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+
 `--skipSiteDesign`:
 : This flag allows you to skip setting the site its look and feel in the publish flow.
+
+> **Important**: This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+
+`--cleanQuickLaunch`
+: Allows you to specify if you want to remove all the navigation elements defined in the `QuickLaunch` navigation before adding the new navigation structure.
+
+`--cleanTopNavigation`
+: Allows you to specify if you want to remove all the navigation elements defined in the `TopNavigation` navigation before adding the new navigation structure.
+
 ### `doctor.json`
 
 You can provide the same flags and values like in the parameters. Parameters can override what is defined in the `doctor.json`. Be sure to use the whole argument names, and not the shortcodes.
