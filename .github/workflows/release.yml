@@ -59,7 +59,7 @@ jobs:
         startClean=""
         # Check on which branch it is running
         if [[ ${GITHUB_REF} == "refs/heads/main" ]]; then
-          startClean="--cleanStart --confirm"
+          startClean="--cleanStart"
         fi
         
         skipPages=""
@@ -68,7 +68,7 @@ jobs:
           skipPages="--skipExistingPages"
         fi
 
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd $startClean $skipPages
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd --confirm $startClean $skipPages
       env:
         DEBUG: ${{ secrets.DEBUG }}
 
@@ -116,7 +116,7 @@ jobs:
 
         $startClean = ""
         If (${env:GITHUB_REF} -eq 'refs/heads/main') {
-          $startClean = "--cleanStart --confirm"
+          $startClean = "--cleanStart"
         }
         
         $skipPages=""
@@ -125,7 +125,7 @@ jobs:
           $skipPages="--skipExistingPages"
         }
 
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd $startClean $skipPages
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd --confirm $startClean $skipPages
       shell: powershell
       env:
         DEBUG: ${{ secrets.DEBUG }}
@@ -172,11 +172,11 @@ jobs:
         node ./scripts/prepare-sample.js
         cd doctor-sample
 
-        IF "%GITHUB_REF%"=="refs/heads/main" (SET startClean="--cleanStart --confirm")
+        IF "%GITHUB_REF%"=="refs/heads/main" (SET startClean="--cleanStart")
 
         IF "%GITHUB_EVENT_NAME%"=="schedule" (SET skipPages="--skipExistingPages")
 
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd %startClean% %skipPages%
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd  --confirm %startClean% %skipPages%
       shell: cmd
       env:
         DEBUG: ${{ secrets.DEBUG }}
