@@ -1,0 +1,251 @@
+import * as fs from 'fs';
+import * as path from 'path';
+import * as cheerio from 'cheerio';
+import parseMarkdown = require('frontmatter');
+import md = require('markdown-it');
+import { CommandArguments, PublishOutput, Control } from 'src/models';
+import { FileHelpers, FolderHelpers, FrontMatterHelper, HeaderHelper, Logger, NavigationHelper, PagesHelper } from '.';
+import { Observable } from 'rxjs';
+
+export class DoctorTranspiler {
+
+  /**
+   * Process the retrieved Markdown files
+   * @param ctx 
+   */
+  public static async processMDFiles(ctx: any, options: CommandArguments, output: PublishOutput): Promise<Observable<string>> {
+    const { webUrl, webPartTitle, skipExistingPages } = options;
+    const converter = new md({ html: true, breaks: true });
+
+    return new Observable(observer => {
+      (async () => {
+        const { files } = ctx;
+        
+        await PagesHelper.getAllPages(webUrl);
+
+        for (const file of files) {
+          try {
+
+            if (file.endsWith('.md')) {
+              const filename = path.basename(file);
+              observer.next(`Started processing: ${filename}`);
+
+              let contents = fs.readFileSync(file, { encoding: "utf-8" });
+              if (contents) {
+
+                let markup = parseMarkdown(contents);
+                const htmlMarkup = converter.render(contents);
+
+                const $ = cheerio.load(htmlMarkup, { xmlMode: true });
+                const imgElms = $(`img`).toArray();
+                const anchorElms = $(`a`).toArray();
+
+                // Check if the required data for the article is present
+                if (markup && !markup.data) {
+                  throw new Error(`The "${filename}" has no front matter defined`);
+                } else if (markup && markup.data) {
+                  if (!markup.data.title) {
+                    throw new Error(`The "${filename}" has no 'title' defined`);
+                  }
+                }
+
+                let { title, description, draft, comments, layout, header, template, metadata } = markup.data;
+                let slug = FrontMatterHelper.getSlug(markup.data, options.startFolder, file);
+
+                // Image processing
+                if (imgElms && imgElms.length > 0) {
+                  observer.next(`Uploading images referenced in ${filename}`);
+
+                  markup = await this.processImages($, imgElms, file, contents, options, output);
+                }
+
+                // Anchor processing
+                if (anchorElms && anchorElms.length > 0) {
+                  observer.next(`Processing links in ${filename}`);
+
+                  Logger.debug(`Number of links in ${filename}: ${anchorElms.length}`)
+
+                  try {
+                    markup.content = this.processLinks($, anchorElms, file, markup.content, options);
+                  } catch (e) {
+                    throw e.message;
+                  }
+                }
+
+                // Checks if output needs to be generated
+                if (options.outputFolder) {
+                  const { outputFolder, startFolder } = options;
+                  const processedFilePath = file.replace(startFolder, path.join(process.cwd(), outputFolder));
+                  const dirPath = path.dirname(processedFilePath);
+                  fs.mkdirSync(dirPath, { recursive: true });
+                  fs.writeFileSync(processedFilePath, markup.content, { encoding: "utf-8" });
+                }
+
+                if (markup && markup.content) {
+                  observer.next(`Creating or updating the page in SharePoint for ${filename}`);
+
+                  // Check if the page already exists
+                  const existed = await PagesHelper.createPageIfNotExists(webUrl, slug, title, layout, comments, description, template, skipExistingPages);
+
+                  Logger.debug(`Page existed: ${existed} - Skipping existing pages: ${skipExistingPages}`);
+
+                  if (!existed || (existed && !skipExistingPages)) {
+                    // Check if the header of the page needs to be changed
+                    await HeaderHelper.set(file, webUrl, slug, header, options, !!template);
+        
+                    // Retrieving all the controls from the page, so that we can start replacing the 
+                    const controlData: string = await PagesHelper.getPageControls(webUrl, slug);
+                    if (controlData) {
+                      const webparts: Control[] = JSON.parse(controlData);
+                      const markdownWp: Control = webparts.find((c: Control) => c.webPartData && c.webPartData.title === webPartTitle);
+                      await PagesHelper.insertOrCreateControl(webPartTitle, markup.content, slug, webUrl, markdownWp ? markdownWp.id : null, options.markdown);
+                    }
+
+                    // Check if metadata needs to be added to the page
+                    if (metadata) {
+                      await PagesHelper.setPageMetadata(webUrl, slug, metadata);
+                    }
+                    
+                    // Check if page needs to be published
+                    if (typeof draft === "undefined" || !draft) {
+                      observer.next(`Publishing ${filename}`);
+                      await PagesHelper.publishPageIfNeeded(webUrl, slug);
+                    }
+
+                    // Set the page its description
+                    if (description) {
+                      observer.next(`Setting page description for ${filename}`);
+                      await PagesHelper.setPageDescription(webUrl, slug, description);
+                    }
+
+                    ++output.pagesProcessed;
+                  } else {
+                    Logger.debug(`Skipping "${filename}" as it already exists`);
+                  }
+                }
+
+                // Check if the file contains a menu element to add too and if not in draft status (cannot add draft pages to navigation)
+                if (output.navigation && markup && markup.data && markup.data.menu && !markup.data.draft) {
+                  Logger.debug(`Adding item to the navigation: ${slug} - ${title} - ${JSON.stringify(markup.data.menu)} `);
+
+                  output.navigation = NavigationHelper.hierarchy(webUrl, output.navigation, markup.data.menu, slug, title);
+                }
+              }
+            }
+          } catch (e) {
+            observer.error(e);
+            Logger.debug(e.message);
+
+            if (!options.continueOnError) {
+              throw e.message;
+            }
+          }
+        }
+        observer.complete();
+      })();
+    });
+  }
+
+  /**
+   * Process images referenced in the file
+   * @param $ 
+   * @param imgElms 
+   * @param filePath 
+   * @param contents 
+   * @param options 
+   * @param output 
+   */
+  private static async processImages($: cheerio.Root, imgElms: cheerio.Element[], filePath: string, contents: string, options: CommandArguments, output: PublishOutput) {
+    const { startFolder, assetLibrary, webUrl, overwriteImages } = options;
+    
+    const imgSources = imgElms.filter(i => !$(i).attr("src").startsWith(`http`)).map(img => $(img).attr('src'));
+    const uImgSources = [...new Set(imgSources)];
+
+    for (const imgSource of uImgSources) {
+      Logger.debug(`Adding image: ${imgSource} - ${imgSources.length}`)
+
+      const imgDirectory = path.join(path.dirname(filePath), path.dirname(imgSource));
+      const imgPath = path.join(path.dirname(filePath), imgSource);
+
+      const uniStartPath = startFolder.replace(/\\/g, '/');
+      const folders = imgDirectory.replace(/\\/g, '/').replace(uniStartPath, '').split('/');
+      let crntFolder = assetLibrary;
+
+      // Start folder creation process
+      crntFolder = await FolderHelpers.create(crntFolder, folders, webUrl);
+
+      try {
+        const imgUrl = await FileHelpers.create(crntFolder, imgPath, webUrl, overwriteImages);
+        contents = contents.replace(new RegExp(imgSource, 'g'), imgUrl);
+        ++output.imagesProcessed;
+      } catch (e) {
+        return Promise.reject(new Error(`Something failed while uploading the image asset. ${e.message}`));
+      }
+    }
+
+    const markup = parseMarkdown(contents);
+    return markup;
+  }
+
+  /**
+   * Process the links referenced in the markdown files
+   * @param $ 
+   * @param linkElms 
+   * @param filePath 
+   * @param content 
+   * @param options 
+   */
+  private static processLinks($: cheerio.Root, linkElms: cheerio.Element[], filePath: string, content: string, options: CommandArguments) {
+    const { webUrl, startFolder } = options;
+
+    const fLinks = linkElms.filter(i => !$(i).attr("href").startsWith(`http`));
+    const uLinks = [...new Set(fLinks)];
+
+    for (const link of uLinks) {
+      const $link = $(link);
+      const fileLink = $link.attr('href');
+      let mdFile = "";
+
+      Logger.debug(`Processing link: ${fileLink} for ${filePath}`);
+
+      if (fileLink.endsWith(`.md`)) {
+        mdFile = $link.attr('href');
+      } else if (fileLink === ".") {
+        mdFile = path.basename(filePath);
+      } else {
+        mdFile = `${$link.attr('href')}.md`;
+      }
+
+      const mdFilePath = path.join(path.dirname(filePath), mdFile);
+
+      Logger.debug(`File path for link: ${mdFilePath}`);
+
+      if (fs.existsSync(mdFilePath)) {
+        // Get the contents of the file
+        const mdContents = fs.readFileSync(mdFilePath, { encoding: 'utf-8' });
+        if (!mdContents) {
+          return;
+        } 
+
+        // Get the slug
+        const mdData = parseMarkdown(mdContents);
+        if (!mdData || !mdData.data) {
+          return;
+        }
+
+        const slug = FrontMatterHelper.getSlug(mdData.data, startFolder, mdFilePath);
+        const spUrl = `${webUrl}${webUrl.endsWith('/') ? '' : '/'}sitepages/${slug}`;
+        Logger.debug(`Referenced file slug: ${spUrl}`);
+
+        // Update the link in the markdown
+        content = content.replace(`(${fileLink})`, `(${spUrl})`);
+        content = content.replace(`"${fileLink}"`, `"${spUrl}"`);
+        content = content.replace(`'${fileLink}`, `'${spUrl}'`);
+      } else {
+        Logger.debug(`Referenced file not found`);
+      }
+    }
+
+    return content;
+  }
+}

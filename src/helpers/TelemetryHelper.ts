@@ -28,7 +28,12 @@ export class TelemetryHelper {
           skipExistingPages: !!options.skipExistingPages,
           skipPages: !!options.skipPages,
           skipNavigation: !!options.skipNavigation,
-          skipSiteDesign: !!options.skipSiteDesign
+          skipSiteDesign: !!options.skipSiteDesign,
+          cleanStart: !!options.cleanStart,
+          cleanEnd: !!options.cleanEnd,
+          cleanQuickLaunch: !!options.cleanQuickLaunch,
+          cleanTopNavigation: !!options.cleanTopNavigation,
+          webPartTitle: !!options.webPartTitle
         }
       });
       appInsights.flush();

@@ -1,7 +1,7 @@
 ---
 title: Options
 date: 2021-02-22T10:06:07.167Z
-lastmod: 2021-03-04T09:46:28.883Z
+lastmod: 2021-03-04T14:03:25.825Z
 weight: 4
 draft: false
 keywords:
@@ -57,6 +57,11 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 
 `--outputFolder <outputFolder>`
 : When providing this option, the processed markdown files will be generated in this folder.
+
+> **Important**: This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+
+`--cleanEnd`
+: Removes the pages which have not been touched during the publishing run. This will happen at the end of the whole process.
 
 > **Important**: This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
 

@@ -1,12 +1,10 @@
-import { ArgumentsHelper } from './ArgumentsHelper';
 import * as path from 'path';
 import { execScript } from "./execScript";
 import { CommandArguments } from '../models/CommandArguments';
 import { Logger } from './logger';
 import { File } from '../models/File';
 import { Folder } from '../models/Folder';
-import { ListHelpers } from './ListHelpers';
-import { CliCommand } from '.';
+import { CliCommand, ListHelpers, ArgumentsHelper } from '.';
 
 export class FileHelpers {
   private static allPages: File[] = [];
@@ -70,7 +68,7 @@ export class FileHelpers {
         Logger.debug(`Files to be removed: ${JSON.stringify(filesData)}`);
 
         for (const file of filesData as File[]) {
-          if (file && file.UniqueId) {
+          if (file && file.ServerRelativeUrl) {
             const filePath = `${crntFolder}${file.ServerRelativeUrl.toLowerCase().split(crntFolder).pop()}`;
             await execScript<string>(ArgumentsHelper.parse(`spo file remove --webUrl "${webUrl}" --url "${filePath}" --confirm`));
           }

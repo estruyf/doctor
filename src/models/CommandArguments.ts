@@ -11,8 +11,6 @@ export interface CommandArguments {
   skipPrecheck: boolean;
   skipExistingPages: boolean;
   debug: boolean;
-  cleanStart: boolean;
-  confirm: boolean;
   continueOnError: boolean;
   retryWhenFailed: boolean;
   disableTracking: boolean;
@@ -20,6 +18,10 @@ export interface CommandArguments {
   skipPages: boolean;
   skipNavigation: boolean;
   skipSiteDesign: boolean;
+
+  cleanEnd: boolean;
+  cleanStart: boolean;
+  confirm: boolean;
 
   cleanQuickLaunch: boolean;
   cleanTopNavigation: boolean;

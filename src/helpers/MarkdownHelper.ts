@@ -1,13 +1,28 @@
-
+import * as CleanCSS from 'clean-css';
+import * as fg from 'fast-glob';
 import md = require('markdown-it');
 import hljs = require('highlight.js');
 import { MarkdownSettings } from '../models';
 import { ShortcodesHelpers } from './ShortcodesHelpers';
 import { encode } from 'html-entities';
 import { TempDataHelper } from './TempDataHelper';
-import * as CleanCSS from 'clean-css';
 
 export class MarkdownHelper {
+
+  /**
+   * Fetched the Markdown files from the start folder
+   * @param ctx 
+   * @param startFolder 
+   */
+  public static async fetchMDFiles(ctx: any, startFolder: string) {
+    const files = await fg((`${startFolder}/**/*.md`).replace(/\\/g, '/'));
+
+    if (files && files.length > 0) {
+      ctx.files = files;
+    } else {
+      return Promise.reject(new Error(`No markdown files found in the folder.`));
+    }
+  }
 
   /**
    * Retrieve the JSON data for the web part

@@ -1,4 +1,5 @@
 export interface File {
+  ID: number;
   CheckInComment: string;
   CheckOutType: number;
   ContentTag: string;

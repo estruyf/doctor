@@ -95,6 +95,7 @@ export class OptionsHelper {
       disableTracking: args["--disableTracking"] || false,
       menu: options["menu"] || null,
       debug: (process.env.DEBUG && process.env.DEBUG === "true") || args["--debug"] || false,
+      cleanEnd: args["--cleanEnd"] || false,
       cleanStart: args["--cleanStart"] || false,
       confirm: args["--confirm"] || false,
       outputFolder: args["--outputFolder"] || "",
@@ -155,6 +156,15 @@ export class OptionsHelper {
         type: 'password',
         name: 'password',
         message: 'What is the password?'
+      });
+    }
+
+    if (options.cleanEnd && !options.confirm) {
+      questions.push({
+        type: 'confirm',
+        name: 'confirm',
+        message: 'Are you sure you want to clean up all pages which have not been touched?',
+        default: false
       });
     }
 
