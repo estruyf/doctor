@@ -34,10 +34,7 @@ const testSite = async (page, siteUrl, type) => {
     const page = await browser.newPage();
     await page.setExtraHTTPHeaders(authData.headers);
 
-    await testSite(page, SITEURL_MACOS, 'macos');
     await testSite(page, SITEURL_LINUX, 'linux');
-    await testSite(page, SITEURL_WINDOWS_POWERSHELL, 'windows_powershell');
-    await testSite(page, SITEURL_WINDOWS, 'windows');
 
     await browser.close();
     process.exit(0);

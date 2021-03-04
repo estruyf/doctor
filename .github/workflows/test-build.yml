@@ -14,24 +14,14 @@ on:
 
 jobs:
   build:
-    name: Build ${{ matrix.os }} - Bash
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        include:
-          - node: 12
-            os: macos-latest
-            siteUrl: SITEURL_MACOS
-          - node: 12
-            os: ubuntu-latest
-            siteUrl: SITEURL_LINUX
+    name: Build on Ubuntu
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-node@v1
       with:
-        node-version: ${{ matrix.node }}
+        node-version: 14
         registry-url: https://registry.npmjs.org/
   
     - run: npm i
@@ -43,71 +33,19 @@ jobs:
     - run: | 
         git clone https://github.com/estruyf/doctor-sample
         cd doctor-sample
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}" --cleanStart --confirm
-
-  build_pwsh:
-    name: Build windows-latest - powershell
-    runs-on: windows-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-node@v1
-      with:
-        node-version: 12
-        registry-url: https://registry.npmjs.org/
-  
-    - run: npm i
-      shell: powershell
-      
-    - run: npm start
-      shell: powershell
-
-    - run: npm link
-      shell: powershell
-
-    - run: | 
-        git clone https://github.com/estruyf/doctor-sample
-        cd doctor-sample
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}" --cleanStart --confirm
-      shell: powershell
-
-  build_cmd:
-    name: Build windows-latest - cmd
-    runs-on: windows-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-node@v1
-      with:
-        node-version: 12
-        registry-url: https://registry.npmjs.org/
-  
-    - run: npm i
-      shell: cmd
-      
-    - run: npm start
-      shell: cmd
-
-    - run: npm link
-      shell: cmd
-
-    - run: | 
-        git clone https://github.com/estruyf/doctor-sample
-        cd doctor-sample
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS }}" --cleanStart --confirm
-      shell: cmd
+        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_LINUX }}"
 
   screenshots:
     name: Take screenshots after publishing
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [build, build_pwsh, build_cmd]
+    needs: [build]
 
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-node@v1
       with:
-        node-version: 12
+        node-version: 14
         registry-url: https://registry.npmjs.org/
     - run: |
         npm i playwright-chromium node-sp-auth@3
@@ -115,9 +53,6 @@ jobs:
       env:
         USER_NAME: ${{ secrets.USERNAME }}
         PASSWORD: ${{ secrets.PASSWORD }}
-        SITEURL_WINDOWS: ${{ secrets.SITEURL_WINDOWS }}
-        SITEURL_WINDOWS_POWERSHELL: ${{ secrets.SITEURL_WINDOWS_POWERSHELL }}
-        SITEURL_MACOS: ${{ secrets.SITEURL_MACOS }}
         SITEURL_LINUX: ${{ secrets.SITEURL_LINUX }}
     - uses: actions/upload-artifact@v2
       with:
