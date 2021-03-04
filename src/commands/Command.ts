@@ -2,5 +2,7 @@
 export enum Command {
   init = "init",
   publish = "publish",
-  version = "version"
+  version = "version",
+  setup = "setup",
+  cleanup = "cleanup"
 }

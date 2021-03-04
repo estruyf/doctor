@@ -23,41 +23,48 @@ export class OptionsHelper {
   }
 
   /**
+   * Retrieve all arguments for doctor
+   */
+  public static getArgs() {
+    return {
+      '--auth': String,
+      '--username': String,
+      '--password': String,
+      '--tenant': String,
+      '--appId': String,
+      '--certificateBase64Encoded': String,
+      '--commandName': String,
+      '--folder': String,
+      '--url': String,
+      '--library': String,
+      '--wpInternalTitle': String,
+      '--outputFolder': String,
+      '--overwriteImages': Boolean,
+      '--skipExistingPages': Boolean,
+      '--debug': Boolean,
+      '--cleanStart': Boolean,
+      '--confirm': Boolean,
+      '--skipExisting': Boolean,
+      '--continueOnError': Boolean,
+      '--retryWhenFailed': Boolean,
+      '--disableTracking': Boolean,
+      '--skipPages': Boolean,
+      '--skipNavigation': Boolean,
+      '--skipSiteDesign': Boolean,
+      '-a': '--auth',
+      '-f': '--folder',
+      '-u': '--url'
+    };
+  }
+
+  /**
    * Parse command arguments
    * @param options 
    * @param rawArgs 
    */
   public static parseArguments(options: any, rawArgs: string[]): CommandArguments {
     const args = arg(
-      {
-        '--auth': String,
-        '--username': String,
-        '--password': String,
-        '--tenant': String,
-        '--appId': String,
-        '--certificateBase64Encoded': String,
-        '--commandName': String,
-        '--folder': String,
-        '--url': String,
-        '--library': String,
-        '--wpInternalTitle': String,
-        '--outputFolder': String,
-        '--overwriteImages': Boolean,
-        '--skipExistingPages': Boolean,
-        '--debug': Boolean,
-        '--cleanStart': Boolean,
-        '--confirm': Boolean,
-        '--skipExisting': Boolean,
-        '--continueOnError': Boolean,
-        '--retryWhenFailed': Boolean,
-        '--disableTracking': Boolean,
-        '--skipPages': Boolean,
-        '--skipNavigation': Boolean,
-        '--skipSiteDesign': Boolean,
-        '-a': '--auth',
-        '-f': '--folder',
-        '-u': '--url'
-      },
+      this.getArgs(),
       {
         argv: rawArgs.slice(2),
         permissive: true

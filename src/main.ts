@@ -8,6 +8,7 @@ import { Logger } from './helpers/logger';
 import { CliCommand } from './helpers/CliCommand';
 import { ShortcodesHelpers } from './helpers';
 import { TelemetryHelper } from './helpers/TelemetryHelper';
+import { autocomplete } from './autocomplete';
 
 export class Commands {
 
@@ -44,6 +45,10 @@ export class Commands {
         await Init.start(options);
       } else if (options.task === Command.version) {
         Version.start();
+      } else if (options.task === Command.setup) {
+        autocomplete.setup()
+      } else if (options.task === Command.cleanup) {
+        autocomplete.cleanup();
       }
 
       console.log('');
