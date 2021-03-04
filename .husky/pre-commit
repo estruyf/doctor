@@ -2,3 +2,4 @@
 . "$(dirname "$0")/_/husky.sh"
 
 node ./scripts/prepare-changelog.js
+node ./scripts/reset-debug.js
