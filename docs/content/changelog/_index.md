@@ -12,6 +12,7 @@ type: docs-main
 - [#4](https://github.com/estruyf/doctor/issues/4): [Enhancement]: Added `skipPages`, `skipNavigation`, and `skipSiteDesign` flags
 - [#45](https://github.com/estruyf/doctor/issues/45): [Enhancement]: Table of contents shortcode added
 - [#63](https://github.com/estruyf/doctor/issues/63): [Enhancement]: Get to know how doctor is used
+- [#64](https://github.com/estruyf/doctor/issues/64): [Enhancement]: Post clean-up of removed/untouched pages
 - [#65](https://github.com/estruyf/doctor/issues/65): [Enhancement]: Add a delay in the retry mechanism
 - [#66](https://github.com/estruyf/doctor/issues/66): [Enhancement]: Autocomplete functionality added for commands and its arguments
 - [#70](https://github.com/estruyf/doctor/issues/70): [Enhancement]: Ability to specify to clean the `QuickLaunch` and/or `TopNavigation`
