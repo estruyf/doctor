@@ -7,6 +7,7 @@
 - [#45](https://github.com/estruyf/doctor/issues/45): [Enhancement]: Table of contents shortcode added
 - [#63](https://github.com/estruyf/doctor/issues/63): [Enhancement]: Get to know how doctor is used
 - [#65](https://github.com/estruyf/doctor/issues/65): [Enhancement]: Add a delay in the retry mechanism
+- [#66](https://github.com/estruyf/doctor/issues/66): [Enhancement]: Autocomplete functionality added for commands and its arguments
 
 ## [1.7.0]
 
