@@ -8,6 +8,7 @@
 - [#63](https://github.com/estruyf/doctor/issues/63): [Enhancement]: Get to know how doctor is used
 - [#65](https://github.com/estruyf/doctor/issues/65): [Enhancement]: Add a delay in the retry mechanism
 - [#66](https://github.com/estruyf/doctor/issues/66): [Enhancement]: Autocomplete functionality added for commands and its arguments
+- [#70](https://github.com/estruyf/doctor/issues/70): [Enhancement]: Ability to specify to clean the `QuickLaunch` and/or `TopNavigation`
 - [#71](https://github.com/estruyf/doctor/issues/71): [Enhancement]: Easier debugging with ability to attach the VSCode debugger
 
 ## [1.7.0]
