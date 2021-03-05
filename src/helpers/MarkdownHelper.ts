@@ -33,7 +33,7 @@ export class MarkdownHelper {
     const converter = md({ html: true, breaks: true, highlight: (str, lang) => {
       if (lang && hljs.getLanguage(lang)) {
         try {
-          return `<pre class="hljs"><code>${hljs.highlight(lang, str, true).value}</code></pre>`;
+          return `<pre class="hljs ${lang.toLowerCase().replace(/ /g, '_')}"><code>${hljs.highlight(lang, str, true).value}</code></pre>`;
         } catch (__) {}
       }
 

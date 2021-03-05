@@ -36,7 +36,7 @@ export class DoctorTranspiler {
                 let markup = parseMarkdown(contents);
                 const htmlMarkup = converter.render(contents);
 
-                const $ = cheerio.load(htmlMarkup, { xmlMode: true });
+                const $ = cheerio.load(htmlMarkup, { xmlMode: true, decodeEntities: false });
                 const imgElms = $(`img`).toArray();
                 const anchorElms = $(`a`).toArray();
 

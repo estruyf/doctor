@@ -76,7 +76,7 @@ export class ShortcodesHelpers {
     Logger.debug(`Doctor uses ${tags.length} shortcodes for HTML parsing.`);
     TelemetryHelper.trackShortcodeUsage(tags.length);
 
-    const $ = cheerio.load(htmlMarkup, { xmlMode: true });
+    const $ = cheerio.load(htmlMarkup, { xmlMode: true, decodeEntities: false });
 
     for (const tag of tags) {
       const elms = $(tag).toArray();
