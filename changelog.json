@@ -15,7 +15,7 @@
       { "id": 66, "title": "[Enhancement]: Autocomplete functionality added for commands and its arguments" },
       { "id": 71, "title": "[Enhancement]: Easier debugging with ability to attach the VSCode debugger" },
       { "id": 70, "title": "[Enhancement]: Ability to specify to clean the `QuickLaunch` and/or `TopNavigation`" },
-      { "id": 64, "title": "[Enhancement]: Post clean-up of removed/untouched pages" }
+      { "id": 64, "title": "[Enhancement]: Post clean-up of removed/untouched pages" },
       { "id": 72, "title": "[Bug]: Fix for encoding characters in codeblocks + tests" }
     ]
   },
