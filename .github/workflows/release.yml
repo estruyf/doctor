@@ -198,7 +198,7 @@ jobs:
         owner: estruyf
         repo: doctor
         workflowid: 6155745
-        body: '{"ref":"refs/heads/master"}'
+        ref: "refs/heads/master"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
