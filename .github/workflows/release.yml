@@ -9,6 +9,7 @@ on:
       - published
   schedule:
     - cron:  '0 */6 * * *'
+  workflow_dispatch:
 
 jobs:
   #####################################
@@ -182,9 +183,27 @@ jobs:
         DEBUG: ${{ secrets.DEBUG }}
 
 
+  ##################################
+  ### Run when a schedule failed ###
+  ##################################
+  restart_when_failed:
+    if: github.event_name == 'schedule' && ${{ failure() }}
+    steps:  
+    - uses: octokit/request-action@v2.x
+      name: Retry the workflow
+      with:
+        route: POST /repos/{owner}/{repo}/actions/workflows/{workflowid}/dispatches
+        owner: estruyf
+        repo: doctor
+        workflowid: 6155745
+        body: '{"ref":"refs/heads/master"}'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
   ##############################
   ### Start E2E with Cypress ###
-  #############################
+  ##############################
   e2e_testing:
     name: Cypress E2E Testing for ${{ matrix.testTitle }}
     runs-on: ubuntu-latest
