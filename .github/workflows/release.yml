@@ -189,7 +189,8 @@ jobs:
   restart_when_failed:
     name: Restarts the scheduled run when it failed
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' && ${{ failure() }}
+    if: always() && github.event_name == 'schedule' && ${{ failure() }}
+    needs: [build, build_pwsh, build_cmd]
     steps:  
     - uses: octokit/request-action@v2.x
       name: Retry the workflow
