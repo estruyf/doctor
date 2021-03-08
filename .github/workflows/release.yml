@@ -116,7 +116,7 @@ jobs:
         cd doctor-sample
 
         $startClean = ""
-        If (${env:GITHUB_REF} -eq 'refs/heads/main' -or || ${env:GITHUB_EVENT_NAME} -eq 'workflow_dispatch') {
+        If (${env:GITHUB_REF} -eq 'refs/heads/main' -or ${env:GITHUB_EVENT_NAME} -eq 'workflow_dispatch') {
           $startClean = "--cleanStart"
         }
         
