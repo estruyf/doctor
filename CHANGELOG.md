@@ -11,6 +11,7 @@
 - [#66](https://github.com/estruyf/doctor/issues/66): [Enhancement]: Autocomplete functionality added for commands and its arguments
 - [#70](https://github.com/estruyf/doctor/issues/70): [Enhancement]: Ability to specify to clean the `QuickLaunch` and/or `TopNavigation`
 - [#71](https://github.com/estruyf/doctor/issues/71): [Enhancement]: Easier debugging with ability to attach the VSCode debugger
+- [#72](https://github.com/estruyf/doctor/issues/72): [Bug]: Fix for encoding characters in codeblocks + tests
 
 ## [1.7.0]
 
