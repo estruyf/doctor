@@ -187,6 +187,8 @@ jobs:
   ### Run when a schedule failed ###
   ##################################
   restart_when_failed:
+    name: Restarts the scheduled run when it failed
+    runs-on: ubuntu-latest
     if: github.event_name == 'schedule' && ${{ failure() }}
     steps:  
     - uses: octokit/request-action@v2.x
