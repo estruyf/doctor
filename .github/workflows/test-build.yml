@@ -1,4 +1,4 @@
-name: Does it build and publish?
+name: Does it build?
 
 on:
   workflow_dispatch:
@@ -27,34 +27,3 @@ jobs:
     - run: npm i
       
     - run: npm start
-
-    - run: npm link
-
-    - run: | 
-        git clone https://github.com/estruyf/doctor-sample
-        cd doctor-sample
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_LINUX }}"
-
-  screenshots:
-    name: Take screenshots after publishing
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    needs: [build]
-
-    steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-node@v1
-      with:
-        node-version: 14
-        registry-url: https://registry.npmjs.org/
-    - run: |
-        npm i playwright-chromium node-sp-auth@3
-        node ./scripts/screenshots.js
-      env:
-        USER_NAME: ${{ secrets.USERNAME }}
-        PASSWORD: ${{ secrets.PASSWORD }}
-        SITEURL_LINUX: ${{ secrets.SITEURL_LINUX }}
-    - uses: actions/upload-artifact@v2
-      with:
-        name: Screenshots
-        path: screenshots/**/*.png
