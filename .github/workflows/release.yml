@@ -199,7 +199,7 @@ jobs:
         owner: estruyf
         repo: doctor
         workflowid: 6155745
-        ref: ${{ GITHUB_REF }}
+        ref: ${{ github.ref }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
