@@ -85,13 +85,13 @@ export class DoctorTranspiler {
                   observer.next(`Creating or updating the page in SharePoint for ${filename}`);
 
                   // Check if the page already exists
-                  const existed = await PagesHelper.createPageIfNotExists(webUrl, slug, title, layout, comments, description, template, skipExistingPages);
+                  const existed = await PagesHelper.createPageIfNotExists(webUrl, slug, title, layout, comments, description, template || options.pageTemplate, skipExistingPages);
 
                   Logger.debug(`Page existed: ${existed} - Skipping existing pages: ${skipExistingPages}`);
 
                   if (!existed || (existed && !skipExistingPages)) {
                     // Check if the header of the page needs to be changed
-                    await HeaderHelper.set(file, webUrl, slug, header, options, !!template);
+                    await HeaderHelper.set(file, webUrl, slug, header, options, !!(template || options.pageTemplate));
         
                     // Retrieving all the controls from the page, so that we can start replacing the 
                     const controlData: string = await PagesHelper.getPageControls(webUrl, slug);

@@ -36,8 +36,6 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 `--webPartTitle <webPartTitle>`
 : This defined the title of the markdown web part to be created/updated on the page. Default value is: `doctor-placeholder`.
 
-> **Important**: if you would change this value, be sure to keep this in the `doctor.json` file. 
-
 `--overwriteImages`
 : Specifies if you allow `doctor` to overwrite the images in the SharePoint library that are referenced in the markdown files.
 
@@ -104,6 +102,9 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 
 `--cleanTopNavigation`
 : Allows you to specify if you want to remove all the navigation elements defined in the `TopNavigation` navigation before adding the new navigation structure.
+
+`--pageTemplate`
+: Name of the default page template to use for all the pages which will be created.
 
 ### `doctor.json`
 
