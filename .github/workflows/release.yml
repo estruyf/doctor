@@ -190,19 +190,17 @@ jobs:
   restart_when_failed:
     name: Restarts the scheduled run when it failed
     runs-on: ubuntu-latest
-    if: always() && github.event_name == 'schedule' && ${{ failure() }}
+    if: github.event_name == 'schedule' && failure()
     needs: [build, build_pwsh, build_cmd]
-    steps:  
-    - uses: octokit/request-action@v2.x
-      name: Retry the workflow
-      with:
-        route: POST /repos/{owner}/{repo}/actions/workflows/{workflowid}/dispatches
-        owner: estruyf
-        repo: doctor
-        workflowid: 6155745
-        ref: ${{ github.ref }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Retry the workflow
+        run: |
+          curl -i \
+          -X POST \
+          -H "Accept: application/vnd.github.v3+json" \
+          -H "Authorization: token ${{ secrets.ACTIONS_PAT }}" \
+          https://api.github.com/repos/estruyf/doctor/actions/workflows/6155745/dispatches \
+          -d '{"ref": "${{ github.ref }}" }'
 
 
   ##############################
