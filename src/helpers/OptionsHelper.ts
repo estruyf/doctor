@@ -105,6 +105,7 @@ export class OptionsHelper {
       outputFolder: args["--outputFolder"] || "",
       siteDesign: options["siteDesign"] || null,
       markdown: options["markdown"] || null,
+      multilingual: options["multilingual"] || null,
       shortcodesFolder: options["markdown"] && options["markdown"]["shortcodesFolder"] ? options["markdown"]["shortcodesFolder"] : "./shortcodes",
       skipPages: args["--skipPages"] || false,
       skipNavigation: args["--skipNavigation"] || false,

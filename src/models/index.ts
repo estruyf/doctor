@@ -7,6 +7,7 @@ export * from './HeaderOptions';
 export * from './ListData';
 export * from './MarkdownSettings';
 export * from './Menu';
+export * from './MultilingualSettings';
 export * from './NavigationItem';
 export * from './Page';
 export * from './PageFrontMatter';
