@@ -6,6 +6,7 @@ import { execScript } from "./execScript";
 import { Logger } from "./logger";
 
 type LocationType = "QuickLaunch" | "TopNavigationBar";
+const WEIGHT_VALUE = 99999;
 
 export class NavigationHelper {
   private static qlElms: NavigationItem[] | string = null;
@@ -39,7 +40,10 @@ export class NavigationHelper {
         if (menu && menu.items) {
           const navElms = await this.getNavigationElms(webUrl, location as LocationType);
 
-          menu.items = menu.items.sort(this.itemWeightSorting);
+          const weightedItems = menu.items.filter(i => !!i.weight).sort(this.itemWeightSorting);
+          const alphaItems = menu.items.filter(i => !i.weight).sort(this.alphabeticalSorting);
+          menu.items = [...weightedItems, ...alphaItems];
+
           for (const item of menu.items) {
             const rootElm = navElms.find((e: NavigationItem) => e.Title === item.name);
             // If the root element exists, this will be cleaned and filled with the new pages
@@ -144,7 +148,7 @@ export class NavigationHelper {
         ...navItems[navItemIdx],
         name: item.name || title,
         url: slug ? `${webUrl}${webUrl.endsWith('/') ? '' : '/'}sitepages/${slug}` : '',
-        weight: item.weight || 99999,
+        weight: item.weight || null,
         updated: true
       };
       
@@ -155,7 +159,7 @@ export class NavigationHelper {
         id: (item.id || item.name || title).toLowerCase().replace(/ /g, ''),
         url: slug ? `${webUrl}${webUrl.endsWith('/') ? '' : '/'}sitepages/${slug}` : '',
         name: item.name || title,
-        weight: item.weight || 99999,
+        weight: item.weight || null,
         items: []
       });
     }
@@ -235,7 +239,10 @@ export class NavigationHelper {
       return;
     }
 
-    items = items.sort(this.itemWeightSorting);
+    const weightedItems = items.filter(i => !!i.weight).sort(this.itemWeightSorting);
+    const alphaItems = items.filter(i => !i.weight).sort(this.alphabeticalSorting);
+    items = [...weightedItems, ...alphaItems];
+
     for (const item of items) {
       const parentNode = await this.createNavigationElm(webUrl, type, item.name, item.url, rootId);
 
@@ -246,11 +253,22 @@ export class NavigationHelper {
   }
 
   /**
-   * Sort the navigation items
+   * Sort the navigation items by their weight
    * @param a 
    * @param b 
    */
   private static itemWeightSorting(a: MenuItem, b: MenuItem) {
-    return (a.weight || 99999) > (b.weight || 99999) ? 1 : -1;
+    return (a.weight || WEIGHT_VALUE) > (b.weight || WEIGHT_VALUE) ? 1 : -1;
+  }
+  
+  /**
+   * Sort the navigation items alphabetically
+   * @param a 
+   * @param b 
+   */
+  private static alphabeticalSorting(a: MenuItem, b: MenuItem) {
+    if ((a.name || a.id).toLowerCase() < (b.name || b.id).toLowerCase()) { return -1; }
+    if ((a.name || a.id).toLowerCase() > (b.name || b.id).toLowerCase()) { return 1; }
+    return 0;
   }
 }
