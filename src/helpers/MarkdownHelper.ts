@@ -66,7 +66,12 @@ export class MarkdownHelper {
 
     if (allowHtml) {
       const cleanCss = new CleanCSS({});
-      let htmlMarkup = await ShortcodesHelpers.parseBefore(markdown);
+      let htmlMarkup = await ShortcodesHelpers.parseBefore(`
+<div class="doctor__container">
+  <div class="doctor__container__markdown">
+    ${markdown}
+  </div>
+</div>`);
       htmlMarkup = converter.render(htmlMarkup);
       htmlMarkup = await ShortcodesHelpers.parseAfter(htmlMarkup);
       htmlMarkup = `${htmlMarkup}<style>${cleanCss.minify(this.getEditorStyles(theme === "light")).styles} ${cleanCss.minify(this.getShortcodeStyles()).styles}</style>`;
@@ -253,6 +258,23 @@ export class MarkdownHelper {
 
   private static getShortcodeStyles() {
     return `
+      .doctor__container {
+        position: relative;
+      }
+
+      @media screen and (min-width: 1024px) {
+        .doctor__container__markdown_right_padding {
+          padding-right: 20%;
+        }
+  
+        .doctor__container__toc_right {
+          float: right;
+          position: sticky;
+          top: 0;
+          width: 19%;
+        }
+      }
+
       .callout {
         padding: 1rem;
         border: 1px solid #eaeaea;
