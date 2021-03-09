@@ -6,6 +6,11 @@ description: The changelog of Doctor
 type: docs-main
 ---
 
+## [1.9.0]
+
+
+- [#77](https://github.com/estruyf/doctor/issues/77): [Enhancement]: Add pages in alphabetical order to the navigation (when weight is not defined)
+
 ## [1.8.0]
 
 
