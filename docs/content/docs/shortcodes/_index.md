@@ -16,9 +16,9 @@ Shortcodes are HTML snippets inside your content files calling built-in or custo
 
 At the moment, `doctor` has the following built-in shortcodes:
 
-- [Callouts](./callouts)
-- [Icon](./icon)
-- [Table of contents](./toc)
+- [Callouts](./callouts/)
+- [Icon](./icon/)
+- [Table of contents](./toc/)
 
 ## Provide your own shortcodes
 
