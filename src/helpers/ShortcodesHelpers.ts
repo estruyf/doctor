@@ -3,7 +3,7 @@ import * as fg from 'fast-glob';
 import * as path from 'path';
 import * as cheerio from 'cheerio';
 import { IconRenderer, CalloutRenderer, TableOfContentsRenderer } from '../shortcodes';
-import { Shortcode } from '../models';
+import { Shortcode, TocPosition } from '../models';
 import { Logger } from './logger';
 import { TelemetryHelper } from './TelemetryHelper';
 
@@ -76,21 +76,25 @@ export class ShortcodesHelpers {
     Logger.debug(`Doctor uses ${tags.length} shortcodes for HTML parsing.`);
     TelemetryHelper.trackShortcodeUsage(tags.length);
 
-    const $ = cheerio.load(htmlMarkup, { xmlMode: true });
+    const $ = cheerio.load(htmlMarkup, { xmlMode: true, decodeEntities: false });
 
     for (const tag of tags) {
       const elms = $(tag).toArray();
-      // const elms = [...document.getElementsByTagName(tag) as any];
       Logger.debug(`Doctor found ${elms.length} element(s) for "${tag}" shortcode.`);
       if (elms && elms.length > 0) {
         const shortcode = ShortcodesHelpers.shortcodes[tag];
 
+        let tocPostProcessing: string | null = null;
         for (const elm of elms) {
           if (elm && shortcode && shortcode.render) {
             Logger.debug(`Executing shortcode "${tag}"`);
 
             const $elm = $(elm);
-            const attributes = this.getAllAttributes($elm.get(0));
+            const attributes: any = this.getAllAttributes($elm.get(0));
+
+            if (tag === "toc" && attributes && attributes.position && (attributes.position.toLowerCase() === TocPosition.left || attributes.position.toLowerCase() === TocPosition.right)) {
+              tocPostProcessing = attributes.position;
+            }
 
             const scHtml = await shortcode.render(attributes, $elm.html());
             $elm.replaceWith(scHtml);
@@ -98,6 +102,15 @@ export class ShortcodesHelpers {
             Logger.debug(`Shortcode "${tag}" its HTML:`);
             Logger.debug(scHtml);
             Logger.debug(``);
+          }
+        }
+
+        if (tocPostProcessing) {
+          const $parent = $('.doctor__container');
+          const $elm = $('.doctor__container__toc');
+          if ($elm && $parent) {
+            $elm.prependTo($parent);
+            $parent.find('.doctor__container__markdown').addClass(`doctor__container__markdown_${tocPostProcessing.toLowerCase()}_padding`);
           }
         }
       }

@@ -21,11 +21,11 @@ const testSite = async (page, siteUrl, type) => {
 (async () => {
   try {
 
-    const { USER_NAME, PASSWORD, SITEURL_WINDOWS_POWERSHELL, SITEURL_WINDOWS, SITEURL_LINUX, SITEURL_MACOS } = process.env;
+    const { USER_NAME, PASSWORD, SITEURL_LINUX } = process.env;
 
     const browser = await chromium.launch();
 
-    const authData = await spauth.getAuth(SITEURL_MACOS, {
+    const authData = await spauth.getAuth(SITEURL_LINUX, {
       username: USER_NAME,
       password: PASSWORD,
       online: true

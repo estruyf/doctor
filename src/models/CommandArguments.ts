@@ -26,6 +26,8 @@ export interface CommandArguments {
   cleanQuickLaunch: boolean;
   cleanTopNavigation: boolean;
 
+  pageTemplate: string | null;
+
   menu?: Menu;
 
   username?: string;

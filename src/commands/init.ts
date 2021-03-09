@@ -37,7 +37,7 @@ export class Init {
 
     if (!fs.existsSync(configFile)) {
       const jsonContents = JSON.stringify({
-        "$schema": "https://raw.githubusercontent.com/estruyf/doctor/dev/schema/1.0.0.json",
+        "$schema": "https://raw.githubusercontent.com/estruyf/doctor/dev/schema/1.2.0.json",
         auth: options.auth,
         username: options.username,
         password: options.password,
@@ -45,7 +45,7 @@ export class Init {
         folder: options.startFolder.replace(process.cwd(), '.'),
         overwriteImages: options.overwriteImages,
         library: options.assetLibrary,
-        wpInternalTitle: options.webPartTitle
+        webPartTitle: options.webPartTitle
       }, null, 2);
       fs.writeFileSync(configFile, jsonContents, { encoding: "utf-8" });
     }

@@ -1,0 +1,341 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://raw.githubusercontent.com/estruyf/doctor/dev/schema/1.2.0.json",
+  "type": "object",
+  "title": "Doctor configuration",
+  "description": "The configuration schema for doctor.json.",
+  "default": {},
+  "examples": [
+    {
+      "url": "https://tenant.sharepoint.com/sites/documentation",
+      "auth": "deviceCode",
+      "overwriteImages": false,
+      "folder": "./src",
+      "library": "Shared Documents",
+      "menu": {
+        "QuickLaunch": {
+          "items": [
+            {
+              "id": "documentation",
+              "name": "Documentation",
+              "url": ""
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "required": [
+    "url"
+  ],
+  "definitions": {
+    "items": {
+      "title": "items",
+      "description": "Static navigation items",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { 
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "parent": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "properties": {
+      "auth": {
+        "$id": "#/properties/auth",
+        "type": "string",
+        "title": "auth",
+        "description": "Specify the authentication type to use. Values can be `deviceCode` (default) or `password`.",
+        "default": "deviceCode",
+        "enum": [
+          "deviceCode",
+          "password",
+          "certificate"
+        ]
+      },
+      "password": {
+        "$id": "#/properties/password",
+        "type": "string",
+        "title": "password",
+        "description": "When using `password` or `certificate` authentication. For `password` authentication you need to pass `username` and `password`. For `certificate` authentication you need to pass `appId`, `tenant`, `certificateBase64Encoded`, and `password` if specified.",
+        "default": ""
+      },
+      "username": {
+        "$id": "#/properties/username",
+        "type": "string",
+        "title": "username",
+        "description": "When using `password` authentication, you need to pass the `username` and `password`.",
+        "default": ""
+      },
+      "appId": {
+        "$id": "#/properties/appId",
+        "type": "string",
+        "title": "appId",
+        "description": "The `appId` to use for the certificate authentication.",
+        "default": ""
+      },
+      "tenant": {
+        "$id": "#/properties/tenant",
+        "type": "string",
+        "title": "tenant",
+        "description": "The `tenant` ID to use for the certificate authentication.",
+        "default": ""
+      },
+      "certificateBase64Encoded": {
+        "$id": "#/properties/certificateBase64Encoded",
+        "type": "string",
+        "title": "certificateBase64Encoded",
+        "description": "The `certificateBase64Encoded` base64 string to use for the certificate authentication.",
+        "default": ""
+      },
+      "overwriteImages": {
+        "$id": "#/properties/overwriteImages",
+        "type": "boolean",
+        "title": "overwriteImages",
+        "description": "Specifies if you allow `doctor` to overwrite the images in the SharePoint library that are referenced in the markdown files.",
+        "default": false
+      },
+      "url": {
+        "$id": "#/properties/url",
+        "type": "string",
+        "title": "url",
+        "description": "The URL of the site collection to use.",
+        "default": "",
+        "examples": ["https://tenant.sharepoint.com/sites/documentation"]
+      },
+      "folder": {
+        "$id": "#/properties/folder",
+        "type": "string",
+        "title": "folder",
+        "description": "The folder location in where you will create your markdown files.",
+        "default": "./src",
+        "examples": ["./src"]
+      },
+      "library": {
+        "$id": "#/properties/library",
+        "type": "string",
+        "title": "library",
+        "description": "Specified the library which you want to use in SharePoint to store your referenced images.",
+        "default": "Shared Documents"
+      },
+      "webPartTitle": {
+        "$id": "#/properties/webPartTitle",
+        "type": "string",
+        "title": "The webPartTitle schema",
+        "description": "This defined the title of the markdown web part to be created/updated on the page. Default value is: `doctor-placeholder.",
+        "default": "doctor-placeholder"
+      },
+      "pageTemplate": {
+        "$id": "#/properties/pageTemplate",
+        "type": "string",
+        "title": "pageTemplate",
+        "description": "The name of the default page template to use for all the pages.",
+        "default": "doctor-placeholder"
+      },
+      "continueOnError": {
+        "$id": "#/properties/continueOnError",
+        "type": "boolean",
+        "title": "continueOnError",
+        "description": "Continue when an error occurs during the publishing process.",
+        "default": false
+      },
+      "commandName": {
+        "$id": "#/properties/commandName",
+        "type": "string",
+        "title": "commandName",
+        "description": "In case you want to use the locally installed CLI for Microsoft 365, you can use this flag. By default, it uses the version specified in the doctor tool.",
+        "default": "localm365"
+      },
+      "skipExistingPages": {
+        "$id": "#/properties/skipExistingPages",
+        "type": "boolean",
+        "title": "skipExistingPages",
+        "description": "Will not overwrite pages if they already existed on the site.",
+        "default": false
+      },
+      "retryWhenFailed": {
+        "$id": "#/properties/retryWhenFailed",
+        "type": "boolean",
+        "title": "retryWhenFailed",
+        "description": "Specifying this flag will retry the command if it failed. In some cases it can be that SharePoint failes to process your request, and this allows you to try again without running the whole flow from scratch.",
+        "default": false
+      },
+      "cleanQuickLaunch": {
+        "$id": "#/properties/cleanQuickLaunch",
+        "type": "boolean",
+        "title": "cleanQuickLaunch",
+        "description": "Allows you to specify if you want to remove all the navigation elements defined in the QuickLaunch navigation before adding the new navigation structure.",
+        "default": false
+      },
+      "cleanTopNavigation": {
+        "$id": "#/properties/cleanTopNavigation",
+        "type": "boolean",
+        "title": "cleanTopNavigation",
+        "description": "Allows you to specify if you want to remove all the navigation elements defined in the TopNavigation navigation before adding the new navigation structure.",
+        "default": false
+      },
+      "menu": {
+        "$id": "#/properties/menu",
+        "type": "object",
+        "title": "menu",
+        "description": "Defines the static navigation stucture to get created.",
+        "properties": {
+          "QuickLaunch": {
+            "$id": "#/properties/menu/properties/QuickLaunch",
+            "type": "object",
+            "title": "QuickLaunch",
+            "description": "QuickLaunch navigation element.",
+            "required": [
+              "items"
+            ],
+            "properties": {
+              "items": { "$ref": "#/definitions/items" }
+            }
+          },
+          "TopNavigation": {
+            "$id": "#/properties/menu/properties/TopNavigation",
+            "type": "object",
+            "title": "TopNavigation",
+            "description": "TopNavigation navigation element.",
+            "required": [
+              "items"
+            ],
+            "properties": {
+              "items": { "$ref": "#/definitions/items" }
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "siteDesign": {
+      "$id": "#/properties/siteDesign",
+      "type": "object",
+      "title": "siteDesign",
+      "description": "Defines the design to apply to the site (theme, chrome header and footer).",
+      "properties": {
+        "logo": {
+          "$id": "#/properties/siteDesign/properties/logo",
+          "type": "string",
+          "title": "logo",
+          "description": "Set the logo for the site.",
+          "default": ""
+        },
+        "theme": {
+          "$id": "#/properties/siteDesign/properties/theme",
+          "type": "string",
+          "title": "theme",
+          "description": "The name of the SharePoint theme.",
+          "default": ""
+        },
+        "chrome": {
+          "$id": "#/properties/siteDesign/properties/chrome",
+          "type": "object",
+          "title": "Chrome",
+          "description": "Site header and footer chrome settings.",
+          "properties": {
+            "headerLayout": {
+              "$id": "#/properties/headerLayout",
+              "type": "string",
+              "title": "headerLayout",
+              "description": "The layout of the chrome header.",
+              "default": "Standard",
+              "enum": ["Standard", "Compact", "Minimal", "Extended"]
+            },
+            "headerEmphasis": {
+              "$id": "#/properties/headerEmphasis",
+              "type": "string",
+              "title": "headerEmphasis",
+              "description": "The chrome header background.",
+              "default": "Lightest",
+              "enum": ["Lightest", "Light", "Dark", "Darkest"]
+            },
+            "logoAlignment": {
+              "$id": "#/properties/logoAlignment",
+              "type": "string",
+              "title": "logoAlignment",
+              "description": "Specify how to align the logo if `extended` header is used.",
+              "default": "Left",
+              "enum": ["Left", "Center", "Right"]
+            },
+            "footerLayout": {
+              "$id": "#/properties/footerLayout",
+              "type": "string",
+              "title": "footerLayout",
+              "description": "The layout of the chrome footer.",
+              "default": "Simple",
+              "enum": ["Simple", "Extended"]
+            },
+            "footerEmphasis": {
+              "$id": "#/properties/headerEmphasis",
+              "type": "string",
+              "title": "headerEmphasis",
+              "description": "The chrome footer background.",
+              "default": "Darkest",
+              "enum": ["Lightest", "Light", "Dark", "Darkest"]
+            },
+            "disableMegaMenu": {
+              "$id": "#/properties/disableMegaMenu",
+              "type": "boolean",
+              "title": "disableMegaMenu",
+              "description": "Specify to disable the mega menu. This results in using the cascading navigation (classic experience).",
+              "default": false
+            },
+            "hideTitleInHeader": {
+              "$id": "#/properties/hideTitleInHeader",
+              "type": "boolean",
+              "title": "hideTitleInHeader",
+              "description": "Specify to hide the site title in the header.",
+              "default": false
+            },
+            "disableFooter": {
+              "$id": "#/properties/disableFooter",
+              "type": "boolean",
+              "title": "disableFooter",
+              "description": "Specify to disable the footer on the site.",
+              "default": false
+            }
+          }
+        }
+      },
+      "markdown": {
+        "$id": "#/properties/markdown",
+        "type": "object",
+        "title": "markdown",
+        "description": "Special markdown settings of how you want to render you content in SharePoint.",
+        "properties": {
+          "allowHtml": {
+            "$id": "#/properties/markdown/properties/allowHtml",
+            "type": "boolean",
+            "title": "allowHtml",
+            "description": "By default SharePoint renders the HTML. If you set this to `true`, it will allow Doctor to generate the HTML and allows you to make use of all HTML capabilities the tool has to offer.",
+            "default": false
+          },
+          "theme": {
+            "$id": "#/properties/markdown/properties/theme",
+            "type": "string",
+            "title": "theme",
+            "description": "Specify the theme to use for the code blocks. Default is `Dark`.",
+            "default": "Dark",
+            "enum": ["Dark", "Light"]
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

@@ -14,4 +14,5 @@ export * from './PageTemplate';
 export * from './PublishOutput';
 export * from './Shortcode';
 export * from './SiteDesign';
+export * from './TocPosition';
 export * from './Tokens';

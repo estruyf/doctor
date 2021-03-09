@@ -132,10 +132,10 @@
         "description": "Specified the library which you want to use in SharePoint to store your referenced images.",
         "default": "Shared Documents"
       },
-      "wpInternalTitle": {
-        "$id": "#/properties/wpInternalTitle",
+      "webPartTitle": {
+        "$id": "#/properties/webPartTitle",
         "type": "string",
-        "title": "The wpInternalTitle schema",
+        "title": "The webPartTitle schema",
         "description": "This defined the title of the markdown web part to be created/updated on the page. Default value is: `doctor-placeholder`.",
         "default": "doctor-placeholder"
       },

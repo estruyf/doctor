@@ -6,6 +6,13 @@ description: The changelog of Doctor
 type: docs-main
 ---
 
+## [1.9.0]
+
+
+- [#75](https://github.com/estruyf/doctor/issues/75): [Enhancement]: Ability to define a default template in `doctor.json`
+- [#76](https://github.com/estruyf/doctor/issues/76): [Enhancement]: Ability to place the table of contents at the `left` or `right` side of the markdown
+- [#77](https://github.com/estruyf/doctor/issues/77): [Enhancement]: Add pages in alphabetical order to the navigation (when weight is not defined)
+
 ## [1.8.0]
 
 
@@ -17,6 +24,7 @@ type: docs-main
 - [#66](https://github.com/estruyf/doctor/issues/66): [Enhancement]: Autocomplete functionality added for commands and its arguments
 - [#70](https://github.com/estruyf/doctor/issues/70): [Enhancement]: Ability to specify to clean the `QuickLaunch` and/or `TopNavigation`
 - [#71](https://github.com/estruyf/doctor/issues/71): [Enhancement]: Easier debugging with ability to attach the VSCode debugger
+- [#72](https://github.com/estruyf/doctor/issues/72): [Bug]: Fix for encoding characters in codeblocks + tests
 
 ## [1.7.0]
 

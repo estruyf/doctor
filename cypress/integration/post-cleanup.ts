@@ -39,6 +39,10 @@ describe('Verify if all pages are still in place after the post clean-up', funct
   it('8. Verify characters', () => {
     cy.visitSP('SitePages/tests/characters.aspx');
   });
+  
+  it('9. Verify codeblocks', () => {
+    cy.visitSP('SitePages/tests/codeblocks.aspx');
+  });
 });
 
 
