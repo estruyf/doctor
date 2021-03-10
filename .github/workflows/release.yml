@@ -52,8 +52,13 @@ jobs:
     - run: npm link
 
     - name: Publish via Doctor
-      run: | 
-        git clone https://github.com/estruyf/doctor-sample
+      run: |
+        sampleRepo="https://github.com/estruyf/doctor-sample/tree/dev"
+        if [[ ${GITHUB_REF} == "refs/heads/main" ]]; then
+          sampleRepo="https://github.com/estruyf/doctor-sample"
+        fi
+
+        git clone $sampleRepo
         node ./scripts/prepare-sample.js
         cd doctor-sample
 
@@ -111,7 +116,12 @@ jobs:
 
     - name: Publish via Doctor
       run: | 
-        git clone https://github.com/estruyf/doctor-sample
+        $sampleRepo="https://github.com/estruyf/doctor-sample/tree/dev"
+        If (${env:GITHUB_REF} -eq 'refs/heads/main') {
+          $sampleRepo="https://github.com/estruyf/doctor-sample"
+        }
+
+        git clone $sampleRepo
         node ./scripts/prepare-sample.js
         cd doctor-sample
 
@@ -168,8 +178,10 @@ jobs:
       shell: cmd
 
     - name: Publish via Doctor
-      run: | 
-        git clone https://github.com/estruyf/doctor-sample
+      run: |
+        IF "%GITHUB_REF%"=="refs/heads/main" (SET sampleRepo="https://github.com/estruyf/doctor-sample") else (SET sampleRepo="https://github.com/estruyf/doctor-sample/tree/dev")
+
+        git clone %sampleRepo%
         node ./scripts/prepare-sample.js
         cd doctor-sample
 
