@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { ShortcodeRender } from 'src/models';
+import { ShortcodeRender } from '../models';
 import { Logger } from "../helpers";
 
 export const IconRenderer: ShortcodeRender = {

@@ -1,3 +1,4 @@
+export * from './AccessToken';
 export * from './ApiHelper';
 export * from './AppInsights';
 export * from './ArgumentsHelper';

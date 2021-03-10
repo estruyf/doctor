@@ -1,7 +1,7 @@
 ---
 title: Options
 date: 2021-02-22T10:06:07.167Z
-lastmod: 2021-03-04T14:03:25.825Z
+lastmod: 2021-03-10T14:24:35.121Z
 weight: 4
 draft: false
 keywords:
@@ -115,6 +115,29 @@ You can provide the same flags and values like in the parameters. Parameters can
   "folder": "./src",
   "url": "https://<tenant>.sharepoint.com/sites/<documentation>",
   ...
+}
+```
+
+#### Multilingual
+
+`doctor` can be configured to automatically create multilingual pages. To accomplish this, you will need to configure the `multilingual` option in the `doctor.json` file with the following settings:
+
+- **multilingual**: `MultilingualSettings` - Setting to specify if multilingual is enabled on the site and which languages are supported.
+  - **enableTranslations**: `boolean` - Specifies if you want to enable or disable multilingual features on the site. Default: `false`.
+  - **languages**: `number[]` - Locale IDs (or LCIDs) to enable on the site. An overview of the supported LCIDs for SharePoint can be found on [Supported LCIDs by SharePoint](https://github.com/pnp/PnP-PowerShell/wiki/Supported-LCIDs-by-SharePoint).
+  - **overwriteTranslationsOnChange**: `boolean` - Specify whether the changes made to user-specified text in the default language should automatically overwrite the existing translations made in all alternate languages.
+
+Example:
+
+```json
+{
+  "multilingual": {
+    "enableTranslations": true,
+    "languages": [
+      1043
+    ],
+    "overwriteTranslationsOnChange": true
+  } 
 }
 ```
 

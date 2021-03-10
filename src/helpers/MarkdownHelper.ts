@@ -15,7 +15,8 @@ export class MarkdownHelper {
    * @param startFolder 
    */
   public static async fetchMDFiles(ctx: any, startFolder: string) {
-    const files = await fg((`${startFolder}/**/*.md`).replace(/\\/g, '/'));
+    const uniformalStartFolder = startFolder.replace(/\\/g, '/');
+    const files = await fg((`${uniformalStartFolder}/**/*.md`), { ignore: [`${uniformalStartFolder}/**/*.lang.md`] });
 
     if (files && files.length > 0) {
       ctx.files = files;

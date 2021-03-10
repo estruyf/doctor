@@ -17,6 +17,8 @@ github_main = "https://github.com/estruyf/doctor"
 github_dev = "https://github.com/estruyf/doctor/tree/dev"
 github_issue = "https://github.com/estruyf/doctor/issues"
 github_issue_submit = "https://github.com/estruyf/doctor/issues/new/choose"
+github_sample_main = "https://github.com/estruyf/doctor-sample"
+github_sample_dev = "https://github.com/estruyf/doctor-sample/tree/dev"
 
 # Colors
 primary_color = "#24BAA4"

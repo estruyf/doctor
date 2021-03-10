@@ -11,6 +11,8 @@ export * from './MultilingualSettings';
 export * from './NavigationItem';
 export * from './Page';
 export * from './PageFrontMatter';
+export * from './PageLocalization';
+export * from './PageLocalizationCreation';
 export * from './PageTemplate';
 export * from './PublishOutput';
 export * from './Shortcode';

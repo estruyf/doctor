@@ -19,7 +19,9 @@
         <div class="p-lg-5 p-4 bg-white">
           <h2 class="mb-5">{{ .Title }}</h2>
           {{ if .Content }}
-          <div class="content">{{.Content}}</div>
+          <div class="content">
+            {{.Content}}
+          </div>
           {{ else }}
           <div class="bg-light p-4">
             <ul class="page-list">
