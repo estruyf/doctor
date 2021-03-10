@@ -43,6 +43,14 @@ describe('Verify if all pages are still in place after the post clean-up', funct
   it('9. Verify codeblocks', () => {
     cy.visitSP('SitePages/tests/codeblocks.aspx');
   });
+  
+  it('10. Verify multilingual home', () => {
+    cy.visitSP('SitePages/nl/home.aspx');
+  });
+  
+  it('9. Verify multilingual installation', () => {
+    cy.visitSP('SitePages/doctor/nl/installation.aspx');
+  });
 });
 
 

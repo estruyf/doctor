@@ -54,13 +54,12 @@ jobs:
     - name: Publish via Doctor
       run: | 
         git clone https://github.com/estruyf/doctor-sample
+        node ./scripts/prepare-sample.js
+        cd doctor-sample
 
         if [[ ${GITHUB_REF} != "refs/heads/main" ]]; then
             git checkout dev
         fi
-
-        node ./scripts/prepare-sample.js
-        cd doctor-sample
 
         startClean=""
         # Check on which branch it is running
@@ -117,13 +116,12 @@ jobs:
     - name: Publish via Doctor
       run: | 
         git clone https://github.com/estruyf/doctor-sample
+        node ./scripts/prepare-sample.js
+        cd doctor-sample
         
         If (${env:GITHUB_REF} -ne 'refs/heads/main') {
           git checkout dev
         }
-
-        node ./scripts/prepare-sample.js
-        cd doctor-sample
 
         $startClean = ""
         If (${env:GITHUB_REF} -eq 'refs/heads/main' -or ${env:GITHUB_EVENT_NAME} -eq 'workflow_dispatch') {
@@ -180,11 +178,10 @@ jobs:
     - name: Publish via Doctor
       run: | 
         git clone https://github.com/estruyf/doctor-sample
-
-        IF not "%GITHUB_REF%"=="refs/heads/main" (git checkout dev)
-
         node ./scripts/prepare-sample.js
         cd doctor-sample
+        
+        IF not "%GITHUB_REF%"=="refs/heads/main" (git checkout dev)
 
         IF "%GITHUB_REF%"=="refs/heads/main" (SET startClean="--cleanStart")
         IF "%GITHUB_EVENT_NAME%"=="workflow_dispatch" (SET startClean="--cleanStart")
