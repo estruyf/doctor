@@ -186,7 +186,7 @@ export class PagesHelper {
     const pageId = await this.getPageId(webUrl, slug);
     const pageList = await ListHelpers.getSitePagesList(webUrl);
     if (pageId && pageList) {
-      let metadataCommand: string = `spo listitem set --listTitle "${pageList.Title}" --id ${pageId} --webUrl "${webUrl}"`;
+      let metadataCommand: string = `spo listitem set --listId "${pageList.Id}" --id ${pageId} --webUrl "${webUrl}"`;
 
       if (metadata) {
         for (const fieldName in metadata) {
@@ -209,7 +209,7 @@ export class PagesHelper {
     const pageId = await this.getPageId(webUrl, slug);
     const pageList = await ListHelpers.getSitePagesList(webUrl);
     if (pageId && pageList) {
-      await execScript(ArgumentsHelper.parse(`spo listitem set --listTitle "${pageList.Title}" --id ${pageId} --webUrl "${webUrl}" --Description "${description}" --systemUpdate`), CliCommand.getRetry());
+      await execScript(ArgumentsHelper.parse(`spo listitem set --listId "${pageList.Id}" --id ${pageId} --webUrl "${webUrl}" --Description "${description}" --systemUpdate`), CliCommand.getRetry());
     }
   }
 
