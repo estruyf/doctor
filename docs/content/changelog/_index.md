@@ -6,6 +6,11 @@ description: The changelog of Doctor
 type: docs-main
 ---
 
+## [1.8.1]
+
+
+- [#78](https://github.com/estruyf/doctor/issues/78): [BUG] Fix for fetching all list items via the library title
+
 ## [1.8.0]
 
 
