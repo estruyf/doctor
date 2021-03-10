@@ -52,12 +52,14 @@ jobs:
     - run: npm link
 
     - name: Publish via Doctor
-      run: | 
-        branch=""
-        if [[ ${GITHUB_REF} != "refs/heads/main" ]]; then
-          branch="-b dev"
+      run: |
+        if [[ ${GITHUB_REF} != "refs/heads/main" ]]
+        then
+          git clone -b dev https://github.com/estruyf/doctor-sample
+        else
+          git clone https://github.com/estruyf/doctor-sample
         fi
-        git clone $branch https://github.com/estruyf/doctor-sample
+        
         node ./scripts/prepare-sample.js
         cd doctor-sample
 
@@ -115,23 +117,23 @@ jobs:
 
     - name: Publish via Doctor
       run: | 
-        $branch = ""
-        If (${env:GITHUB_REF} -ne 'refs/heads/main') {
-          $branch = "-b dev"
+        if (${env:GITHUB_REF} -ne 'refs/heads/main') {
+          git clone -b dev https://github.com/estruyf/doctor-sample
+        } else {
+          git clone https://github.com/estruyf/doctor-sample
         }
-
-        git clone $branch https://github.com/estruyf/doctor-sample
+        
         node ./scripts/prepare-sample.js
         cd doctor-sample
 
         $startClean = ""
-        If (${env:GITHUB_REF} -eq 'refs/heads/main' -or ${env:GITHUB_EVENT_NAME} -eq 'workflow_dispatch') {
+        if (${env:GITHUB_REF} -eq 'refs/heads/main' -or ${env:GITHUB_EVENT_NAME} -eq 'workflow_dispatch') {
           $startClean = "--cleanStart"
         }
         
         $skipPages=""
         # Check on which branch it is running
-        If (${env:GITHUB_EVENT_NAME} -eq 'schedule') {
+        if (${env:GITHUB_EVENT_NAME} -eq 'schedule') {
           $skipPages="--skipExistingPages"
         }
 
@@ -178,8 +180,9 @@ jobs:
 
     - name: Publish via Doctor
       run: |
-        IF not "%GITHUB_REF%"=="refs/heads/main" (SET branch="-b dev")
-        git clone %branch% https://github.com/estruyf/doctor-sample
+        IF not "%GITHUB_REF%"=="refs/heads/main" (git clone -b dev https://github.com/estruyf/doctor-sample) else (git clone https://github.com/estruyf/doctor-sample)
+        
+
         node ./scripts/prepare-sample.js
         cd doctor-sample
 
