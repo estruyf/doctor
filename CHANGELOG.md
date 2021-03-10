@@ -6,6 +6,7 @@
 - [#75](https://github.com/estruyf/doctor/issues/75): [Enhancement]: Ability to define a default template in `doctor.json`
 - [#76](https://github.com/estruyf/doctor/issues/76): [Enhancement]: Ability to place the table of contents at the `left` or `right` side of the markdown
 - [#77](https://github.com/estruyf/doctor/issues/77): [Enhancement]: Add pages in alphabetical order to the navigation (when weight is not defined)
+
 ## [1.8.1]
 
 
