@@ -14,6 +14,12 @@
     ]
   },
   {
+    "title": "1.8.1",
+    "updates": [
+      { "id": 78, "title": "[BUG] Fix for fetching all list items via the library title" }
+    ]
+  },
+  {
     "title": "1.8.0",
     "updates": [
       { "id": 63, "title": "[Enhancement]: Get to know how doctor is used" },

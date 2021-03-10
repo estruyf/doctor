@@ -105,7 +105,7 @@ export class FileHelpers {
 
     const pageList = await ListHelpers.getSitePagesList(webUrl);
 
-    let filesData: File[] | string =  await execScript<string>(ArgumentsHelper.parse(`spo listitem list --webUrl "${webUrl}" --title "${pageList.Title}" --fields "ID,Title,FileRef" -o json`));
+    let filesData: File[] | string =  await execScript<string>(ArgumentsHelper.parse(`spo listitem list --webUrl "${webUrl}" --id "${pageList.Id}" --fields "ID,Title,FileRef" -o json`));
     if (filesData && typeof filesData === "string") {
       filesData = JSON.parse(filesData);
     }
