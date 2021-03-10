@@ -181,7 +181,7 @@ jobs:
       run: | 
         git clone https://github.com/estruyf/doctor-sample
 
-        IF "%GITHUB_REF%"!="refs/heads/main" (git checkout dev)
+        IF not "%GITHUB_REF%"=="refs/heads/main" (git checkout dev)
 
         node ./scripts/prepare-sample.js
         cd doctor-sample
