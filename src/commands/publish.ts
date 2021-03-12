@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import Listr = require('listr');
 import kleur = require('kleur');
-import { DoctorTranspiler, FileHelpers, Logger, MarkdownHelper, NavigationHelper, SiteHelpers, Cleanup } from '../helpers';
+import { DoctorTranspiler, FileHelpers, Logger, MarkdownHelper, NavigationHelper, SiteHelpers, Cleanup, MultilingualHelper } from '../helpers';
 import { Authenticate } from './authenticate';
 import { CommandArguments, PublishOutput } from '../models';
 
@@ -41,6 +41,11 @@ export class Publish {
           await FileHelpers.cleanUp(options, options.assetLibrary)
         },
         enabled: () => options.cleanStart && options.confirm
+      },
+      {
+        title: `Multilingual site configuration`,
+        task: async (ctx: any) => await MultilingualHelper.start(ctx, options),
+        enabled: () => !!options.multilingual
       },
       {
         title: `Fetch all markdown files`,

@@ -42,8 +42,10 @@ Optional Front Matter properties are:
   - **showTopicHeader**: Specify if you want to show the topic header above the title. Default: `false`.
   - **topicHeader**: Topic header text to show.
   - **showPublishDate**: Show the publish date in the header. Default: `false`.
-- **menu**: `Menu`- defines where the page gets added to the navigation structure. Check: [menu section](#Menu).
-- **metadata**: `Metadata` - with this object you can set extra metadata for your page. Check: [Metadata section](#Metadata).
+- **menu**: `Menu`- Defines where the page gets added to the navigation structure. Check: [menu section](#Menu).
+- **metadata**: `Metadata` - With this object you can set extra metadata for your page. Check: [Metadata section](#Metadata).
+- **localization**: `{ [locale name]: relative path }[]` - Defines the localization pages linked to the current page. Find out more at [how to setup and use localization](../multilingual).
+- **type**: `string` - Specifies the type of page. Currently it supports only `translation` and should only be configured on localization pages. Find out more at [how to setup and use localization](../multilingual).
 
 When you want to create page to page links, you can provide the relative path from the current markdown file to the other markdown file (with or without the `.md` extension).
 

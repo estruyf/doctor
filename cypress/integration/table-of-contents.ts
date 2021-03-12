@@ -35,4 +35,12 @@ describe('Doctor table of contents', function() {
     cy.get(`h3#menu a.toc-anchor`).should('exist');
   });
 
+  it('6. Check if toc is positioned at the right side', () => {
+    cy.get(`.doctor__container__toc`).should('exist').should('have.class', 'doctor__container__toc_right');
+  });
+
+  it('7. Check if toc is positioned sticky', () => {
+    cy.get(`.doctor__container__toc`).should('exist').should('have.css', 'position', 'sticky');
+  });
+
 });

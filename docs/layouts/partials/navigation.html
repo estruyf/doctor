@@ -46,9 +46,15 @@
           <li class="nav-item">
             <a class="nav-link text-dark" href="{{ .Site.Params.github_dev }}" target="_blank" rel="noopener noreferrer">GitHub</a>
           </li>
+          <li class="nav-item">
+            <a class="nav-link text-dark" href="{{ .Site.Params.github_sample_dev }}" target="_blank" rel="noopener noreferrer">Sample</a>
+          </li>
         {{ else }}
           <li class="nav-item">
             <a class="nav-link text-dark" href="{{ .Site.Params.github_main }}" target="_blank" rel="noopener noreferrer">GitHub</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-dark" href="{{ .Site.Params.github_sample_main }}" target="_blank" rel="noopener noreferrer">Sample</a>
           </li>
         {{ end }}        
 

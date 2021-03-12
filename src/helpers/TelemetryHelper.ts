@@ -1,4 +1,4 @@
-import { CommandArguments } from 'src/models';
+import { CommandArguments } from '../models';
 import { CliCommand } from '.';
 import appInsights from './AppInsights';
 

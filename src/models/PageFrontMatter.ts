@@ -1,5 +1,4 @@
-import { HeaderOptions } from "./HeaderOptions";
-import { MenuItem } from "./Menu";
+import { PageLocalization, HeaderOptions, MenuType } from ".";
 
 export interface PageFrontMatter {
   title: string;
@@ -9,6 +8,11 @@ export interface PageFrontMatter {
   draft?: boolean;
   comments?: boolean;
   header?: HeaderOptions;
-  menu?: MenuItem;
+  menu?: MenuType;
   template?: string;
+  layout?: string;
+  localization?: PageLocalization;
+  metadata?: { [name: string]: string };
+  author?: any;
+  type?: "translation";
 }

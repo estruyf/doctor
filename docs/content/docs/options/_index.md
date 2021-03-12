@@ -1,7 +1,7 @@
 ---
 title: Options
 date: 2021-02-22T10:06:07.167Z
-lastmod: 2021-03-04T14:03:25.825Z
+lastmod: 2021-03-10T14:24:35.121Z
 weight: 4
 draft: false
 keywords:
@@ -35,8 +35,6 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 
 `--webPartTitle <webPartTitle>`
 : This defined the title of the markdown web part to be created/updated on the page. Default value is: `doctor-placeholder`.
-
-> **Important**: if you would change this value, be sure to keep this in the `doctor.json` file. 
 
 `--overwriteImages`
 : Specifies if you allow `doctor` to overwrite the images in the SharePoint library that are referenced in the markdown files.
@@ -105,6 +103,9 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 `--cleanTopNavigation`
 : Allows you to specify if you want to remove all the navigation elements defined in the `TopNavigation` navigation before adding the new navigation structure.
 
+`--pageTemplate`
+: Name of the default page template to use for all the pages which will be created.
+
 ### `doctor.json`
 
 You can provide the same flags and values like in the parameters. Parameters can override what is defined in the `doctor.json`. Be sure to use the whole argument names, and not the shortcodes.
@@ -114,6 +115,29 @@ You can provide the same flags and values like in the parameters. Parameters can
   "folder": "./src",
   "url": "https://<tenant>.sharepoint.com/sites/<documentation>",
   ...
+}
+```
+
+#### Multilingual
+
+`doctor` can be configured to automatically create multilingual pages. To accomplish this, you will need to configure the `multilingual` option in the `doctor.json` file with the following settings:
+
+- **multilingual**: `MultilingualSettings` - Setting to specify if multilingual is enabled on the site and which languages are supported.
+  - **enableTranslations**: `boolean` - Specifies if you want to enable or disable multilingual features on the site. Default: `false`.
+  - **languages**: `number[]` - Locale IDs (or LCIDs) to enable on the site. An overview of the supported LCIDs for SharePoint can be found on [Supported LCIDs by SharePoint](https://github.com/pnp/PnP-PowerShell/wiki/Supported-LCIDs-by-SharePoint).
+  - **overwriteTranslationsOnChange**: `boolean` - Specify whether the changes made to user-specified text in the default language should automatically overwrite the existing translations made in all alternate languages.
+
+Example:
+
+```json
+{
+  "multilingual": {
+    "enableTranslations": true,
+    "languages": [
+      1043
+    ],
+    "overwriteTranslationsOnChange": true
+  } 
 }
 ```
 

@@ -1,4 +1,4 @@
-import { MarkdownSettings, Menu, SiteDesign } from ".";
+import { MarkdownSettings, Menu, MultilingualSettings, SiteDesign } from ".";
 export interface CommandArguments {
   task: string;
   auth: "deviceCode" | "password" | "certificate";
@@ -26,7 +26,10 @@ export interface CommandArguments {
   cleanQuickLaunch: boolean;
   cleanTopNavigation: boolean;
 
+  pageTemplate: string | null;
+
   menu?: Menu;
+  multilingual?: MultilingualSettings | null;
 
   username?: string;
   password?: string;

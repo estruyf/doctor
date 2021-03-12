@@ -1,21 +1,22 @@
+import { MultilingualHelper } from './MultilingualHelper';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as cheerio from 'cheerio';
 import parseMarkdown = require('frontmatter');
 import md = require('markdown-it');
-import { CommandArguments, PublishOutput, Control } from 'src/models';
+import { CommandArguments, PublishOutput, Control, PageFrontMatter } from '../models';
 import { FileHelpers, FolderHelpers, FrontMatterHelper, HeaderHelper, Logger, NavigationHelper, PagesHelper } from '.';
-import { Observable } from 'rxjs';
+import { Observable, Subscriber } from 'rxjs';
 
 export class DoctorTranspiler {
+  private static converter = new md({ html: true, breaks: true });
 
   /**
    * Process the retrieved Markdown files
    * @param ctx 
    */
   public static async processMDFiles(ctx: any, options: CommandArguments, output: PublishOutput): Promise<Observable<string>> {
-    const { webUrl, webPartTitle, skipExistingPages } = options;
-    const converter = new md({ html: true, breaks: true });
+    const { webUrl } = options;
 
     return new Observable(observer => {
       (async () => {
@@ -25,113 +26,7 @@ export class DoctorTranspiler {
 
         for (const file of files) {
           try {
-
-            if (file.endsWith('.md')) {
-              const filename = path.basename(file);
-              observer.next(`Started processing: ${filename}`);
-
-              let contents = fs.readFileSync(file, { encoding: "utf-8" });
-              if (contents) {
-
-                let markup = parseMarkdown(contents);
-                const htmlMarkup = converter.render(contents);
-
-                const $ = cheerio.load(htmlMarkup, { xmlMode: true, decodeEntities: false });
-                const imgElms = $(`img`).toArray();
-                const anchorElms = $(`a`).toArray();
-
-                // Check if the required data for the article is present
-                if (markup && !markup.data) {
-                  throw new Error(`The "${filename}" has no front matter defined`);
-                } else if (markup && markup.data) {
-                  if (!markup.data.title) {
-                    throw new Error(`The "${filename}" has no 'title' defined`);
-                  }
-                }
-
-                let { title, description, draft, comments, layout, header, template, metadata } = markup.data;
-                let slug = FrontMatterHelper.getSlug(markup.data, options.startFolder, file);
-
-                // Image processing
-                if (imgElms && imgElms.length > 0) {
-                  observer.next(`Uploading images referenced in ${filename}`);
-
-                  markup = await this.processImages($, imgElms, file, contents, options, output);
-                }
-
-                // Anchor processing
-                if (anchorElms && anchorElms.length > 0) {
-                  observer.next(`Processing links in ${filename}`);
-
-                  Logger.debug(`Number of links in ${filename}: ${anchorElms.length}`)
-
-                  try {
-                    markup.content = this.processLinks($, anchorElms, file, markup.content, options);
-                  } catch (e) {
-                    throw e.message;
-                  }
-                }
-
-                // Checks if output needs to be generated
-                if (options.outputFolder) {
-                  const { outputFolder, startFolder } = options;
-                  const processedFilePath = file.replace(startFolder, path.join(process.cwd(), outputFolder));
-                  const dirPath = path.dirname(processedFilePath);
-                  fs.mkdirSync(dirPath, { recursive: true });
-                  fs.writeFileSync(processedFilePath, markup.content, { encoding: "utf-8" });
-                }
-
-                if (markup && markup.content) {
-                  observer.next(`Creating or updating the page in SharePoint for ${filename}`);
-
-                  // Check if the page already exists
-                  const existed = await PagesHelper.createPageIfNotExists(webUrl, slug, title, layout, comments, description, template, skipExistingPages);
-
-                  Logger.debug(`Page existed: ${existed} - Skipping existing pages: ${skipExistingPages}`);
-
-                  if (!existed || (existed && !skipExistingPages)) {
-                    // Check if the header of the page needs to be changed
-                    await HeaderHelper.set(file, webUrl, slug, header, options, !!template);
-        
-                    // Retrieving all the controls from the page, so that we can start replacing the 
-                    const controlData: string = await PagesHelper.getPageControls(webUrl, slug);
-                    if (controlData) {
-                      const webparts: Control[] = JSON.parse(controlData);
-                      const markdownWp: Control = webparts.find((c: Control) => c.webPartData && c.webPartData.title === webPartTitle);
-                      await PagesHelper.insertOrCreateControl(webPartTitle, markup.content, slug, webUrl, markdownWp ? markdownWp.id : null, options.markdown);
-                    }
-
-                    // Check if metadata needs to be added to the page
-                    if (metadata) {
-                      await PagesHelper.setPageMetadata(webUrl, slug, metadata);
-                    }
-                    
-                    // Check if page needs to be published
-                    if (typeof draft === "undefined" || !draft) {
-                      observer.next(`Publishing ${filename}`);
-                      await PagesHelper.publishPageIfNeeded(webUrl, slug);
-                    }
-
-                    // Set the page its description
-                    if (description) {
-                      observer.next(`Setting page description for ${filename}`);
-                      await PagesHelper.setPageDescription(webUrl, slug, description);
-                    }
-
-                    ++output.pagesProcessed;
-                  } else {
-                    Logger.debug(`Skipping "${filename}" as it already exists`);
-                  }
-                }
-
-                // Check if the file contains a menu element to add too and if not in draft status (cannot add draft pages to navigation)
-                if (output.navigation && markup && markup.data && markup.data.menu && !markup.data.draft) {
-                  Logger.debug(`Adding item to the navigation: ${slug} - ${title} - ${JSON.stringify(markup.data.menu)} `);
-
-                  output.navigation = NavigationHelper.hierarchy(webUrl, output.navigation, markup.data.menu, slug, title);
-                }
-              }
-            }
+            await this.processFile(file, observer, options, output);
           } catch (e) {
             observer.error(e);
             Logger.debug(e.message);
@@ -144,6 +39,137 @@ export class DoctorTranspiler {
         observer.complete();
       })();
     });
+  }
+
+  /**
+   * Process page
+   * @param file 
+   * @param observer 
+   * @param converter 
+   * @param options 
+   * @param output 
+   * @param languagePage 
+   */
+  public static async processFile(file: string, observer: Subscriber<string>, options: CommandArguments, output: PublishOutput, languagePageSlug: string = null) {
+    const { webUrl, webPartTitle, skipExistingPages } = options;
+
+    if (file.endsWith('.md')) {
+      const filename = path.basename(file);
+      observer.next(`Started processing: ${filename}`);
+
+      let contents = fs.readFileSync(file, { encoding: "utf-8" });
+      if (contents) {
+
+        let markup: { data: PageFrontMatter, content: string } = parseMarkdown(contents);
+
+        // Don't process language files, these will be processed later in the process
+        if (!languagePageSlug && markup.data && markup.data.type === "translation") {
+          return;
+        }
+
+        const htmlMarkup = this.converter.render(contents);
+
+        const $ = cheerio.load(htmlMarkup, { xmlMode: true, decodeEntities: false });
+        const imgElms = $(`img`).toArray();
+        const anchorElms = $(`a`).toArray();
+
+        // Check if the required data for the article is present
+        if (markup && !markup.data) {
+          throw new Error(`The "${filename}" has no front matter defined`);
+        } else if (markup && markup.data) {
+          if (!markup.data.title) {
+            throw new Error(`The "${filename}" has no 'title' defined`);
+          }
+        }
+
+        let { title, description, draft, comments, layout, header, template, metadata } = markup.data;
+        let slug = languagePageSlug || FrontMatterHelper.getSlug(markup.data, options.startFolder, file);
+
+        // Image processing
+        if (imgElms && imgElms.length > 0) {
+          observer.next(`Uploading images referenced in ${filename}`);
+
+          markup = await this.processImages($, imgElms, file, contents, options, output);
+        }
+
+        // Anchor processing
+        if (anchorElms && anchorElms.length > 0) {
+          observer.next(`Processing links in ${filename}`);
+
+          Logger.debug(`Number of links in ${filename}: ${anchorElms.length}`)
+
+          try {
+            markup.content = this.processLinks($, anchorElms, file, markup.content, options);
+          } catch (e) {
+            throw e.message;
+          }
+        }
+
+        // Checks if output needs to be generated
+        if (options.outputFolder) {
+          const { outputFolder, startFolder } = options;
+          const processedFilePath = file.replace(startFolder, path.join(process.cwd(), outputFolder));
+          const dirPath = path.dirname(processedFilePath);
+          fs.mkdirSync(dirPath, { recursive: true });
+          fs.writeFileSync(processedFilePath, markup.content, { encoding: "utf-8" });
+        }
+
+        if (markup && markup.content) {
+          observer.next(`Creating or updating the page in SharePoint for ${filename}`);
+
+          // Check if the page already exists
+          const existed = await PagesHelper.createPageIfNotExists(webUrl, slug, title, layout, comments, description, template || options.pageTemplate, skipExistingPages);
+
+          Logger.debug(`Page existed: ${existed} - Skipping existing pages: ${skipExistingPages}`);
+
+          if (!existed || (existed && !skipExistingPages)) {
+            // Check if the header of the page needs to be changed
+            await HeaderHelper.set(file, webUrl, slug, header, options, !!(template || options.pageTemplate));
+
+            // Retrieving all the controls from the page, so that we can start replacing the 
+            const controlData: string = await PagesHelper.getPageControls(webUrl, slug);
+            if (controlData) {
+              const webparts: Control[] = JSON.parse(controlData);
+              const markdownWp: Control = webparts.find((c: Control) => c.webPartData && c.webPartData.title === webPartTitle);
+              await PagesHelper.insertOrCreateControl(webPartTitle, markup.content, slug, webUrl, markdownWp ? markdownWp.id : null, options.markdown);
+            }
+
+            // Check if metadata needs to be added to the page
+            if (metadata) {
+              await PagesHelper.setPageMetadata(webUrl, slug, metadata);
+            }
+            
+            // Check if page needs to be published
+            if (typeof draft === "undefined" || !draft) {
+              observer.next(`Publishing ${filename}`);
+              await PagesHelper.publishPageIfNeeded(webUrl, slug);
+            }
+
+            // Set the page its description
+            if (description) {
+              observer.next(`Setting page description for ${filename}`);
+              await PagesHelper.setPageDescription(webUrl, slug, description);
+            }
+
+            ++output.pagesProcessed;
+          } else {
+            Logger.debug(`Skipping "${filename}" as it already exists`);
+          }
+        }
+
+        // Check if the file contains a menu element to add too and if not in draft status (cannot add draft pages to navigation)
+        if (output.navigation && markup && markup.data && markup.data.menu && !markup.data.draft) {
+          Logger.debug(`Adding item to the navigation: ${slug} - ${title} - ${JSON.stringify(markup.data.menu)} `);
+
+          output.navigation = NavigationHelper.hierarchy(webUrl, output.navigation, markup.data.menu, slug, title);
+        }
+
+        // Verify if there are linked multilingual pages
+        if (!languagePageSlug && options.multilingual && options.multilingual.enableTranslations && markup && markup.data && markup.data.localization) {
+          await MultilingualHelper.linkPage(markup.data.localization, file, slug, options, observer, output);
+        }
+      }
+    }
   }
 
   /**

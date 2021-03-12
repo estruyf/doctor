@@ -28,7 +28,7 @@ describe('General tests for homepage', function() {
   });
 
   it('4. Has a heading with the right description', () => {
-    cy.get(`[data-viewport-id*="MarkdownWebPart"] h2`).should('exist').contains('Maintain your documenation on SharePoint without pain');
+    cy.get(`[data-viewport-id*="MarkdownWebPart"] h2`).should('exist').contains('Maintain your documentation on SharePoint without pain');
   });
 
   it('5. Check if the navigation contains the right links', () => {
@@ -46,6 +46,7 @@ describe('General tests for homepage', function() {
     cy.get('.ms-Menu-section')
       .should('exist')
       .should('contain.text', 'Options')
+      .should('contain.text', 'Installatie') // Multilingual
       .should('contain.text', 'Installation')
       .should('contain.text', 'Page creation')
       .should('contain.text', 'Commands');

@@ -52,8 +52,14 @@ jobs:
     - run: npm link
 
     - name: Publish via Doctor
-      run: | 
-        git clone https://github.com/estruyf/doctor-sample
+      run: |
+        if [[ ${GITHUB_REF} != "refs/heads/main" ]]
+        then
+          git clone -b dev https://github.com/estruyf/doctor-sample
+        else
+          git clone https://github.com/estruyf/doctor-sample
+        fi
+        
         node ./scripts/prepare-sample.js
         cd doctor-sample
 
@@ -111,18 +117,23 @@ jobs:
 
     - name: Publish via Doctor
       run: | 
-        git clone https://github.com/estruyf/doctor-sample
+        if (${env:GITHUB_REF} -ne 'refs/heads/main') {
+          git clone -b dev https://github.com/estruyf/doctor-sample
+        } else {
+          git clone https://github.com/estruyf/doctor-sample
+        }
+        
         node ./scripts/prepare-sample.js
         cd doctor-sample
 
         $startClean = ""
-        If (${env:GITHUB_REF} -eq 'refs/heads/main' -or ${env:GITHUB_EVENT_NAME} -eq 'workflow_dispatch') {
+        if (${env:GITHUB_REF} -eq 'refs/heads/main' -or ${env:GITHUB_EVENT_NAME} -eq 'workflow_dispatch') {
           $startClean = "--cleanStart"
         }
         
         $skipPages=""
         # Check on which branch it is running
-        If (${env:GITHUB_EVENT_NAME} -eq 'schedule') {
+        if (${env:GITHUB_EVENT_NAME} -eq 'schedule') {
           $skipPages="--skipExistingPages"
         }
 
@@ -168,8 +179,10 @@ jobs:
       shell: cmd
 
     - name: Publish via Doctor
-      run: | 
-        git clone https://github.com/estruyf/doctor-sample
+      run: |
+        IF not "%GITHUB_REF%"=="refs/heads/main" (git clone -b dev https://github.com/estruyf/doctor-sample) else (git clone https://github.com/estruyf/doctor-sample)
+        
+
         node ./scripts/prepare-sample.js
         cd doctor-sample
 

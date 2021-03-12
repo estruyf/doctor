@@ -37,8 +37,10 @@ export class OptionsHelper {
       '--folder': String,
       '--url': String,
       '--library': String,
-      '--wpInternalTitle': String,
+      '--webPartTitle': String,
       '--outputFolder': String,
+      '--pageTemplate': String,
+
       '--overwriteImages': Boolean,
       '--skipExistingPages': Boolean,
       '--debug': Boolean,
@@ -54,6 +56,7 @@ export class OptionsHelper {
       '--skipPages': Boolean,
       '--skipNavigation': Boolean,
       '--skipSiteDesign': Boolean,
+
       '-a': '--auth',
       '-f': '--folder',
       '-u': '--url'
@@ -88,7 +91,7 @@ export class OptionsHelper {
       startFolder: args["--folder"] || options["folder"] || './src',
       startFolderRel: args["--folder"] || options["folder"] || './src',
       assetLibrary: args["--library"] || options["library"] || 'Shared Documents',
-      webPartTitle: args["--wpInternalTitle"] || options["wpInternalTitle"] || 'doctor-placeholder',
+      webPartTitle: args["--webPartTitle"] || options["webPartTitle"] || 'doctor-placeholder',
       skipPrecheck: args["--skipPrecheck"] as any || options["skipPrecheck"] || false,
       skipExistingPages: args["--skipExistingPages"] as any || options["skipExistingPages"] || false,
       continueOnError: args["--continueOnError"] as any || options["continueOnError"] || false,
@@ -102,12 +105,14 @@ export class OptionsHelper {
       outputFolder: args["--outputFolder"] || "",
       siteDesign: options["siteDesign"] || null,
       markdown: options["markdown"] || null,
+      multilingual: options["multilingual"] || null,
       shortcodesFolder: options["markdown"] && options["markdown"]["shortcodesFolder"] ? options["markdown"]["shortcodesFolder"] : "./shortcodes",
       skipPages: args["--skipPages"] || false,
       skipNavigation: args["--skipNavigation"] || false,
       skipSiteDesign: args["--skipSiteDesign"] || false,
       cleanQuickLaunch: args["--cleanQuickLaunch"] || options["cleanQuickLaunch"] || false,
-      cleanTopNavigation: args["--cleanTopNavigation"] || options["cleanTopNavigation"] || false
+      cleanTopNavigation: args["--cleanTopNavigation"] || options["cleanTopNavigation"] || false,
+      pageTemplate: args["--pageTemplate"] || options["pageTemplate"] || null
     };
   }
 
