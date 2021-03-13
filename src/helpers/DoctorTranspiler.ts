@@ -5,7 +5,7 @@ import * as cheerio from 'cheerio';
 import parseMarkdown = require('frontmatter');
 import md = require('markdown-it');
 import { CommandArguments, PublishOutput, Control, PageFrontMatter } from '../models';
-import { FileHelpers, FolderHelpers, FrontMatterHelper, HeaderHelper, Logger, NavigationHelper, PagesHelper } from '.';
+import { FileHelpers, FolderHelpers, FrontMatterHelper, HeaderHelper, Logger, NavigationHelper, PagesHelper, StatusHelper } from '.';
 import { Observable, Subscriber } from 'rxjs';
 
 export class DoctorTranspiler {
@@ -155,7 +155,7 @@ export class DoctorTranspiler {
               await PagesHelper.setPageDescription(webUrl, slug, description);
             }
 
-            ++output.pagesProcessed;
+            StatusHelper.addPage();
           } else {
             Logger.debug(`Skipping "${filename}" as it already exists`);
           }
@@ -207,7 +207,7 @@ export class DoctorTranspiler {
       try {
         const imgUrl = await FileHelpers.create(crntFolder, imgPath, webUrl, overwriteImages);
         contents = contents.replace(new RegExp(imgSource, 'g'), imgUrl);
-        ++output.imagesProcessed;
+        StatusHelper.addImage();
       } catch (e) {
         return Promise.reject(new Error(`Something failed while uploading the image asset. ${e.message}`));
       }

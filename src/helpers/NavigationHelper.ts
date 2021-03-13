@@ -181,14 +181,14 @@ export class NavigationHelper {
 
     if (type === "QuickLaunch") {
       if (!this.qlElms) {
-        this.qlElms = await execScript<NavigationItem[]>([...args]);
+        this.qlElms = await execScript<NavigationItem[]>([...args], CliCommand.getRetry());
       }
       return typeof this.qlElms === "string" ? JSON.parse(this.qlElms) : this.qlElms;
     }
     
     if (type === "TopNavigationBar") {
       if (!this.tnElms) {
-        this.tnElms = await execScript<NavigationItem[]>([...args]);
+        this.tnElms = await execScript<NavigationItem[]>([...args], CliCommand.getRetry());
       }
       return typeof this.tnElms === "string" ? JSON.parse(this.tnElms) : this.tnElms;
     }

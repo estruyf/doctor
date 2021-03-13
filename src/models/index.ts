@@ -1,6 +1,7 @@
 export * from './Chrome';
 export * from './CommandArguments';
 export * from './Control';
+export * from './Deferred';
 export * from './File';
 export * from './Folder';
 export * from './HeaderOptions';
@@ -14,6 +15,7 @@ export * from './PageFrontMatter';
 export * from './PageLocalization';
 export * from './PageLocalizationCreation';
 export * from './PageTemplate';
+export * from './PageTranslations';
 export * from './PublishOutput';
 export * from './Shortcode';
 export * from './SiteDesign';

@@ -34,7 +34,7 @@ export class PagesHelper {
               observer.next(`Cleaning up page: ${slug}`);
               const filePath = `sitepages/${slug}`;
               const relUrl = FileHelpers.getRelUrl(webUrl, filePath);
-              await execScript<string>(ArgumentsHelper.parse(`spo file remove --webUrl "${webUrl}" --url "${relUrl}" --confirm`));
+              await execScript<string>(ArgumentsHelper.parse(`spo file remove --webUrl "${webUrl}" --url "${relUrl}" --confirm`), CliCommand.getRetry());
             }
           } catch (e) {
             observer.error(e);
@@ -146,7 +146,7 @@ export class PagesHelper {
   public static async getPageControls(webUrl: string, slug: string): Promise<string> {
     Logger.debug(`Get page controls for ${slug}`);
 
-    let output = await execScript<any | string>(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --output json`));
+    let output = await execScript<any | string>(ArgumentsHelper.parse(`spo page get --webUrl "${webUrl}" --name "${slug}" --output json`), CliCommand.getRetry());
     if (output && typeof output === "string") {
       output = JSON.parse(output);
     }
