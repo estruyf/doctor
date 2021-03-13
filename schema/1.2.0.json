@@ -188,6 +188,13 @@
         "description": "Allows you to specify if you want to remove all the navigation elements defined in the TopNavigation navigation before adding the new navigation structure.",
         "default": false
       },
+      "disableComments": {
+        "$id": "#/properties/disableComments",
+        "type": "boolean",
+        "title": "disableComments",
+        "description": "Disable comments on global level for all pages.",
+        "default": false
+      },
       "menu": {
         "$id": "#/properties/menu",
         "type": "object",

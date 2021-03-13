@@ -51,7 +51,7 @@ export class DoctorTranspiler {
    * @param languagePage 
    */
   public static async processFile(file: string, observer: Subscriber<string>, options: CommandArguments, output: PublishOutput, languagePageSlug: string = null) {
-    const { webUrl, webPartTitle, skipExistingPages } = options;
+    const { webUrl, webPartTitle, skipExistingPages, disableComments } = options;
 
     if (file.endsWith('.md')) {
       const filename = path.basename(file);
@@ -82,8 +82,12 @@ export class DoctorTranspiler {
           }
         }
 
-        let { title, description, draft, comments, layout, header, template, metadata } = markup.data;
+        let { title, description, draft, layout, header, template, metadata } = markup.data;
         let slug = languagePageSlug || FrontMatterHelper.getSlug(markup.data, options.startFolder, file);
+
+        // Check if comments are disabled on global level, or overwrite it from page level
+        let disablePageComments = typeof markup.data.comments !== "undefined" ? !markup.data.comments : disableComments;
+        Logger.debug(`Page comments ${disablePageComments ? 'disabled' : 'enabled'}`);
 
         // Image processing
         if (imgElms && imgElms.length > 0) {
@@ -118,7 +122,7 @@ export class DoctorTranspiler {
           observer.next(`Creating or updating the page in SharePoint for ${filename}`);
 
           // Check if the page already exists
-          const existed = await PagesHelper.createPageIfNotExists(webUrl, slug, title, layout, comments, description, template || options.pageTemplate, skipExistingPages);
+          const existed = await PagesHelper.createPageIfNotExists(webUrl, slug, title, layout, disablePageComments, description, template || options.pageTemplate, skipExistingPages);
 
           Logger.debug(`Page existed: ${existed} - Skipping existing pages: ${skipExistingPages}`);
 

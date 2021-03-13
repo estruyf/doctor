@@ -56,7 +56,7 @@ export class PagesHelper {
    * @param slug 
    * @param title 
    */
-  public static async createPageIfNotExists(webUrl: string, slug: string, title: string, layout: string = "Article", comments: boolean = false, description: string = "", template: string | null = null, skipExistingPages: boolean = false): Promise<boolean> {
+  public static async createPageIfNotExists(webUrl: string, slug: string, title: string, layout: string = "Article", commentsDisabled: boolean = false, description: string = "", template: string | null = null, skipExistingPages: boolean = false): Promise<boolean> {
     try {
       const relativeUrl = FileHelpers.getRelUrl(webUrl, `sitepages/${slug}`);
 
@@ -96,8 +96,8 @@ export class PagesHelper {
         cmdArgs = `${cmdArgs} --layoutType "${layout}"`;
       }
 
-      if (pageData && (pageData as Page).commentsDisabled !== !comments) {
-        cmdArgs = `${cmdArgs} --commentsEnabled ${comments ? "true" : "false" }`;
+      if (pageData && (pageData as Page).commentsDisabled !== commentsDisabled) {
+        cmdArgs = `${cmdArgs} --commentsEnabled ${commentsDisabled ? "false" : "true" }`;
       }
 
       if (cmdArgs) {
@@ -125,14 +125,14 @@ export class PagesHelper {
           const templateUrl = pageTemplate.Url.toLowerCase().replace("sitepages/", "");
           await execScript(ArgumentsHelper.parse(`spo page copy --webUrl "${webUrl}" --sourceName "${templateUrl}" --targetUrl "${slug}"`), CliCommand.getRetry());
           await execScript(ArgumentsHelper.parse(`spo page set --webUrl "${webUrl}" --name "${slug}" --publish`), CliCommand.getRetry());
-          return await this.createPageIfNotExists(webUrl, slug, title, layout, comments, description, null, skipExistingPages);
+          return await this.createPageIfNotExists(webUrl, slug, title, layout, commentsDisabled, description, null, skipExistingPages);
         } else {
           console.log(`Template "${template}" not found on the site, will create a default page instead.`)
         }
       }
 
       // File doesn't exist
-      await execScript(ArgumentsHelper.parse(`spo page add --webUrl "${webUrl}" --name "${slug}" --title "${title}" --layoutType "${layout}" ${comments ? "--commentsEnabled" : ""} --description "${description}"`), CliCommand.getRetry());
+      await execScript(ArgumentsHelper.parse(`spo page add --webUrl "${webUrl}" --name "${slug}" --title "${title}" --layoutType "${layout}" ${commentsDisabled ? "" : "--commentsEnabled"} --description "${description}"`), CliCommand.getRetry());
 
       return false;
     }

@@ -6,6 +6,7 @@ export class CliCommand {
   private static disableTracking: boolean = false;
   private static cleanQuickLaunch: boolean = false;
   private static cleanTopNavigation: boolean = false;
+  public static options: CommandArguments | null = null;
   
   public static init(options: CommandArguments) {
     CliCommand.cmdName = options.commandName || `localm365`;
@@ -13,6 +14,7 @@ export class CliCommand {
     CliCommand.disableTracking = options.disableTracking || false;
     CliCommand.cleanQuickLaunch = options.cleanQuickLaunch || false;
     CliCommand.cleanTopNavigation = options.cleanTopNavigation || false;
+    CliCommand.options = Object.assign({}, options);
   }
 
   public static getName() {

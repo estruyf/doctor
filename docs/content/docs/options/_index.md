@@ -106,6 +106,11 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 `--pageTemplate`
 : Name of the default page template to use for all the pages which will be created.
 
+`--disableComments`
+: Disable comments for all pages.
+
+> **Important**: You can override this by specifying the `comments` option on page level.
+
 ### `doctor.json`
 
 You can provide the same flags and values like in the parameters. Parameters can override what is defined in the `doctor.json`. Be sure to use the whole argument names, and not the shortcodes.
