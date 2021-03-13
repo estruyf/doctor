@@ -1,1 +1,1 @@
-{"title":"1.9.0","updates":[{"id":75,"title":"[Enhancement]: Ability to define a default template in `doctor.json`"},{"id":76,"title":"[Enhancement]: Ability to place the table of contents at the `left` or `right` side of the markdown"},{"id":77,"title":"[Enhancement]: Add pages in alphabetical order to the navigation (when weight is not defined)"},{"id":80,"title":"[Enhancement]: Add multilingual support on site and page level"}]}
+{"title":"1.10.0","updates":[{"id":82,"title":"[Enhancement]: Allow comments to be disabled at global level"}]}

@@ -1,5 +1,10 @@
 # Changelog
     
+## [1.10.0]
+
+
+- [#82](https://github.com/estruyf/doctor/issues/82): [Enhancement]: Allow comments to be disabled at global level
+
 ## [1.9.0]
 
 
