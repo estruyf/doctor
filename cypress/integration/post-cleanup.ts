@@ -48,7 +48,7 @@ describe('Verify if all pages are still in place after the post clean-up', funct
     cy.visitSP('SitePages/nl/home.aspx');
   });
   
-  it('9. Verify multilingual installation', () => {
+  it('11. Verify multilingual installation', () => {
     cy.visitSP('SitePages/doctor/nl/installation.aspx');
   });
 });

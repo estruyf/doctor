@@ -16,8 +16,7 @@ describe('Comments testing', function() {
   });
 
   it('1. Check if page comments are disabled', () => {
-    cy.get(`[data-sp-feature-tag="Comments"] input`)
-      .should('not.exist');
+    cy.get(`#sp-comments`).should('not.exist');
   });
 
 });

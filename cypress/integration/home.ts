@@ -60,8 +60,7 @@ describe('General tests for homepage', function() {
   });
 
   it('8. Check if page comments are enabled', () => {
-    cy.get(`[data-sp-feature-tag="Comments"] input`)
-      .should('exist');
+    cy.get(`#sp-comments`).should('exist');
   });
 
 });
