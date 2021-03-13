@@ -18,6 +18,7 @@
     "watch": "node ./scripts/reset-debug.js && tsc -w",
     "watch:debug": "node ./scripts/init-debug.js && tsc -w",
     "clean": "rm -rf dist",
+    "test": "cypress open",
     "test:e2e": "cypress open",
     "test:e2e:run": "cypress run --browser edge",
     "docs": "cd docs && hogo serve",

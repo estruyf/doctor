@@ -107,7 +107,7 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 : Name of the default page template to use for all the pages which will be created.
 
 `--disableComments`
-: Disable comments for all pages.
+: Disable comments for all pages. By default the comments are enabled on the pages.
 
 > **Important**: You can override this by specifying the `comments` option on page level.
 

@@ -1,8 +1,9 @@
 {
   "baseUrl": "",
   "viewportWidth": 1200,
-  "viewportHeight": 1000,
+  "viewportHeight": 1500,
   "defaultCommandTimeout": 30000,
+  "retries": 3,
   "env": {
   }
 }
