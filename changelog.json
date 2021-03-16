@@ -9,7 +9,8 @@
     "title": "1.10.0",
     "updates": [
       { "id": 82, "title": "[Enhancement]: Allow comments to be disabled at global level" },
-      { "id": 83, "title": "[Enhancement]: New implementation of the retry logic" }
+      { "id": 83, "title": "[Enhancement]: New implementation of the retry logic" },
+      { "id": 84, "title": "[BUG]: Issue with skipping pages and multilingual" }
     ]
   },
   {

@@ -122,11 +122,11 @@ export class DoctorTranspiler {
           observer.next(`Creating or updating the page in SharePoint for ${filename}`);
 
           // Check if the page already exists
-          const existed = await PagesHelper.createPageIfNotExists(webUrl, slug, title, layout, disablePageComments, description, template || options.pageTemplate, skipExistingPages);
+          const existed = await PagesHelper.createPageIfNotExists(webUrl, slug, title, layout, disablePageComments, description, template || options.pageTemplate, (skipExistingPages && !languagePageSlug));
 
           Logger.debug(`Page existed: ${existed} - Skipping existing pages: ${skipExistingPages}`);
 
-          if (!existed || (existed && !skipExistingPages)) {
+          if (!existed || (existed && !skipExistingPages) || (existed && languagePageSlug)) {
             // Check if the header of the page needs to be changed
             await HeaderHelper.set(file, webUrl, slug, header, options, !!(template || options.pageTemplate));
 
