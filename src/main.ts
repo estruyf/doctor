@@ -9,6 +9,7 @@ import { CliCommand } from './helpers/CliCommand';
 import { ShortcodesHelpers } from './helpers';
 import { TelemetryHelper } from './helpers/TelemetryHelper';
 import { autocomplete } from './autocomplete';
+import { StatusHelper } from './helpers/StatusHelper';
 
 export class Commands {
 
@@ -27,6 +28,7 @@ export class Commands {
       Logger.init(options.debug);        
       CliCommand.init(options);
       TelemetryHelper.trackTask(options);
+      StatusHelper.getInstance();
 
       console.log('');
       console.log(kleur.bold().bgMagenta().white(` START: `), `${options.task} job`);

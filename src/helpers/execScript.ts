@@ -1,7 +1,16 @@
+import * as util from 'util';
 import { CliCommand } from './CliCommand';
 import { exec } from 'child_process';
 import { spawn } from 'cross-spawn';
 import { Logger } from './logger';
+import { defer, StatusHelper } from '.';
+import { Deferred } from '../models';
+const execAsync = util.promisify(exec);
+
+// Catch all the errors coming from command execution
+process.on('unhandledRejection', (reason, promise) => {
+  Logger.debug(`Unhandled Rejection at: ${reason}`);
+});
 
 /**
  * Execute script with retry logic
@@ -10,28 +19,37 @@ import { Logger } from './logger';
  * @param shouldSpawn 
  * @param toMask
  */
-export const execScript = async <T>(args: string[] = [], shouldRetry: boolean = false, shouldSpawn: boolean = false, toMask: string[] = []): Promise<T> => {
-  try {
-    return await promiseExecScript<T>(args, shouldSpawn, toMask);
-  } catch (err) {
-    if (shouldRetry) {
-      Logger.debug(`Doctor will retry to execute the command again.`);
-      try {
-        // Waiting 5 seconds in order to make sure that the call did not happen too fast after the previous failure
-        setTimeout(async () => {
-          return await promiseExecScript(args, shouldSpawn, toMask);
-        }, 5000);
-      } catch (err) {
-        return Promise.reject(err);
-      }
-    }
-    return Promise.reject(err);
+export const execScript = async <T>(args: string[] = [], shouldRetry: boolean = false, shouldSpawn: boolean = false, toMask: string[] = [], deferred?: Deferred<T>): Promise<T | any> => {
+  let firstRun = false;
+  if (!deferred) {
+    firstRun = true;
+    deferred = defer();
   }
+
+  promiseExecScript<T>(args, shouldSpawn, toMask)
+  .then(result => {
+    deferred.resolve(result);
+  })
+  .catch(err => {
+    if (shouldRetry && firstRun) {
+      Logger.debug(`Doctor will retry to execute the command again.`);
+      StatusHelper.addRetry();
+
+      // Waiting 5 seconds in order to make sure that the call did not happen too fast after the previous failure
+      setTimeout(async () => {
+        execScript(args, shouldRetry, shouldSpawn, toMask, deferred);
+      }, 5000);
+    } else {
+      deferred.reject(err);
+    }
+  });
+
+  return deferred.promise;
 }
 
 
 const promiseExecScript = async <T>(args: string[] = [], shouldSpawn: boolean = false, toMask: string[] = []): Promise<T> => {
-  return new Promise<T>((resolve, reject) => {
+  return new Promise<T>(async (resolve, reject) => {
     Logger.debug(``);
     const cmdToExec = Logger.mask(`${CliCommand.getName()} ${args.join(' ')}`, toMask);
     Logger.debug(`Command: ${cmdToExec}`);
@@ -52,16 +70,18 @@ const promiseExecScript = async <T>(args: string[] = [], shouldSpawn: boolean = 
         reject(new Error(error));
       });
     } else {
-      exec(`${CliCommand.getName()} ${args.join(' ')}`, async (err: Error, stdOut: string, stdErr: string) => {
-        if (err || stdErr) {
-          let error = err && err.message ? err.message : stdErr;
-          error = Logger.mask(error, toMask);
+      try {
+        const { stdout, stderr } = await execAsync(`${CliCommand.getName()} ${args.join(' ')}`);
+        if (stderr) {
+          const error = Logger.mask(stderr, toMask);
           reject(new Error(error));
           return;
         }
 
-        resolve(stdOut as any as T);
-      });
+        resolve(stdout as any as T);
+      } catch (e) {
+        reject(e.message);
+      }
     }
   });
 }

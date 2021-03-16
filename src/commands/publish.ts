@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import Listr = require('listr');
 import kleur = require('kleur');
-import { DoctorTranspiler, FileHelpers, Logger, MarkdownHelper, NavigationHelper, SiteHelpers, Cleanup, MultilingualHelper } from '../helpers';
+import { DoctorTranspiler, FileHelpers, Logger, MarkdownHelper, NavigationHelper, SiteHelpers, Cleanup, MultilingualHelper, StatusHelper } from '../helpers';
 import { Authenticate } from './authenticate';
 import { CommandArguments, PublishOutput } from '../models';
 
@@ -25,8 +25,6 @@ export class Publish {
     const { startFolder, webUrl } = options;
 
     let ouput: PublishOutput = {
-      pagesProcessed: 0,
-      imagesProcessed: 0,
       navigation: options.menu ? { ...options.menu } : null
     };
 
@@ -73,12 +71,15 @@ export class Publish {
         enabled: () => options.cleanEnd && options.confirm 
       }
     ]).run().catch(err => {
+      console.log('');
+      console.log(kleur.bgRed().bold().white(` Command retries: `), kleur.bold().red(StatusHelper.getRetries()));
       throw err;
     });
 
     console.log('');
     console.info(kleur.bold().bgYellow().black(` Publishing stats `));
-    console.info(kleur.white(` Pages: ${ouput.pagesProcessed}`));
-    console.info(kleur.white(` Images: ${ouput.imagesProcessed}`));
+    console.info(kleur.white(` Pages: ${StatusHelper.getPages()}`));
+    console.info(kleur.white(` Images: ${StatusHelper.getImages()}`));
+    console.info(kleur.white(` Retries: ${StatusHelper.getRetries()}`));
   }
 }

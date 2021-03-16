@@ -34,6 +34,7 @@ export async function cli(args: string[]) {
     process.exit(0);
   } catch (e: any | Error) {
     TempDataHelper.clear();
+
     console.log(kleur.bgRed().bold().white(` ERROR: `), kleur.bold().red(e.message.toString()));
     process.exit(1);
   }

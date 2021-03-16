@@ -42,17 +42,22 @@ export class OptionsHelper {
       '--pageTemplate': String,
 
       '--overwriteImages': Boolean,
-      '--skipExistingPages': Boolean,
-      '--debug': Boolean,
+
       '--cleanStart': Boolean,
       '--cleanEnd': Boolean,
       '--cleanQuickLaunch': Boolean,
       '--cleanTopNavigation': Boolean,
+
+      '--debug': Boolean,
       '--confirm': Boolean,
-      '--skipExisting': Boolean,
       '--continueOnError': Boolean,
       '--retryWhenFailed': Boolean,
+
+      '--disableComments': Boolean,
       '--disableTracking': Boolean,
+
+      '--skipExistingPages': Boolean,
+      '--skipExisting': Boolean,
       '--skipPages': Boolean,
       '--skipNavigation': Boolean,
       '--skipSiteDesign': Boolean,
@@ -112,7 +117,8 @@ export class OptionsHelper {
       skipSiteDesign: args["--skipSiteDesign"] || false,
       cleanQuickLaunch: args["--cleanQuickLaunch"] || options["cleanQuickLaunch"] || false,
       cleanTopNavigation: args["--cleanTopNavigation"] || options["cleanTopNavigation"] || false,
-      pageTemplate: args["--pageTemplate"] || options["pageTemplate"] || null
+      pageTemplate: args["--pageTemplate"] || options["pageTemplate"] || null,
+      disableComments: args["--disableComments"] || options["disableComments"] || false
     };
   }
 

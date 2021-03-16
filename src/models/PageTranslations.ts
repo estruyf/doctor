@@ -3,7 +3,7 @@ export interface PageTranslations {
   '@odata.type': string;
   '@odata.id': string;
   '@odata.editLink': string;
-  Path: Path;
+  Path: PagePath;
   Version: string;
   'Translations@odata.navigationLink': string;
   Translations: Translations;
@@ -22,10 +22,10 @@ export interface Item {
   FileStatus: number;
   HasPublishedVersion: boolean;
   LastModified: string;
-  Path: Path;
+  Path: PagePath;
   Title: string;
 }
 
-export interface Path {
+export interface PagePath {
   DecodedUrl: string;
 }

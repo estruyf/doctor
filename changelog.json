@@ -6,6 +6,15 @@
     ]
   },
   {
+    "title": "1.10.0",
+    "updates": [
+      { "id": 82, "title": "[Enhancement]: Allow comments to be disabled at global level" },
+      { "id": 83, "title": "[Enhancement]: New implementation of the retry logic" },
+      { "id": 84, "title": "[BUG]: Issue with skipping pages and multilingual" },
+      { "id": 85, "title": "[BUG]: Fix recording video bug in Cypress during tests" }
+    ]
+  },
+  {
     "title": "1.9.0",
     "updates": [
       { "id": 77, "title": "[Enhancement]: Add pages in alphabetical order to the navigation (when weight is not defined)" },

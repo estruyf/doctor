@@ -59,4 +59,8 @@ describe('General tests for homepage', function() {
       .should('not.contain.text', 'Pages');
   });
 
+  it('8. Check if page comments are enabled', () => {
+    cy.get(`#sp-comments`).should('exist');
+  });
+
 });
