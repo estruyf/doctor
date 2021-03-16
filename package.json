@@ -73,7 +73,7 @@
     "@types/mime": "2.0.3",
     "@types/node-fetch": "2.5.8",
     "@types/omelette": "0.4.1",
-    "cypress": "6.6.0",
+    "cypress": "6.7.1",
     "husky": "5.1.2",
     "node-sp-auth": "3.0.3",
     "tslib": "2.0.3",
