@@ -2,7 +2,7 @@
 name: Documentation request
 about: Tell which part of documentation is missing or needs to be improved
 title: "[Docs]"
-labels: documention
+labels: documentation
 assignees: ''
 ---
 
