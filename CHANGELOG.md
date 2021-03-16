@@ -6,6 +6,7 @@
 - [#82](https://github.com/estruyf/doctor/issues/82): [Enhancement]: Allow comments to be disabled at global level
 - [#83](https://github.com/estruyf/doctor/issues/83): [Enhancement]: New implementation of the retry logic
 - [#84](https://github.com/estruyf/doctor/issues/84): [BUG]: Issue with skipping pages and multilingual
+- [#85](https://github.com/estruyf/doctor/issues/85): [BUG]: Fix recording video bug in Cypress during tests
 
 ## [1.9.0]
 
