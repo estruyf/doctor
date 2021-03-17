@@ -322,7 +322,7 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@4.1.0
         with:
           branch: gh-pages
-          folder: reports/cypress/reports/html
+          folder: cypress/reports/html
 
 
 
