@@ -313,17 +313,17 @@ jobs:
       - name: Download Linux report
         uses: actions/download-artifact@v2
         with:
-          name: report-Linux
+          name: reports-Linux
 
       - name: Unzip reports from Linux
         run: |
-          unzip report-Linux.zip -d report-Linux
+          unzip reports-Linux.zip -d reports-Linux
       
       - name: Publish reports
         uses: JamesIves/github-pages-deploy-action@4.1.0
         with:
           branch: gh-pages
-          folder: report-Linux
+          folder: reports-Linux/cypress/reports/html
 
 
 
