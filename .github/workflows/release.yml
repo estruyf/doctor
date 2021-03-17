@@ -315,9 +315,9 @@ jobs:
         with:
           name: reports-Linux
 
-      - name: Unzip reports from Linux
+      - name: Check directory
         run: |
-          unzip reports-Linux.zip -d reports-Linux
+          ls *
       
       - name: Publish reports
         uses: JamesIves/github-pages-deploy-action@4.1.0
