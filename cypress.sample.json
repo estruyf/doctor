@@ -3,7 +3,8 @@
   "viewportWidth": 1200,
   "viewportHeight": 1500,
   "defaultCommandTimeout": 30000,
-  "retries": 3,
+  "retries": 2,
+  "reporter": "cypress-mochawesome-reporter",
   "env": {
   }
 }

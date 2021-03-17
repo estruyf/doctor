@@ -223,6 +223,7 @@ jobs:
     name: Cypress E2E Testing for ${{ matrix.testTitle }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    continue-on-error: true
     needs: [build, build_pwsh, build_cmd]
 
     strategy:
@@ -274,6 +275,7 @@ jobs:
       run: |
         ./node_modules/.bin/cypress verify
         ./node_modules/.bin/cypress run --browser ${{ matrix.browser }}
+        npm run cypress:report
     
     - name: Upload screenshots
       uses: actions/upload-artifact@v2
@@ -288,7 +290,42 @@ jobs:
       with:
         name: videos-${{ matrix.testTitle }}
         path: ./**/cypress/videos/**/*.mp4
-        
+
+    - name: Upload reports
+      uses: actions/upload-artifact@v2
+      if: ${{ always() }} # To make sure we can see what went wrong
+      with:
+        name: reports-${{ matrix.testTitle }}
+        path: ./**/cypress/reports/**/*
+
+
+  ####################################
+  ### Push the results to gh pages ###
+  ####################################
+  publish_results:
+    name: Publish the results
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: ${{ always() }}
+    needs: [e2e_testing]
+
+    steps:
+      - name: Download Linux report
+        uses: actions/download-artifact@v2
+        with:
+          name: report-Linux
+
+      - name: Unzip reports from Linux
+        run: |
+          unzip report-Linux.zip -d report-Linux
+      
+      - name: Publish reports
+        uses: JamesIves/github-pages-deploy-action@4.1.0
+        with:
+          branch: gh-pages
+          folder: report-Linux
+
+
 
   ###############################
   ### Release the new version ###
@@ -297,8 +334,8 @@ jobs:
     name: Release the new version
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [e2e_testing]
-    if: ${{ github.event_name != 'schedule' }}
+    needs: [publish_results]
+    if: github.event_name != 'schedule' && success()
 
     steps:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
