@@ -316,14 +316,13 @@ jobs:
           name: reports-Linux
 
       - name: Check directory
-        run: |
-          ls *
+        run: ls -R
       
       - name: Publish reports
         uses: JamesIves/github-pages-deploy-action@4.1.0
         with:
           branch: gh-pages
-          folder: reports-Linux/cypress/reports/html
+          folder: reports/cypress/reports/html
 
 
 
