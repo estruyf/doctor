@@ -80,7 +80,7 @@
     "typescript": "4.0.5"
   },
   "dependencies": {
-    "@fluentui/svg-icons": "1.1.99",
+    "@fluentui/svg-icons": "1.1.101",
     "@pnp/cli-microsoft365": "3.7.0-beta.b01397d",
     "applicationinsights": "1.8.10",
     "arg": "4.1.3",
