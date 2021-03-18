@@ -41,7 +41,7 @@
         {{ range (sort (where .Site.Pages "Type" "docs-main") "Title") }}
         <div class="col-lg-4 col-sm-6 mb-4">
           <a href="{{ .Permalink }}" class="px-4 py-5 bg-white shadow text-center d-block match-height">
-            {{ with .Params.icon}}<i class="{{.}} icon text-primary d-block mb-4"></i>{{end}}
+            {{ with .Params.icon}}<i class="{{.}} fas icon text-primary d-block mb-4"></i>{{end}}
             <h3 class="mb-3 mt-0">{{ .Title }}</h3>
             {{with .Params.description}}<p class="mb-0">{{. | markdownify}}</p>{{end}}
           </a>

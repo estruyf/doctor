@@ -62,15 +62,15 @@ url = "/docs"
 
 [[Languages.en.menu.main]]
 weight = 3
-name = "changelog"
-url = "/changelog"
+name = "Tests"
+url = "/tests"
 
 [[Languages.en.menu.main]]
 weight = 4
-name = "license"
-url = "/license"
+name = "Showcase"
+url = "/showcase"
 
 [[Languages.en.menu.main]]
 weight = 5
-name = "Showcase"
-url = "/showcase"
+name = "changelog"
+url = "/changelog"

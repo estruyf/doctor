@@ -796,10 +796,8 @@ code {
   position: relative;
 }
 
-.back-btn::before {
+.back-btn i {
   position: absolute;
-  font-family: 'themify';
-  content: "\e6bc";
   font-size: 25px;
   height: 30px;
   width: 40px;
@@ -808,7 +806,7 @@ code {
   text-align: right;
   z-index: 1;
   left: -5px;
-  top: -5px;
+  top: 3px;
 }
 
 .ui-autocomplete-input {

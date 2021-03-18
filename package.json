@@ -17,7 +17,7 @@
     "build": "npm run clean && tsc",
     "watch": "node ./scripts/reset-debug.js && tsc -w",
     "watch:debug": "node ./scripts/init-debug.js && tsc -w",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist mochawesome-report ./cypress/screenshots ./cypress/videos",
     "test": "cypress open",
     "test:e2e": "cypress open",
     "test:e2e:run": "cypress run --browser edge",

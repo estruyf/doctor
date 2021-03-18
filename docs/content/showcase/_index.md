@@ -2,7 +2,7 @@
 title: Showcase
 date: 2021-03-04T14:32:33.300Z
 lastmod: 2021-03-04T14:32:34.177Z
-icon: ti-gallery
+icon: fa-images
 description: Check out how others are using doctor
 type: docs-main
 ---

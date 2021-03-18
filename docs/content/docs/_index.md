@@ -1,7 +1,7 @@
 ---
 title: Documentation
 date: 2021-02-22T10:10:32.941Z
-icon: ti-book
+icon: fa-book
 description: Jump into the documentation of Doctor
 type: docs-main
 ---
