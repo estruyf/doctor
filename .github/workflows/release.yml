@@ -321,7 +321,7 @@ jobs:
     name: Publish the results
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    if: ${{ always() }}
+    if: always() && contains(github.event.head_commit.message, '#docs') == false
     needs: [e2e_testing]
 
     steps:
@@ -371,7 +371,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [publish_results]
-    if: github.event_name != 'schedule' && success()
+    if: github.event_name != 'schedule' && success() && contains(github.event.head_commit.message, '#docs') == false
 
     steps:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
