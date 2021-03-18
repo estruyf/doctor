@@ -223,10 +223,10 @@ jobs:
     name: Cypress E2E Testing for ${{ matrix.testTitle }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    continue-on-error: true
     needs: [build, build_pwsh, build_cmd]
 
     strategy:
+      fail-fast: false
       matrix:
         include:
           - node: 14
@@ -308,7 +308,7 @@ jobs:
       if: ${{ always() }} # To make sure we can see what went wrong
       with:
         name: reports-${{ matrix.testTitle }}
-        path: ./**/mochawesome-report/**/*
+        path: ./**/reports/mochawesome-report/**/*
 
 
   ####################################
@@ -356,7 +356,7 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@4.1.0
         with:
           branch: gh-pages
-          folder: reports
+          folder: reports/mochawesome-report
 
 
 
