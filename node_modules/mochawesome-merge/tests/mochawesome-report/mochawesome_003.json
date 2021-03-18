@@ -1,0 +1,46 @@
+{
+  "stats": {
+    "suites": 0,
+    "tests": 0,
+    "passes": 0,
+    "pending": 0,
+    "failures": 0,
+    "start": "2019-06-12T02:22:23.782Z",
+    "end": "2019-06-12T02:22:23.789Z",
+    "duration": 7,
+    "testsRegistered": 0,
+    "passPercent": null,
+    "pendingPercent": null,
+    "other": 0,
+    "hasOther": false,
+    "skipped": 0,
+    "hasSkipped": false
+  },
+  "results": [
+    false
+  ],
+  "meta": {
+    "mocha": {
+      "version": "5.2.0"
+    },
+    "mochawesome": {
+      "options": {
+        "quiet": false,
+        "reportFilename": "mochawesome",
+        "saveHtml": false,
+        "saveJson": true,
+        "useInlineDiffs": false
+      },
+      "version": "4.0.0"
+    },
+    "marge": {
+      "options": {
+        "id": "default",
+        "reportFilename": "mochawesome",
+        "overwrite": false,
+        "html": false
+      },
+      "version": "4.0.0"
+    }
+  }
+}
