@@ -276,7 +276,6 @@ jobs:
       run: |
         ./node_modules/.bin/cypress verify
         ./node_modules/.bin/cypress run --browser ${{ matrix.browser }}
-        npm run cypress:report
     
     - name: Upload screenshots
       uses: actions/upload-artifact@v2
