@@ -333,13 +333,13 @@ jobs:
       - name: Download Windows report
         uses: actions/download-artifact@v2
         with:
-          name: Windows
+          name: reports-Windows
           path: reports
 
       - name: Download Windows PowerShell report
         uses: actions/download-artifact@v2
         with:
-          name: reports-Windows PowerShell
+          name: "reports-Windows PowerShell"
           path: reports
 
       - name: Download macOS report
