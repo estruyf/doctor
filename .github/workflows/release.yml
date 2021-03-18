@@ -297,7 +297,7 @@ jobs:
         envType="${ENVTYPE,,}"
         mv ./cypress/screenshots ./mochawesome-report
         ./node_modules/.bin/mochawesome-merge --reportDir mochawesome-report > mochawesome-report/$envType.json
-        ./node_modules/.bin/marge ./mochawesome-report/$envType.json --charts
+        ./node_modules/.bin/marge ./mochawesome-report/$envType.json --charts -t "Doctor $envType" -p "Doctor $envType E2E Results"
         find ./mochawesome-report/.  -name "*.json" -type f -delete
       env:
         ENVTYPE: ${{ matrix.siteUrl }}
@@ -307,7 +307,7 @@ jobs:
       if: ${{ always() }} # To make sure we can see what went wrong
       with:
         name: reports-${{ matrix.testTitle }}
-        path: ./**/reports/mochawesome-report/**/*
+        path: ./mochawesome-report/**/*
 
 
   ####################################
