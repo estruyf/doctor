@@ -11,7 +11,7 @@ Testing `doctor` is essential. That is why every six hours, `doctor` gets tested
 
 If you are interested in the test results, you can check each of the latest test results for all platforms:
 
-- [Linux](./linux/)
-- [macOS](./macos/)
-- [Windows cmd](./windows/)
-- [Windows PowerShell](./windows_powershell/)
+- [Linux](linux/)
+- [macOS](macos/)
+- [Windows cmd](windows/)
+- [Windows PowerShell](windows_powershell/)

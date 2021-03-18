@@ -18,6 +18,7 @@ jobs:
   build:
     name: Build ${{ matrix.os }} - Bash
     runs-on: ${{ matrix.os }}
+    if: contains(github.event.head_commit.message, '#docs') == false 
 
     strategy:
       matrix:
@@ -86,6 +87,7 @@ jobs:
   build_pwsh:
     name: Build windows-latest - powershell
     runs-on: windows-latest
+    if: contains(github.event.head_commit.message, '#docs') == false
 
     steps:
     - uses: actions/checkout@v2
@@ -149,6 +151,7 @@ jobs:
   build_cmd:
     name: Build windows-latest - cmd
     runs-on: windows-latest
+    if: contains(github.event.head_commit.message, '#docs') == false
 
     steps:
     - uses: actions/checkout@v2
