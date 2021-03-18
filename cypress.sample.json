@@ -4,7 +4,13 @@
   "viewportHeight": 1500,
   "defaultCommandTimeout": 30000,
   "retries": 2,
-  "reporter": "cypress-mochawesome-reporter",
+  "screenshotsFolder": "cypress/screenshots/dev",
+  "reporter": "mochawesome",
+  "reporterOptions": {
+    "overwrite": false,
+    "html": false,
+    "json": true
+  },
   "env": {
   }
 }

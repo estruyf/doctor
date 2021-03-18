@@ -4,6 +4,7 @@ docs/public
 todo.md
 .DS_Store
 screenshots
+mochawesome-report
 
 *.pem
 *.pfx

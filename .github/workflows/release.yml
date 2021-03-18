@@ -270,6 +270,7 @@ jobs:
         USERNAME: ${{ secrets.USERNAME }}
         PASSWORD: ${{ secrets.PASSWORD }}
         SITEURL: ${{ secrets[matrix.siteUrl] }}
+        ENVIRONMENT: ${{ matrix.siteUrl }}
     
     - name: Cypress E2E testing
       run: |
@@ -291,12 +292,23 @@ jobs:
         name: videos-${{ matrix.testTitle }}
         path: ./**/cypress/videos/**/*.mp4
 
+    - name: Prepare and generate reports
+      if: ${{ always() }}
+      run: |
+        envType="${ENVTYPE,,}"
+        mv ./cypress/screenshots ./mochawesome-report
+        ./node_modules/.bin/mochawesome-merge --reportDir mochawesome-report > mochawesome-report/$envType.json
+        ./node_modules/.bin/marge ./mochawesome-report/$envType.json --charts
+        find ./mochawesome-report/.  -name "*.json" -type f -delete
+      env:
+        ENVTYPE: ${{ matrix.siteUrl }}
+
     - name: Upload reports
       uses: actions/upload-artifact@v2
       if: ${{ always() }} # To make sure we can see what went wrong
       with:
         name: reports-${{ matrix.testTitle }}
-        path: ./**/cypress/reports/**/*
+        path: ./**/mochawesome-report/**/*
 
 
   ####################################
@@ -310,19 +322,41 @@ jobs:
     needs: [e2e_testing]
 
     steps:
+      - uses: actions/checkout@v2
+      
       - name: Download Linux report
         uses: actions/download-artifact@v2
         with:
           name: reports-Linux
+          path: reports
+
+      - name: Download Windows report
+        uses: actions/download-artifact@v2
+        with:
+          name: Windows
+          path: reports
+
+      - name: Download Windows PowerShell report
+        uses: actions/download-artifact@v2
+        with:
+          name: reports-Windows PowerShell
+          path: reports
+
+      - name: Download macOS report
+        uses: actions/download-artifact@v2
+        with:
+          name: reports-macOS
+          path: reports
 
       - name: Check directory
-        run: ls -R
+        run: |
+          ls ./reports -R
       
       - name: Publish reports
         uses: JamesIves/github-pages-deploy-action@4.1.0
         with:
           branch: gh-pages
-          folder: cypress/reports/html
+          folder: reports
 
 
 

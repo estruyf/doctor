@@ -6,6 +6,7 @@
 assets
 cypress
 docs
+mochawesome-report
 node_modules
 schema
 scripts
