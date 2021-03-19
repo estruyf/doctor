@@ -13,6 +13,7 @@ if (fs.existsSync(config)) {
     configJson.env.USERNAME = process.env.USERNAME;
     configJson.env.PASSWORD = process.env.PASSWORD;
     configJson.env.SITEURL = process.env.SITEURL;
+    configJson.screenshotsFolder = `cypress/screenshots/${process.env.ENVIRONMENT}`;
     fs.writeFileSync(newPath, JSON.stringify(configJson), { encoding: "utf-8" });
   }
 }

@@ -18,6 +18,7 @@ jobs:
   build:
     name: Build ${{ matrix.os }} - Bash
     runs-on: ${{ matrix.os }}
+    if: ${{ !contains(github.event.head_commit.message, '#docs') }}
 
     strategy:
       matrix:
@@ -86,6 +87,7 @@ jobs:
   build_pwsh:
     name: Build windows-latest - powershell
     runs-on: windows-latest
+    if: ${{ !contains(github.event.head_commit.message, '#docs') }}
 
     steps:
     - uses: actions/checkout@v2
@@ -149,6 +151,7 @@ jobs:
   build_cmd:
     name: Build windows-latest - cmd
     runs-on: windows-latest
+    if: ${{ !contains(github.event.head_commit.message, '#docs') }}
 
     steps:
     - uses: actions/checkout@v2
@@ -226,6 +229,7 @@ jobs:
     needs: [build, build_pwsh, build_cmd]
 
     strategy:
+      fail-fast: false
       matrix:
         include:
           - node: 14
@@ -269,6 +273,7 @@ jobs:
         USERNAME: ${{ secrets.USERNAME }}
         PASSWORD: ${{ secrets.PASSWORD }}
         SITEURL: ${{ secrets[matrix.siteUrl] }}
+        ENVIRONMENT: ${{ matrix.siteUrl }}
     
     - name: Cypress E2E testing
       run: |
@@ -288,7 +293,76 @@ jobs:
       with:
         name: videos-${{ matrix.testTitle }}
         path: ./**/cypress/videos/**/*.mp4
-        
+
+    - name: Prepare and generate reports
+      if: ${{ always() }}
+      run: |
+        envType="${ENVTYPE,,}"
+        envType="${envType/siteurl_/}"
+
+        mv ./cypress/screenshots ./mochawesome-report
+        ./node_modules/.bin/mochawesome-merge --reportDir mochawesome-report > mochawesome-report/$envType.json
+        ./node_modules/.bin/marge ./mochawesome-report/$envType.json --charts -t "Doctor $envType" -p "Doctor $envType E2E Results"
+        find ./mochawesome-report/.  -name "*.json" -type f -delete
+      env:
+        ENVTYPE: ${{ matrix.siteUrl }}
+
+    - name: Upload reports
+      uses: actions/upload-artifact@v2
+      if: ${{ always() }} # To make sure we can see what went wrong
+      with:
+        name: reports-${{ matrix.testTitle }}
+        path: ./mochawesome-report/**/*
+
+
+  ####################################
+  ### Push the results to gh pages ###
+  ####################################
+  publish_results:
+    name: Publish the results
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always() && ${{ !contains(github.event.head_commit.message, '#docs') }}
+    needs: [e2e_testing]
+
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Download Linux report
+        uses: actions/download-artifact@v2
+        with:
+          name: reports-Linux
+          path: reports
+
+      - name: Download Windows report
+        uses: actions/download-artifact@v2
+        with:
+          name: reports-Windows
+          path: reports
+
+      - name: Download Windows PowerShell report
+        uses: actions/download-artifact@v2
+        with:
+          name: "reports-Windows PowerShell"
+          path: reports
+
+      - name: Download macOS report
+        uses: actions/download-artifact@v2
+        with:
+          name: reports-macOS
+          path: reports
+
+      - name: Check directory
+        run: |
+          ls ./reports -R
+      
+      - name: Publish reports
+        uses: JamesIves/github-pages-deploy-action@4.1.0
+        with:
+          branch: gh-pages
+          folder: reports
+
+
 
   ###############################
   ### Release the new version ###
@@ -297,8 +371,8 @@ jobs:
     name: Release the new version
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [e2e_testing]
-    if: ${{ github.event_name != 'schedule' }}
+    needs: [publish_results]
+    if: github.event_name != 'schedule' && success() && ${{ !contains(github.event.head_commit.message, '#docs') }}
 
     steps:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it

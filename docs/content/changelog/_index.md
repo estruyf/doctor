@@ -13,6 +13,7 @@ type: docs-main
 - [#83](https://github.com/estruyf/doctor/issues/83): [Enhancement]: New implementation of the retry logic
 - [#84](https://github.com/estruyf/doctor/issues/84): [BUG]: Issue with skipping pages and multilingual
 - [#85](https://github.com/estruyf/doctor/issues/85): [BUG]: Fix recording video bug in Cypress during tests
+- [#95](https://github.com/estruyf/doctor/issues/95): [Enhancement]: Add test results to the documentation to gain a better view on how they perform
 
 ## [1.9.0]
 

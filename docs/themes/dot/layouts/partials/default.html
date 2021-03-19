@@ -6,7 +6,7 @@
         <div class="sidebar">
           <ul class="list-styled">
             {{ $currentNode := . }}
-            <a class="back-btn" href="{{ .Site.BaseURL | relLangURL }}"></a>
+            <a class="back-btn" href="{{ .Site.BaseURL | relLangURL }}"><i class="fas fa-arrow-left"></i></a>
             {{range .Site.Home.Sections.ByWeight}}
               {{ if eq .FirstSection $currentNode.FirstSection }}
               {{ template "section-tree-nav" dict "sect" . "currentnode" $currentNode}}
