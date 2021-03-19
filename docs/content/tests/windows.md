@@ -7,4 +7,9 @@ keywords:
   - ''
 ---
 
+{{< main >}} 
 <iframe src="https://estruyf.github.io/doctor/windows.html" width="100%" height="1200px" />
+{{< /main >}}
+{{< dev >}} 
+<iframe src="https://estruyf.github.io/doctor/windows-dev.html" width="100%" height="1200px" />
+{{< /dev >}}
