@@ -104,8 +104,8 @@
     "markdown-it-table-of-contents": "0.5.2",
     "mime": "2.5.2",
     "node-fetch": "2.6.1",
-    "omelette": "0.4.15-1",
+    "omelette": "0.4.15",
     "react": "17.0.1",
-    "rxjs": "6.6.3"
+    "rxjs": "6.6.6"
   }
 }
