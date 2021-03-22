@@ -1,3 +1,4 @@
+import { CliCommand } from './CliCommand';
 import * as CleanCSS from 'clean-css';
 import * as fg from 'fast-glob';
 import md = require('markdown-it');
@@ -16,7 +17,7 @@ export class MarkdownHelper {
    */
   public static async fetchMDFiles(ctx: any, startFolder: string) {
     const uniformalStartFolder = startFolder.replace(/\\/g, '/');
-    const files = await fg((`${uniformalStartFolder}/**/*.md`), { ignore: [`${uniformalStartFolder}/**/*.lang.md`] });
+    const files = await fg((`${uniformalStartFolder}/**/*.md`), { ignore: [`${uniformalStartFolder}/**/*.lang.md`, `${uniformalStartFolder}/**/*.machinetranslated.md`] });
 
     if (files && files.length > 0) {
       ctx.files = files;
@@ -26,11 +27,11 @@ export class MarkdownHelper {
   }
 
   /**
-   * Retrieve the JSON data for the web part
-   * @param webPartTitle 
+   * Convert the markdown string to doctor HTML
    * @param markdown 
+   * @returns 
    */
-  public static async getJsonData(webPartTitle: string, markdown: string, mdOptions: MarkdownSettings | null): Promise<string> {
+  public static async getHtmlData(markdown: string) {
     const converter = md({ html: true, breaks: true, highlight: (str, lang) => {
       if (lang && hljs.getLanguage(lang)) {
         try {
@@ -43,6 +44,30 @@ export class MarkdownHelper {
     .use(require("markdown-it-anchor"), { permalink: true, permalinkClass: `toc-anchor` })
     .use(require("markdown-it-table-of-contents"), { includeLevel: [1,2,3,4] });
 
+    const mdOptions = CliCommand.options.markdown;
+    const theme = mdOptions && mdOptions.theme ? mdOptions.theme.toLowerCase() : "dark";
+
+    const cleanCss = new CleanCSS({});
+    let htmlMarkup = await ShortcodesHelpers.parseBefore(`
+<div class="doctor__container">
+<div class="doctor__container__markdown">
+  ${markdown}
+</div>
+</div>`);
+    htmlMarkup = converter.render(htmlMarkup);
+    htmlMarkup = await ShortcodesHelpers.parseAfter(htmlMarkup);
+    htmlMarkup = `${htmlMarkup}<style>${cleanCss.minify(this.getEditorStyles(theme === "light")).styles} ${cleanCss.minify(this.getShortcodeStyles()).styles}</style>`;
+
+    return htmlMarkup;
+  }
+
+  /**
+   * Retrieve the JSON data for the web part
+   * @param webPartTitle 
+   * @param markdown 
+   */
+  public static async getJsonData(webPartTitle: string, markdown: string, mdOptions: MarkdownSettings | null, wasAlreadyParsed: boolean = false): Promise<string> {
+    
     const allowHtml = mdOptions && mdOptions.allowHtml;
     const theme = mdOptions && mdOptions.theme ? mdOptions.theme.toLowerCase() : "dark";
 
@@ -66,16 +91,7 @@ export class MarkdownHelper {
     }
 
     if (allowHtml) {
-      const cleanCss = new CleanCSS({});
-      let htmlMarkup = await ShortcodesHelpers.parseBefore(`
-<div class="doctor__container">
-  <div class="doctor__container__markdown">
-    ${markdown}
-  </div>
-</div>`);
-      htmlMarkup = converter.render(htmlMarkup);
-      htmlMarkup = await ShortcodesHelpers.parseAfter(htmlMarkup);
-      htmlMarkup = `${htmlMarkup}<style>${cleanCss.minify(this.getEditorStyles(theme === "light")).styles} ${cleanCss.minify(this.getShortcodeStyles()).styles}</style>`;
+      let htmlMarkup = wasAlreadyParsed ? markdown : await this.getHtmlData(markdown);
 
       if (htmlMarkup) {
         wpData.serverProcessedContent["htmlStrings"] = {

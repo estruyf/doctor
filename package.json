@@ -73,6 +73,7 @@
     "@types/mime": "2.0.3",
     "@types/node-fetch": "2.5.8",
     "@types/omelette": "0.4.1",
+    "@types/uuid": "8.3.0",
     "cypress": "6.7.1",
     "husky": "5.1.2",
     "mochawesome": "6.2.2",
@@ -92,7 +93,7 @@
     "cross-spawn": "7.0.3",
     "esm": "3.2.25",
     "fast-glob": "3.2.5",
-    "frontmatter": "0.0.3",
+    "gray-matter": "4.0.2",
     "highlight.js": "10.6.0",
     "html-entities": "2.1.0",
     "inquirer": "7.3.3",
@@ -106,6 +107,7 @@
     "node-fetch": "2.6.1",
     "omelette": "0.4.15",
     "react": "17.0.1",
-    "rxjs": "6.6.6"
+    "rxjs": "6.6.6",
+    "uuid": "3.4.0"
   }
 }

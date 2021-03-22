@@ -1,11 +1,14 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as matter from "gray-matter";
 import { Item, PageTranslations } from './../models/PageTranslations';
-import { ApiHelper, AccessToken, Contextinfo } from '.';
-import { CommandArguments, PageLocalization, PageLocalizationCreation, PublishOutput } from '../models';
+import { ApiHelper, AccessToken, Contextinfo, Translator, MarkdownHelper } from '.';
+import { CommandArguments, PageFrontMatter, PageLocalization, PageLocalizationCreation, PublishOutput } from '../models';
 import { Logger } from './logger';
 import { DoctorTranspiler } from './DoctorTranspiler';
 import { Subscriber } from 'rxjs';
+import { TempDataHelper } from './TempDataHelper';
+
 
 const FEATURE_ID = "24611c05-ee19-45da-955f-6602264abaf8";
 
@@ -95,10 +98,13 @@ export class MultilingualHelper {
 
   /**
    * Process multilingual pages
-   * @param webUrl 
    * @param localization 
+   * @param filePath 
    * @param slug 
    * @param options 
+   * @param observer 
+   * @param output
+   * @returns 
    */
   public static async linkPage(localization: PageLocalization, filePath: string, slug: string, options: CommandArguments, observer: Subscriber<string>, output: PublishOutput) {
     const { webUrl } = options;
@@ -124,21 +130,64 @@ export class MultilingualHelper {
     const localizations = Object.keys(localization);
     for (const locale of localizations) {
       const pageName = localization[locale];
-      const localePath = path.join(path.dirname(filePath), pageName);
-      Logger.debug(`Trying to fetch ${locale} localization page (value: ${localePath})`);
+      
+      if (pageName) {
+        const localePath = path.join(path.dirname(filePath), pageName);
+        Logger.debug(`Trying to fetch ${locale} localization page (value: ${localePath})`);
 
-      if (fs.existsSync(localePath)) {
-        const translatedPage = await this.getTranslatedPage(locale, translatedPages, url, slug, token);
-        if (!translatedPage || !translatedPage.Path || !translatedPage.Path.DecodedUrl) {
+        if (fs.existsSync(localePath)) {
+          const translatedPage = await this.getTranslatedPage(locale, translatedPages, url, slug, token);
+          if (!translatedPage || !translatedPage.Path || !translatedPage.Path.DecodedUrl) {
+            return;
+          }
+
+          const translatedSlug = translatedPage.Path.DecodedUrl.replace("SitePages/", "");
+          await DoctorTranspiler.processFile(localePath, observer, options, output, translatedSlug);
+        } else {
+          Logger.debug(`The referenced ${locale} localization page cannot be found (value: "${localePath}").`)
           return;
         }
-
-        const translatedSlug = translatedPage.Path.DecodedUrl.replace("SitePages/", "");
-        await DoctorTranspiler.processFile(localePath, observer, options, output, translatedSlug);
       } else {
-        Logger.debug(`The referenced ${locale} localization page cannot be found (value: "${localePath}").`)
-        return;
-      }      
+        if (options.multilingual && options.multilingual.translator) {
+          const { translator: { key, endpoint, region } } = options.multilingual;
+          if (key && endpoint) {
+            const contents = fs.readFileSync(filePath, { encoding: "utf-8" });
+            const markup: matter.GrayMatterFile<string> = matter(contents);
+            const { content, data } = markup;
+
+            const transTitle = await Translator.translate(endpoint, key, locale, (data as PageFrontMatter).title, region);
+            Logger.debug(`Translated title retrieved: ${JSON.stringify(transTitle)}`);
+
+            if (transTitle && transTitle.length > 0) {
+              const translatedTitle = transTitle[0]?.translations[0]?.text;
+              if (translatedTitle) {
+                (data as PageFrontMatter).title = translatedTitle;
+              }
+            }
+
+            // Convert MD to HTML to correctly translate the page. MD not supported by the translator API.
+            const htmlContent = await MarkdownHelper.getHtmlData(content);
+
+            const transContent = await Translator.translate(endpoint, key, locale, htmlContent, region);
+            Logger.debug(`Translated contents retrieved: ${JSON.stringify(transContent)}`);
+
+            if (transContent && transContent.length > 0) {
+              const pageTranslation = transContent[0].translations;
+              Logger.debug(`Create new page for translations`);
+
+              const pagePath = TempDataHelper.createPage(path.dirname(filePath), path.parse(filePath).name, matter.stringify(pageTranslation.map(t => t.text).join(' '), data));
+
+              const translatedPage = await this.getTranslatedPage(locale, translatedPages, url, slug, token);
+              if (!translatedPage || !translatedPage.Path || !translatedPage.Path.DecodedUrl) {
+                return;
+              }
+
+              const translatedSlug = translatedPage.Path.DecodedUrl.replace("SitePages/", "");
+              await DoctorTranspiler.processFile(pagePath, observer, options, output, translatedSlug);
+            }
+          }
+        }
+      }
     }
   }
 
