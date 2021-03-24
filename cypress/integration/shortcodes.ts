@@ -39,7 +39,7 @@ describe('Doctor shortcodes', function() {
       .should('have.css', 'background-color', 'rgb(186, 216, 10)');
 
     cy.get(`.callout-tip h5`)
-      .last()
+      .eq(1)
       .should('contain.text', 'OVERRIDE THE TITLE');
   });
 
