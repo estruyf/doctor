@@ -1,5 +1,10 @@
 # Changelog
     
+## [1.11.0]
+
+
+- [#89](https://github.com/estruyf/doctor/issues/89): [Enhancement]: Use Cognitive Service Translation API connection for machine translations
+
 ## [1.10.0]
 
 
