@@ -16,7 +16,7 @@ const getIcon = (type: string) => {
 };
 
 export const CalloutRenderer: ShortcodeRender = {
-  render: function (attrs: any, markup: string) {
+  render: function (attrs: { title: string, type: string, bgColor: string, fgColor: string }, markup: string) {
 
     const title = attrs.title || "";
     
@@ -40,10 +40,18 @@ export const CalloutRenderer: ShortcodeRender = {
       default:
         type = "note";
         break;
-    } 
+    }
+
+    let styles = ``;
+    if (attrs.bgColor) {
+      styles = `background-color: ${attrs.bgColor};`
+    }
+    if (attrs.fgColor) {
+      styles = `${styles} color: ${attrs.fgColor};`
+    }
     
     return `
-      <div class="callout callout-${type}" >
+      <div class="callout callout-${type}" style="${styles}">
         <div class="callout-heading">
           <h5>
             <span class="callout-icon">

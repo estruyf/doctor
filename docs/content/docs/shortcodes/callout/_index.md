@@ -26,6 +26,8 @@ Example:
 <callout type="danger">The danger content</callout>
 
 <callout type="tip" title="Override the title">Tip content with a custom title</callout>
+
+<callout type="tip" title="Custom background and foreground color" bgColor=#462749" fgColor="#FDECEF">A callout to test the background and foreground colors.</callout>
 ```
 
 The following HTML attributes are supported for the `callout`:
@@ -37,3 +39,5 @@ The following HTML attributes are supported for the `callout`:
   - caution
   - danger
 - **title**: Allows you to specify a custom callout title
+- **bgColor**: Allows you to specify a custom background color
+- **fgColor**: Allows you to specify a custom foreground color
