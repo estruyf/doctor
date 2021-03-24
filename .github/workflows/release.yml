@@ -79,6 +79,7 @@ jobs:
         doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd --confirm $startClean $skipPages
       env:
         DEBUG: ${{ secrets.DEBUG }}
+        TRANSLATOR_KEY: ${{ secrets.TRANSLATOR_KEY }}
 
 
   #############################################
