@@ -60,7 +60,7 @@ export class DoctorTranspiler {
       let contents = fs.readFileSync(file, { encoding: "utf-8" });
       if (contents) {
 
-        let markup: matter.GrayMatterFile<string> = matter(contents);
+        const markup: matter.GrayMatterFile<string> = matter(contents);
 
         // Don't process language files, these will be processed later in the process
         if (!languagePageSlug && markup.data && markup.data.type === "translation") {
@@ -86,14 +86,14 @@ export class DoctorTranspiler {
         let slug = languagePageSlug || FrontMatterHelper.getSlug(markup.data as PageFrontMatter, options.startFolder, file);
 
         // Check if comments are disabled on global level, or overwrite it from page level
-        let disablePageComments = typeof markup.data.comments !== "undefined" ? !markup.data.comments : disableComments;
+        const disablePageComments = typeof markup.data.comments !== "undefined" ? !markup.data.comments : disableComments;
         Logger.debug(`Page comments ${disablePageComments ? 'disabled' : 'enabled'}`);
 
         // Image processing
         if (imgElms && imgElms.length > 0) {
           observer.next(`Uploading images referenced in ${filename}`);
 
-          markup.content = await this.processImages($, imgElms, file, contents, options, output);
+          markup.content = await this.processImages($, imgElms, file, markup.content, options, output);
         }
 
         // Anchor processing

@@ -84,7 +84,7 @@ jobs:
 
   #############################################
   ### Publishing on Windows with PowerShell ###
-  ############################################
+  #############################################
   build_pwsh:
     name: Build windows-latest - powershell
     runs-on: windows-latest
@@ -144,6 +144,7 @@ jobs:
       shell: powershell
       env:
         DEBUG: ${{ secrets.DEBUG }}
+        TRANSLATOR_KEY: ${{ secrets.TRANSLATOR_KEY }}
 
 
   ######################################
@@ -199,6 +200,7 @@ jobs:
       shell: cmd
       env:
         DEBUG: ${{ secrets.DEBUG }}
+        TRANSLATOR_KEY: ${{ secrets.TRANSLATOR_KEY }}
 
 
   ##################################
