@@ -4,6 +4,7 @@
 
 
 - [#89](https://github.com/estruyf/doctor/issues/89): [Enhancement]: Use Cognitive Service Translation API connection for machine translations
+- [#90](https://github.com/estruyf/doctor/issues/90): [Enhancement]: Custom colors for callouts
 
 ## [1.10.0]
 
