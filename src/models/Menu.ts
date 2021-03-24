@@ -4,15 +4,16 @@ export interface Menu {
   [name: string]: MenuType;
 }
 
-export interface MenuType {
-  /**
-   * Type of menu where the items will be added. Default is "QuickLaunch".
-   */
+
+/**
+ * Type of menu where the items will be added. Default is "QuickLaunch".
+ */
+  export interface MenuType {
   items: MenuItem[];
 }
 
 export interface MenuItem {
-  url: string;
+  url?: string;
   id: string;
   
   name?: string;

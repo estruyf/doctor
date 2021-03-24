@@ -150,7 +150,7 @@ export class MultilingualHelper {
       } else {
         if (options.multilingual && options.multilingual.translator) {
           const { translator: { key, endpoint, region } } = options.multilingual;
-          if (key && endpoint) {
+          if (key && endpoint && region) {
             const contents = fs.readFileSync(filePath, { encoding: "utf-8" });
             const markup: matter.GrayMatterFile<string> = matter(contents);
             const { content, data } = markup;
@@ -174,6 +174,14 @@ export class MultilingualHelper {
             if (transContent && transContent.length > 0) {
               const pageTranslation = transContent[0].translations;
               Logger.debug(`Create new page for translations`);
+
+              if (data.menu) {
+                for (const location in data.menu) {
+                  if (location) {
+                    data.menu[location].id = data.title.toLowerCase().replace(/ /g, "-");
+                  }
+                }
+              }
 
               const pagePath = TempDataHelper.createPage(path.dirname(filePath), path.parse(filePath).name, matter.stringify(pageTranslation.map(t => t.text).join(' '), data));
 

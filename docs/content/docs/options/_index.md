@@ -131,8 +131,9 @@ You can provide the same flags and values like in the parameters. Parameters can
   - **enableTranslations**: `boolean` - Specifies if you want to enable or disable multilingual features on the site. Default: `false`.
   - **languages**: `number[]` - Locale IDs (or LCIDs) to enable on the site. An overview of the supported LCIDs for SharePoint can be found on [Supported LCIDs by SharePoint](https://github.com/pnp/PnP-PowerShell/wiki/Supported-LCIDs-by-SharePoint).
   - **overwriteTranslationsOnChange**: `boolean` - Specify whether the changes made to user-specified text in the default language should automatically overwrite the existing translations made in all alternate languages.
+  - **translator**: `Translator` - This property allows you to specify the Azure Translator Cognitive Service. When Specified, you allow `doctor` to use the translator APIs to machine translate your pages.
 
-Example:
+Manual translation example:
 
 ```json
 {
@@ -141,7 +142,27 @@ Example:
     "languages": [
       1043
     ],
-    "overwriteTranslationsOnChange": true
+    "overwriteTranslationsOnChange": true,
+    "translator:" null
+  } 
+}
+```
+
+Machine translation example:
+
+```json
+{
+  "multilingual": {
+    "enableTranslations": true,
+    "languages": [
+      1043
+    ],
+    "overwriteTranslationsOnChange": true,
+    "translator:" {
+      "key": "<subscription key>",
+      "endpoint": "https://api.cognitive.microsofttranslator.com/",
+      "region": "<region name, example: westeurope>"
+    }
   } 
 }
 ```
