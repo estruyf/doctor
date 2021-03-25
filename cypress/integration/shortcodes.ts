@@ -34,12 +34,12 @@ describe('Doctor shortcodes', function() {
   it('4. Check if callout tip exists', () => {
     cy.get(`.callout-tip`)
       .should('exist')
-      .should("have.length", 2)
+      .should("have.length", 3)
       .first()
       .should('have.css', 'background-color', 'rgb(186, 216, 10)');
 
     cy.get(`.callout-tip h5`)
-      .last()
+      .eq(1)
       .should('contain.text', 'OVERRIDE THE TITLE');
   });
 
@@ -70,6 +70,14 @@ describe('Doctor shortcodes', function() {
       .should("have.length", 1)
       .should('contain.text', 'Name: Elio')
       .should('contain.text', 'HTML: Content of the external shortcode');
+  });
+
+  it('9. check callout with custom background and foreground', () => {
+    cy.get(`.callout-tip`)
+      .should('exist')
+      .last()
+      .should('have.css', 'background-color', 'rgb(70, 39, 73)')
+      .should('have.css', 'color', 'rgb(253, 236, 239)');
   });
 
 });

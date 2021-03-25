@@ -30,7 +30,8 @@ Example setup:
     "languages": [
       1043
     ],
-    "overwriteTranslationsOnChange": true
+    "overwriteTranslationsOnChange": true,
+    "translator:" null
   } 
 }
 ```
@@ -65,3 +66,35 @@ For the translation page, `home.nl.lang.md` in the above example, you should set
 By default, SharePoint will copy the header settings from the source page. If you want to override these settings, you can add the same options as all other pages as long as you make sure `type: translation` is set for these pages.
 
 > **Info**: Sample of how you can use multilingual with `doctor` has been provided in [https://github.com/estruyf/doctor-sample](https://github.com/estruyf/doctor-sample).
+
+## Using Azure Translator service
+
+If you want to make use of the Azure Translator service which is part of the [Azure Cognitive Services](https://azure.microsoft.com/en-us/services/cognitive-services/) family. You will first need to create the translator service in your Azure tenant and provide the following config:
+
+```json
+{
+  "multilingual": {
+    "enableTranslations": true,
+    "languages": [
+      1043
+    ],
+    "overwriteTranslationsOnChange": true,
+    "translator:" {
+      "key": "<subscription key>",
+      "endpoint": "https://api.cognitive.microsofttranslator.com/",
+      "region": "<region name, example: westeurope>"
+    }
+  } 
+}
+```
+
+### Automatically translate pages
+
+When you want to make use of this APIs for page translations. All you need to do is specifying the `localization` property to its front matter of the page. In this case, you do not need to specify the path to the page. As the page will be translated on the fly.
+
+```yaml
+localization: 
+  "nl-nl":
+```
+
+> **Info**: When you are going to run `doctor`. There will be `*.machinetranslated.md` pages created next to the parent page. This is done to not create any conflicts with the referenced pages and images. At the end of the process, `doctor` will remove these generated pages. During a `debug` run, they will not be removed. 

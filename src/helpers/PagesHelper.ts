@@ -161,10 +161,10 @@ export class PagesHelper {
    * @param webPartTitle 
    * @param markdown 
    */
-  public static async insertOrCreateControl(webPartTitle: string, markdown: string, slug: string, webUrl: string, wpId: string = null, mdOptions: MarkdownSettings | null) {
-    Logger.debug(`Insert the markdown webpart for the page ${slug} - Control ID: ${wpId}`);
+  public static async insertOrCreateControl(webPartTitle: string, markdown: string, slug: string, webUrl: string, wpId: string = null, mdOptions: MarkdownSettings | null, wasAlreadyParsed: boolean = false) {
+    Logger.debug(`Insert the markdown webpart for the page ${slug} - Control ID: ${wpId} - Was already parsed: ${wasAlreadyParsed}`);
 
-    const wpData = await MarkdownHelper.getJsonData(webPartTitle, markdown, mdOptions);
+    const wpData = await MarkdownHelper.getJsonData(webPartTitle, markdown, mdOptions, wasAlreadyParsed);
     
     if (wpId) {
       // Web part needs to be updated

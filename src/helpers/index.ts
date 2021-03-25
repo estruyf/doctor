@@ -22,5 +22,6 @@ export * from './SitesHelpers';
 export * from './StatusHelper';
 export * from './TelemetryHelper';
 export * from './TempDataHelper';
+export * from './Translator';
 export * from './execScript';
 export * from './logger';

@@ -6,6 +6,13 @@
     ]
   },
   {
+    "title": "1.11.0",
+    "updates": [
+      { "id": 89, "title": "[Enhancement]: Use Cognitive Service Translation API connection for machine translations" },
+      { "id": 90, "title": "[Enhancement]: Custom colors for callouts" }
+    ]
+  },
+  {
     "title": "1.10.0",
     "updates": [
       { "id": 82, "title": "[Enhancement]: Allow comments to be disabled at global level" },

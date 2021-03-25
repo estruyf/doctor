@@ -2,7 +2,7 @@ import { MultilingualHelper } from './MultilingualHelper';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as cheerio from 'cheerio';
-import parseMarkdown = require('frontmatter');
+import * as matter from "gray-matter";
 import md = require('markdown-it');
 import { CommandArguments, PublishOutput, Control, PageFrontMatter } from '../models';
 import { FileHelpers, FolderHelpers, FrontMatterHelper, HeaderHelper, Logger, NavigationHelper, PagesHelper, StatusHelper } from '.';
@@ -60,14 +60,14 @@ export class DoctorTranspiler {
       let contents = fs.readFileSync(file, { encoding: "utf-8" });
       if (contents) {
 
-        let markup: { data: PageFrontMatter, content: string } = parseMarkdown(contents);
+        const markup: matter.GrayMatterFile<string> = matter(contents);
 
         // Don't process language files, these will be processed later in the process
         if (!languagePageSlug && markup.data && markup.data.type === "translation") {
           return;
         }
 
-        const htmlMarkup = this.converter.render(contents);
+        const htmlMarkup = file.endsWith(`.machinetranslated.md`) ? contents : this.converter.render(contents);
 
         const $ = cheerio.load(htmlMarkup, { xmlMode: true, decodeEntities: false });
         const imgElms = $(`img`).toArray();
@@ -82,18 +82,18 @@ export class DoctorTranspiler {
           }
         }
 
-        let { title, description, draft, layout, header, template, metadata } = markup.data;
-        let slug = languagePageSlug || FrontMatterHelper.getSlug(markup.data, options.startFolder, file);
+        let { title, description, draft, layout, header, template, metadata } = markup.data as PageFrontMatter;
+        let slug = languagePageSlug || FrontMatterHelper.getSlug(markup.data as PageFrontMatter, options.startFolder, file);
 
         // Check if comments are disabled on global level, or overwrite it from page level
-        let disablePageComments = typeof markup.data.comments !== "undefined" ? !markup.data.comments : disableComments;
+        const disablePageComments = typeof markup.data.comments !== "undefined" ? !markup.data.comments : disableComments;
         Logger.debug(`Page comments ${disablePageComments ? 'disabled' : 'enabled'}`);
 
         // Image processing
         if (imgElms && imgElms.length > 0) {
           observer.next(`Uploading images referenced in ${filename}`);
 
-          markup = await this.processImages($, imgElms, file, contents, options, output);
+          markup.content = await this.processImages($, imgElms, file, markup.content, options, output);
         }
 
         // Anchor processing
@@ -135,7 +135,7 @@ export class DoctorTranspiler {
             if (controlData) {
               const webparts: Control[] = JSON.parse(controlData);
               const markdownWp: Control = webparts.find((c: Control) => c.webPartData && c.webPartData.title === webPartTitle);
-              await PagesHelper.insertOrCreateControl(webPartTitle, markup.content, slug, webUrl, markdownWp ? markdownWp.id : null, options.markdown);
+              await PagesHelper.insertOrCreateControl(webPartTitle, markup.content, slug, webUrl, markdownWp ? markdownWp.id : null, options.markdown, file.endsWith(`.machinetranslated.md`));
             }
 
             // Check if metadata needs to be added to the page
@@ -213,8 +213,7 @@ export class DoctorTranspiler {
       }
     }
 
-    const markup = parseMarkdown(contents);
-    return markup;
+    return contents;
   }
 
   /**
@@ -258,12 +257,12 @@ export class DoctorTranspiler {
         } 
 
         // Get the slug
-        const mdData = parseMarkdown(mdContents);
+        const mdData = matter(mdContents);
         if (!mdData || !mdData.data) {
           return;
         }
 
-        const slug = FrontMatterHelper.getSlug(mdData.data, startFolder, mdFilePath);
+        const slug = FrontMatterHelper.getSlug(mdData.data as PageFrontMatter, startFolder, mdFilePath);
         const spUrl = `${webUrl}${webUrl.endsWith('/') ? '' : '/'}sitepages/${slug}`;
         Logger.debug(`Referenced file slug: ${spUrl}`);
 

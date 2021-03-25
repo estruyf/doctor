@@ -79,11 +79,12 @@ jobs:
         doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd --confirm $startClean $skipPages
       env:
         DEBUG: ${{ secrets.DEBUG }}
+        TRANSLATOR_KEY: ${{ secrets.TRANSLATOR_KEY }}
 
 
   #############################################
   ### Publishing on Windows with PowerShell ###
-  ############################################
+  #############################################
   build_pwsh:
     name: Build windows-latest - powershell
     runs-on: windows-latest
@@ -143,6 +144,7 @@ jobs:
       shell: powershell
       env:
         DEBUG: ${{ secrets.DEBUG }}
+        TRANSLATOR_KEY: ${{ secrets.TRANSLATOR_KEY }}
 
 
   ######################################
@@ -198,6 +200,7 @@ jobs:
       shell: cmd
       env:
         DEBUG: ${{ secrets.DEBUG }}
+        TRANSLATOR_KEY: ${{ secrets.TRANSLATOR_KEY }}
 
 
   ##################################

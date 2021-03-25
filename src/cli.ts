@@ -29,11 +29,11 @@ export async function cli(args: string[]) {
       console.log('');
     } else {
       await Commands.start(options);
-      TempDataHelper.clear();
+      await TempDataHelper.clear();
     }
     process.exit(0);
   } catch (e: any | Error) {
-    TempDataHelper.clear();
+    await TempDataHelper.clear();
 
     console.log(kleur.bgRed().bold().white(` ERROR: `), kleur.bold().red(e.message.toString()));
     process.exit(1);
