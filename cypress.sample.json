@@ -12,5 +12,6 @@
     "json": true
   },
   "env": {
-  }
+  },
+  "ignoreTestFiles": ["translator.ts"]
 }
