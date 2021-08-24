@@ -16,6 +16,6 @@ describe('Page template usage validation', function() {
   });
 
   it('1. Check if the code snippet background is using the right background', () => {
-    cy.get(`h2#page-template-content`).should('exist').parent().should("contain.text", "This is some content to test out the page template.");
+    cy.get(`h2#page-template-content`).should('exist').should("contain.text", "Page template content");
   });
 });
