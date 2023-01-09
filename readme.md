@@ -79,6 +79,6 @@ Feedback can also be provided to the [discussion list](https://github.com/estruy
 
 <p align="center">
   <a href="#">
-      <img src="https://estruyf-github.azurewebsites.net/api/VisitorHit?user=estruyf&repo=doctor&countColor=%2324BAA4" />
+      <img src="https://api.visitorbadge.io/api/VisitorHit?user=estruyf&repo=doctor&countColor=%2324BAA4" />
    </a>
 </p>
