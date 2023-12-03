@@ -32,6 +32,10 @@ export class MarkdownHelper {
    * @returns 
    */
   public static async getHtmlData(markdown: string) {
+
+    const mdOptions = CliCommand.options.markdown;
+    const theme = mdOptions && mdOptions.theme ? mdOptions.theme.toLowerCase() : "dark";
+    const includeLevel = mdOptions && mdOptions.tocLevels ? mdOptions.tocLevels : [1,2,3,4]
     const converter = md({ html: true, breaks: true, highlight: (str, lang) => {
       if (lang && hljs.getLanguage(lang)) {
         try {
@@ -42,10 +46,7 @@ export class MarkdownHelper {
       return `<pre class="hljs"><code>${hljs.highlightAuto(str).value}</code></pre>`;
     }})
     .use(require("markdown-it-anchor"), { permalink: true, permalinkClass: `toc-anchor` })
-    .use(require("markdown-it-table-of-contents"), { includeLevel: [2] });
-
-    const mdOptions = CliCommand.options.markdown;
-    const theme = mdOptions && mdOptions.theme ? mdOptions.theme.toLowerCase() : "dark";
+    .use(require("markdown-it-table-of-contents"), { includeLevel: includeLevel });
 
     const cleanCss = new CleanCSS({});
     let htmlMarkup = await ShortcodesHelpers.parseBefore(`
