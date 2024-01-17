@@ -20,7 +20,6 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 `--username <username>`
 : When using `password` authentication, you need to pass the `username` and `password`.
 
-
 `--password <password>`
 : When using `password` authentication, you need to pass the `username` and `password`.
 
@@ -51,6 +50,7 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 : In order to make `doctor` better, we need to know how it is used. That is why we started to track which commands and related parameters are used. We are not tracking the values of these parameters, only if they are used or not. Still if you want to opt-out, you can do this by specifying the disable tracking flag.
 
 > **Important**: This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+>
 ## Publish command specific options
 
 `--outputFolder <outputFolder>`
@@ -211,6 +211,7 @@ The `markdown` property allows you to define how you want to render the HTML in 
   - **allowHtml**: `boolean` - By default SharePoint renders the HTML. If you set this to `true`, it will allow Doctor to generate the HTML and allows you to make use of all HTML capabilities the tool has to offer. When you enable this, you can also make use of [shortcodes](../shortcodes) in markdown to make more HTML rich pages.
   - **theme**: `string` - Specify the theme to use for the code blocks. You can use `Dark` or `Light`. Default is `Dark`.
   - **shortcodesFolder**: `string` - Specifies where custom shortcodes can be retrieved. Check [shortcodes](../shortcodes) section to learn more about how shortcodes can be used. Default folder location `Doctor` expects is `./shortcodes`. If you want to change this, you can use the `shortcodesFolder` property and update it appropriate.
+  - **tocLevels**: `number` - Specifies the number of levels to show in the table of contents. Default is `[1, 2, 3, 4]`.
 
 Example:
 
@@ -219,7 +220,8 @@ Example:
   "markdown": {
     "allowHtml": true,
     "theme": "light",
-    "shortcodesFolder": "./shortcodes"
+    "shortcodesFolder": "./shortcodes",
+    "tocLevels": [1, 2, 3, 4]
   }
 }
 ```

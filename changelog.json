@@ -1,132 +1,302 @@
-[
-  {
+[{
     "title": "template",
-    "updates": [
-      { "id": null, "title": "" }
+    "updates": [{
+      "id": null,
+      "title": ""
+    }]
+  },
+  {
+    "title": "1.12.0",
+    "updates": [{
+        "id": null,
+        "title": "Updates to support Node.js >= 18"
+      },
+      {
+        "id": 153,
+        "title": "Added a new `tocLevels` option to define the heading levels to include in the table of contents. Thanks to [Bradley Goulding](https://github.com/BradleyGoulding)."
+      }
     ]
   },
   {
     "title": "1.11.0",
-    "updates": [
-      { "id": 89, "title": "[Enhancement]: Use Cognitive Service Translation API connection for machine translations" },
-      { "id": 90, "title": "[Enhancement]: Custom colors for callouts" }
+    "updates": [{
+        "id": 89,
+        "title": "[Enhancement]: Use Cognitive Service Translation API connection for machine translations"
+      },
+      {
+        "id": 90,
+        "title": "[Enhancement]: Custom colors for callouts"
+      }
     ]
   },
   {
     "title": "1.10.0",
-    "updates": [
-      { "id": 82, "title": "[Enhancement]: Allow comments to be disabled at global level" },
-      { "id": 83, "title": "[Enhancement]: New implementation of the retry logic" },
-      { "id": 84, "title": "[BUG]: Issue with skipping pages and multilingual" },
-      { "id": 85, "title": "[BUG]: Fix recording video bug in Cypress during tests" },
-      { "id": 95, "title": "[Enhancement]: Add test results to the documentation to gain a better view on how they perform" }
+    "updates": [{
+        "id": 82,
+        "title": "[Enhancement]: Allow comments to be disabled at global level"
+      },
+      {
+        "id": 83,
+        "title": "[Enhancement]: New implementation of the retry logic"
+      },
+      {
+        "id": 84,
+        "title": "[BUG]: Issue with skipping pages and multilingual"
+      },
+      {
+        "id": 85,
+        "title": "[BUG]: Fix recording video bug in Cypress during tests"
+      },
+      {
+        "id": 95,
+        "title": "[Enhancement]: Add test results to the documentation to gain a better view on how they perform"
+      }
     ]
   },
   {
     "title": "1.9.0",
-    "updates": [
-      { "id": 77, "title": "[Enhancement]: Add pages in alphabetical order to the navigation (when weight is not defined)" },
-      { "id": 76, "title": "[Enhancement]: Ability to place the table of contents at the `left` or `right` side of the markdown" },
-      { "id": 75, "title": "[Enhancement]: Ability to define a default template in `doctor.json`" },
-      { "id": 80, "title": "[Enhancement]: Add multilingual support on site and page level" }
+    "updates": [{
+        "id": 77,
+        "title": "[Enhancement]: Add pages in alphabetical order to the navigation (when weight is not defined)"
+      },
+      {
+        "id": 76,
+        "title": "[Enhancement]: Ability to place the table of contents at the `left` or `right` side of the markdown"
+      },
+      {
+        "id": 75,
+        "title": "[Enhancement]: Ability to define a default template in `doctor.json`"
+      },
+      {
+        "id": 80,
+        "title": "[Enhancement]: Add multilingual support on site and page level"
+      }
     ]
   },
   {
     "title": "1.8.1",
-    "updates": [
-      { "id": 78, "title": "[BUG] Fix for fetching all list items via the library title" }
-    ]
+    "updates": [{
+      "id": 78,
+      "title": "[BUG] Fix for fetching all list items via the library title"
+    }]
   },
   {
     "title": "1.8.0",
-    "updates": [
-      { "id": 63, "title": "[Enhancement]: Get to know how doctor is used" },
-      { "id": 65, "title": "[Enhancement]: Add a delay in the retry mechanism" },
-      { "id": 45, "title": "[Enhancement]: Table of contents shortcode added" },
-      { "id": 4, "title": "[Enhancement]: Added `skipPages`, `skipNavigation`, and `skipSiteDesign` flags" },
-      { "id": 66, "title": "[Enhancement]: Autocomplete functionality added for commands and its arguments" },
-      { "id": 71, "title": "[Enhancement]: Easier debugging with ability to attach the VSCode debugger" },
-      { "id": 70, "title": "[Enhancement]: Ability to specify to clean the `QuickLaunch` and/or `TopNavigation`" },
-      { "id": 64, "title": "[Enhancement]: Post clean-up of removed/untouched pages" },
-      { "id": 72, "title": "[Bug]: Fix for encoding characters in codeblocks + tests" }
+    "updates": [{
+        "id": 63,
+        "title": "[Enhancement]: Get to know how doctor is used"
+      },
+      {
+        "id": 65,
+        "title": "[Enhancement]: Add a delay in the retry mechanism"
+      },
+      {
+        "id": 45,
+        "title": "[Enhancement]: Table of contents shortcode added"
+      },
+      {
+        "id": 4,
+        "title": "[Enhancement]: Added `skipPages`, `skipNavigation`, and `skipSiteDesign` flags"
+      },
+      {
+        "id": 66,
+        "title": "[Enhancement]: Autocomplete functionality added for commands and its arguments"
+      },
+      {
+        "id": 71,
+        "title": "[Enhancement]: Easier debugging with ability to attach the VSCode debugger"
+      },
+      {
+        "id": 70,
+        "title": "[Enhancement]: Ability to specify to clean the `QuickLaunch` and/or `TopNavigation`"
+      },
+      {
+        "id": 64,
+        "title": "[Enhancement]: Post clean-up of removed/untouched pages"
+      },
+      {
+        "id": 72,
+        "title": "[Bug]: Fix for encoding characters in codeblocks + tests"
+      }
     ]
   },
   {
     "title": "1.7.0",
-    "updates": [
-      { "id": 5, "title": "Documentation site created [getdoctor.io](https://getdoctor.io)." },
-      { "id": 6, "title": "Enhancement to allow Doctor to generate the HTML instead of the Markdown Web Part." },
-      { "id": 50, "title": "Fix for skipping pages." },
-      { "id": 51, "title": "Enhancement making skipping pages faster without the need to check each page." },
-      { "id": 52, "title": "Enhancements to make it possible to change the look and feel of the site." },
-      { "id": 54, "title": "Enhancements to set the code editor theme for Markdown." },
-      { "id": 55, "title": "Enhancements to minify the CSS provided to the Markdown web part." },
-      { "id": 56, "title": "Enhancements to set the site its logo." },
-      { "id": 57, "title": "Fix for only retrieving the page its metadata so that encoding of the page its content would not lead to issues." },
-      { "id": 62, "title": "Enhancement to specify to retry the command execution if it failed." }
+    "updates": [{
+        "id": 5,
+        "title": "Documentation site created [getdoctor.io](https://getdoctor.io)."
+      },
+      {
+        "id": 6,
+        "title": "Enhancement to allow Doctor to generate the HTML instead of the Markdown Web Part."
+      },
+      {
+        "id": 50,
+        "title": "Fix for skipping pages."
+      },
+      {
+        "id": 51,
+        "title": "Enhancement making skipping pages faster without the need to check each page."
+      },
+      {
+        "id": 52,
+        "title": "Enhancements to make it possible to change the look and feel of the site."
+      },
+      {
+        "id": 54,
+        "title": "Enhancements to set the code editor theme for Markdown."
+      },
+      {
+        "id": 55,
+        "title": "Enhancements to minify the CSS provided to the Markdown web part."
+      },
+      {
+        "id": 56,
+        "title": "Enhancements to set the site its logo."
+      },
+      {
+        "id": 57,
+        "title": "Fix for only retrieving the page its metadata so that encoding of the page its content would not lead to issues."
+      },
+      {
+        "id": 62,
+        "title": "Enhancement to specify to retry the command execution if it failed."
+      }
     ]
   },
   {
     "title": "1.6.0",
-    "updates": [
-      { "id": 3, "title": "Added metadata support for pages." },
-      { "id": 34, "title": "Add support for certificate authentication (provided by [Gustavo Covas](https://github.com/gustavocovas))." },
-      { "id": 44, "title": "Enhancement: Be able to specify which version of CLI for Microsoft 365 you want to use." },
-      { "id": 47, "title": "Fix for issue with encoding `<` and `>` in the markdown." },
-      { "id": 48, "title": "Enhancement: Masking the password and certificate Base64 string in the console." },
-      { "id": 49, "title": "Enhancement: Debug configuration for `vscode` added to the project." }
+    "updates": [{
+        "id": 3,
+        "title": "Added metadata support for pages."
+      },
+      {
+        "id": 34,
+        "title": "Add support for certificate authentication (provided by [Gustavo Covas](https://github.com/gustavocovas))."
+      },
+      {
+        "id": 44,
+        "title": "Enhancement: Be able to specify which version of CLI for Microsoft 365 you want to use."
+      },
+      {
+        "id": 47,
+        "title": "Fix for issue with encoding `<` and `>` in the markdown."
+      },
+      {
+        "id": 48,
+        "title": "Enhancement: Masking the password and certificate Base64 string in the console."
+      },
+      {
+        "id": 49,
+        "title": "Enhancement: Debug configuration for `vscode` added to the project."
+      }
     ]
   },
   {
     "title": "1.5.0",
-    "updates": [
-      { "id": 33, "title": "Page template support added." },
-      { "id": 36, "title": "Enhancement: Added `--skipExistingPages` support." },
-      { "id": 37, "title": "Fix issue with encoding special characters." },
-      { "id": 38, "title": "Enhancement: Added `--continueOnError` support." },
-      { "id": 39, "title": "Fix for navigation command execution." },
-      { "id": 40, "title": "Fix issue with multiple images on pages." },
-      { "id": 41, "title": "Fix issue with 2nd level navigation items." }
+    "updates": [{
+        "id": 33,
+        "title": "Page template support added."
+      },
+      {
+        "id": 36,
+        "title": "Enhancement: Added `--skipExistingPages` support."
+      },
+      {
+        "id": 37,
+        "title": "Fix issue with encoding special characters."
+      },
+      {
+        "id": 38,
+        "title": "Enhancement: Added `--continueOnError` support."
+      },
+      {
+        "id": 39,
+        "title": "Fix for navigation command execution."
+      },
+      {
+        "id": 40,
+        "title": "Fix issue with multiple images on pages."
+      },
+      {
+        "id": 41,
+        "title": "Fix issue with 2nd level navigation items."
+      }
     ]
   },
   {
     "title": "1.4.0",
-    "updates": [
-      { "id": 17, "title": "Enhancement: Add support for page description." },
-      { "id": 18, "title": "Enhancement: Support for setting header image of the page." },
-      { "id": 20, "title": "Enhancement: Add support for title area layout." },
-      { "id": 25, "title": "Make `draft` optional." },
-      { "id": 26, "title": "Include folder name for slug when not set in front matter." },
-      { "id": 27, "title": "Add support in Front Matter to enable or disable page comments. By default they are disabled." },
-      { "id": 32, "title": "Added MIT license to the project." }
+    "updates": [{
+        "id": 17,
+        "title": "Enhancement: Add support for page description."
+      },
+      {
+        "id": 18,
+        "title": "Enhancement: Support for setting header image of the page."
+      },
+      {
+        "id": 20,
+        "title": "Enhancement: Add support for title area layout."
+      },
+      {
+        "id": 25,
+        "title": "Make `draft` optional."
+      },
+      {
+        "id": 26,
+        "title": "Include folder name for slug when not set in front matter."
+      },
+      {
+        "id": 27,
+        "title": "Add support in Front Matter to enable or disable page comments. By default they are disabled."
+      },
+      {
+        "id": 32,
+        "title": "Added MIT license to the project."
+      }
     ]
   },
   {
     "title": "1.3.1",
-    "updates": [
-      { "id": 28, "title": "Fix for `cleanStart` when comfirm flag is not provided. Thanks to [Mark Heptinstall](https://github.com/mheptinstall)." }
-    ]
+    "updates": [{
+      "id": 28,
+      "title": "Fix for `cleanStart` when comfirm flag is not provided. Thanks to [Mark Heptinstall](https://github.com/mheptinstall)."
+    }]
   },
   {
     "title": "1.3.0",
-    "updates": [
-      { "id": 7, "title": "Added parameter to clean up all pages and assets before publishing." },
-      { "id": 19, "title": "Added support for specifying the `layoutType` from within the front matter." },
-      { "id": 21, "title": "Implemented easier command execution from within the tool." },
-      { "id": 22, "title": "Enhanced the test actions with screenshots." },
-      { "id": 23, "title": "Added process exit codes to make sure it correctly outputs a success or failure status." }
+    "updates": [{
+        "id": 7,
+        "title": "Added parameter to clean up all pages and assets before publishing."
+      },
+      {
+        "id": 19,
+        "title": "Added support for specifying the `layoutType` from within the front matter."
+      },
+      {
+        "id": 21,
+        "title": "Implemented easier command execution from within the tool."
+      },
+      {
+        "id": 22,
+        "title": "Enhanced the test actions with screenshots."
+      },
+      {
+        "id": 23,
+        "title": "Added process exit codes to make sure it correctly outputs a success or failure status."
+      }
     ]
   },
   {
     "title": "[1.2.1] 2020-12-18",
-    "updates": [
-      { "id": 16, "title": "Fix for specified webPartData is not a valid JSON string." }
-    ]
+    "updates": [{
+      "id": 16,
+      "title": "Fix for specified webPartData is not a valid JSON string."
+    }]
   },
   {
     "title": "[1.2.0] 2020-12-18",
-    "updates": [
-      {
+    "updates": [{
         "id": 9,
         "title": "Removed the `jq` dependency with a fallback to JSON parsing in the tool itself."
       },
@@ -150,8 +320,7 @@
   },
   {
     "title": "[1.1.0] 2020-12-16",
-    "updates": [
-      {
+    "updates": [{
         "id": 2,
         "title": "Added support for linking pages in Markdown."
       },
@@ -163,20 +332,16 @@
   },
   {
     "title": "[1.0.1] 2020-12-15",
-    "updates": [
-      {
-        "id": 1,
-        "title": "Fix for when `m365` tool is not globally available"
-      }
-    ]
+    "updates": [{
+      "id": 1,
+      "title": "Fix for when `m365` tool is not globally available"
+    }]
   },
   {
     "title": "[1.0.0] 2020-12-15",
-    "updates": [
-      {
-        "id": null,
-        "title": "Initial release"
-      }
-    ]
+    "updates": [{
+      "id": null,
+      "title": "Initial release"
+    }]
   }
 ]

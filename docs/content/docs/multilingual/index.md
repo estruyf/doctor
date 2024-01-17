@@ -17,7 +17,7 @@ If you need to build yourself a multilingual knowledge base, documentation site,
 
 `doctor` allows you to configure multilingual on site- and page-level. To make use of `doctor` its multilingual features, you have to follow this guide.
 
-## Configure `doctor` to in a multilingual site
+## Configure `doctor` in a multilingual site
 
 The first step is to configure `doctor` for multilingual site usage. You need to do this in the `doctor.json` file.
 
@@ -97,4 +97,4 @@ localization:
   "nl-nl":
 ```
 
-> **Info**: When you are going to run `doctor`. There will be `*.machinetranslated.md` pages created next to the parent page. This is done to not create any conflicts with the referenced pages and images. At the end of the process, `doctor` will remove these generated pages. During a `debug` run, they will not be removed. 
+> **Info**: When you are going to run `doctor`. There will be `*.machinetranslated.md` pages created next to the parent page. This is done to not create any conflicts with the referenced pages and images. At the end of the process, `doctor` will remove these generated pages. During a `debug` run, they will not be removed.

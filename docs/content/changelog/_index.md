@@ -6,6 +6,12 @@ description: The changelog of Doctor
 type: docs-main
 ---
 
+## [1.12.0]
+
+
+- Updates to support Node.js >= 18
+- [#153](https://github.com/estruyf/doctor/issues/153): Added a new `tocLevels` option to define the heading levels to include in the table of contents. Thanks to [Bradley Goulding](https://github.com/BradleyGoulding).
+
 ## [1.11.0]
 
 

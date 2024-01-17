@@ -1,16 +1,19 @@
 # Changelog
-
+    
 ## [1.12.0]
 
+
 - Updates to support Node.js >= 18
-- [#153](https://github.com/estruyf/doctor/issues/153): [Enhancement]: Added a new `tocLevels` option to define the heading levels to include in the table of contents. Thanks to [Bradley Goulding](https://github.com/BradleyGoulding).
+- [#153](https://github.com/estruyf/doctor/issues/153): Added a new `tocLevels` option to define the heading levels to include in the table of contents. Thanks to [Bradley Goulding](https://github.com/BradleyGoulding).
 
 ## [1.11.0]
+
 
 - [#89](https://github.com/estruyf/doctor/issues/89): [Enhancement]: Use Cognitive Service Translation API connection for machine translations
 - [#90](https://github.com/estruyf/doctor/issues/90): [Enhancement]: Custom colors for callouts
 
 ## [1.10.0]
+
 
 - [#82](https://github.com/estruyf/doctor/issues/82): [Enhancement]: Allow comments to be disabled at global level
 - [#83](https://github.com/estruyf/doctor/issues/83): [Enhancement]: New implementation of the retry logic
@@ -20,6 +23,7 @@
 
 ## [1.9.0]
 
+
 - [#75](https://github.com/estruyf/doctor/issues/75): [Enhancement]: Ability to define a default template in `doctor.json`
 - [#76](https://github.com/estruyf/doctor/issues/76): [Enhancement]: Ability to place the table of contents at the `left` or `right` side of the markdown
 - [#77](https://github.com/estruyf/doctor/issues/77): [Enhancement]: Add pages in alphabetical order to the navigation (when weight is not defined)
@@ -27,9 +31,11 @@
 
 ## [1.8.1]
 
+
 - [#78](https://github.com/estruyf/doctor/issues/78): [BUG] Fix for fetching all list items via the library title
 
 ## [1.8.0]
+
 
 - [#4](https://github.com/estruyf/doctor/issues/4): [Enhancement]: Added `skipPages`, `skipNavigation`, and `skipSiteDesign` flags
 - [#45](https://github.com/estruyf/doctor/issues/45): [Enhancement]: Table of contents shortcode added
@@ -42,6 +48,7 @@
 - [#72](https://github.com/estruyf/doctor/issues/72): [Bug]: Fix for encoding characters in codeblocks + tests
 
 ## [1.7.0]
+
 
 - [#5](https://github.com/estruyf/doctor/issues/5): Documentation site created [getdoctor.io](https://getdoctor.io).
 - [#6](https://github.com/estruyf/doctor/issues/6): Enhancement to allow Doctor to generate the HTML instead of the Markdown Web Part.
@@ -56,6 +63,7 @@
 
 ## [1.6.0]
 
+
 - [#3](https://github.com/estruyf/doctor/issues/3): Added metadata support for pages.
 - [#34](https://github.com/estruyf/doctor/issues/34): Add support for certificate authentication (provided by [Gustavo Covas](https://github.com/gustavocovas)).
 - [#44](https://github.com/estruyf/doctor/issues/44): Enhancement: Be able to specify which version of CLI for Microsoft 365 you want to use.
@@ -64,6 +72,7 @@
 - [#49](https://github.com/estruyf/doctor/issues/49): Enhancement: Debug configuration for `vscode` added to the project.
 
 ## [1.5.0]
+
 
 - [#33](https://github.com/estruyf/doctor/issues/33): Page template support added.
 - [#36](https://github.com/estruyf/doctor/issues/36): Enhancement: Added `--skipExistingPages` support.
@@ -75,6 +84,7 @@
 
 ## [1.4.0]
 
+
 - [#17](https://github.com/estruyf/doctor/issues/17): Enhancement: Add support for page description.
 - [#18](https://github.com/estruyf/doctor/issues/18): Enhancement: Support for setting header image of the page.
 - [#20](https://github.com/estruyf/doctor/issues/20): Enhancement: Add support for title area layout.
@@ -85,9 +95,11 @@
 
 ## [1.3.1]
 
+
 - [#28](https://github.com/estruyf/doctor/issues/28): Fix for `cleanStart` when comfirm flag is not provided. Thanks to [Mark Heptinstall](https://github.com/mheptinstall).
 
 ## [1.3.0]
+
 
 - [#7](https://github.com/estruyf/doctor/issues/7): Added parameter to clean up all pages and assets before publishing.
 - [#19](https://github.com/estruyf/doctor/issues/19): Added support for specifying the `layoutType` from within the front matter.
@@ -97,9 +109,11 @@
 
 ## [1.2.1] 2020-12-18
 
+
 - [#16](https://github.com/estruyf/doctor/issues/16): Fix for specified webPartData is not a valid JSON string.
 
 ## [1.2.0] 2020-12-18
+
 
 - Updated the CLI for Microsoft 365 to 3.4.0 as this has huge performance improvements
 - [#9](https://github.com/estruyf/doctor/issues/9): Removed the `jq` dependency with a fallback to JSON parsing in the tool itself.
@@ -109,13 +123,16 @@
 
 ## [1.1.0] 2020-12-16
 
+
 - Added `outputFolder` argument which when provided, will ouput the processed Markdown files with updated image and page links.
 - [#2](https://github.com/estruyf/doctor/issues/2): Added support for linking pages in Markdown.
 
 ## [1.0.1] 2020-12-15
 
+
 - [#1](https://github.com/estruyf/doctor/issues/1): Fix for when `m365` tool is not globally available
 
 ## [1.0.0] 2020-12-15
+
 
 - Initial release

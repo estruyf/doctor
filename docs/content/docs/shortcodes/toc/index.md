@@ -34,3 +34,15 @@ Example:
 ```html
 <toc title="Table of contents" position="right" />
 ```
+
+## Global options
+
+You can set the heading levels to be included/excluded in the `tocLevels` option in your `doctor.json` file.
+
+```json
+{
+  "markdown": {
+    "tocLevels": [1, 2, 3, 4]
+  }
+}
+```
