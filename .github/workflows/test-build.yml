@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       name:
-        description: 'Why are you triggering me?'
+        description: "Why are you triggering me?"
         required: false
-        default: 'Test run'
+        default: "Test run"
   pull_request:
     branches:
       - main
@@ -18,12 +18,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-node@v1
-      with:
-        node-version: 14
-        registry-url: https://registry.npmjs.org/
-  
-    - run: npm i
-      
-    - run: npm start
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 18
+          registry-url: https://registry.npmjs.org/
+
+      - run: npm i
+
+      - run: npm start

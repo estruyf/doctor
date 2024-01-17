@@ -8,7 +8,7 @@ on:
     types:
       - published
   schedule:
-    - cron:  '0 0 */7 * *'
+    - cron: "0 0 */7 * *"
   workflow_dispatch:
 
 jobs:
@@ -23,64 +23,63 @@ jobs:
     strategy:
       matrix:
         include:
-          - node: 14
+          - node: 18
             os: macos-latest
             siteUrl: SITEURL_MACOS
-          - node: 14
+          - node: 18
             os: ubuntu-latest
             siteUrl: SITEURL_LINUX
 
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-node@v1
-      with:
-        node-version: ${{ matrix.node }}
-        registry-url: https://registry.npmjs.org/
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node }}
+          registry-url: https://registry.npmjs.org/
 
-    - name: Cache node modules
-      uses: actions/cache@v2
-      with:
-        # npm cache files are stored in `~/.npm` on Linux/macOS
-        path: ~/.npm
-        key: ${{ matrix.os }}-release-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ matrix.os }}-release-
-  
-    - run: npm ci
-      
-    - run: npm start
+      - name: Cache node modules
+        uses: actions/cache@v2
+        with:
+          # npm cache files are stored in `~/.npm` on Linux/macOS
+          path: ~/.npm
+          key: ${{ matrix.os }}-release-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ matrix.os }}-release-
 
-    - run: npm link
+      - run: npm ci
 
-    - name: Publish via Doctor
-      run: |
-        if [[ ${GITHUB_REF} != "refs/heads/main" ]]
-        then
-          git clone -b dev https://github.com/estruyf/doctor-sample
-        else
-          git clone https://github.com/estruyf/doctor-sample
-        fi
-        
-        node ./scripts/prepare-sample.js
-        cd doctor-sample
+      - run: npm start
 
-        startClean=""
-        # Check on which branch it is running
-        if [[ ${GITHUB_REF} == "refs/heads/main" || ${GITHUB_EVENT_NAME} == 'workflow_dispatch' ]]; then
-          startClean="--cleanStart"
-        fi
-        
-        skipPages=""
-        # Check on which branch it is running
-        if [[ ${GITHUB_EVENT_NAME} == "schedule" ]]; then
-          skipPages="--skipExistingPages"
-        fi
+      - run: npm link
 
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd --confirm $startClean $skipPages
-      env:
-        DEBUG: ${{ secrets.DEBUG }}
-        TRANSLATOR_KEY: ${{ secrets.TRANSLATOR_KEY }}
+      - name: Publish via Doctor
+        run: |
+          if [[ ${GITHUB_REF} != "refs/heads/main" ]]
+          then
+            git clone -b dev https://github.com/estruyf/doctor-sample
+          else
+            git clone https://github.com/estruyf/doctor-sample
+          fi
 
+          node ./scripts/prepare-sample.js
+          cd doctor-sample
+
+          startClean=""
+          # Check on which branch it is running
+          if [[ ${GITHUB_REF} == "refs/heads/main" || ${GITHUB_EVENT_NAME} == 'workflow_dispatch' ]]; then
+            startClean="--cleanStart"
+          fi
+
+          skipPages=""
+          # Check on which branch it is running
+          if [[ ${GITHUB_EVENT_NAME} == "schedule" ]]; then
+            skipPages="--skipExistingPages"
+          fi
+
+          doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd --confirm $startClean $skipPages
+        env:
+          DEBUG: ${{ secrets.DEBUG }}
+          TRANSLATOR_KEY: ${{ secrets.TRANSLATOR_KEY }}
 
   #############################################
   ### Publishing on Windows with PowerShell ###
@@ -91,61 +90,60 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '#docs') }}
 
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-node@v1
-      with:
-        node-version: 14
-        registry-url: https://registry.npmjs.org/
-    
-    - name: Get npm cache directory
-      id: npm-cache
-      run: |
-        echo "::set-output name=dir::$(npm config get cache)"
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 18
+          registry-url: https://registry.npmjs.org/
 
-    - uses: actions/cache@v2
-      with:
-        path: ${{ steps.npm-cache.outputs.dir }}
-        key: ${{ runner.os }}-release-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-release-
-  
-    - run: npm ci
-      shell: powershell
-      
-    - run: npm start
-      shell: powershell
+      - name: Get npm cache directory
+        id: npm-cache
+        run: |
+          echo "::set-output name=dir::$(npm config get cache)"
 
-    - run: npm link
-      shell: powershell
+      - uses: actions/cache@v2
+        with:
+          path: ${{ steps.npm-cache.outputs.dir }}
+          key: ${{ runner.os }}-release-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-release-
 
-    - name: Publish via Doctor
-      run: | 
-        if (${env:GITHUB_REF} -ne 'refs/heads/main') {
-          git clone -b dev https://github.com/estruyf/doctor-sample
-        } else {
-          git clone https://github.com/estruyf/doctor-sample
-        }
-        
-        node ./scripts/prepare-sample.js
-        cd doctor-sample
+      - run: npm ci
+        shell: powershell
 
-        $startClean = ""
-        if (${env:GITHUB_REF} -eq 'refs/heads/main' -or ${env:GITHUB_EVENT_NAME} -eq 'workflow_dispatch') {
-          $startClean = "--cleanStart"
-        }
-        
-        $skipPages=""
-        # Check on which branch it is running
-        if (${env:GITHUB_EVENT_NAME} -eq 'schedule') {
-          $skipPages="--skipExistingPages"
-        }
+      - run: npm start
+        shell: powershell
 
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd --confirm $startClean $skipPages
-      shell: powershell
-      env:
-        DEBUG: ${{ secrets.DEBUG }}
-        TRANSLATOR_KEY: ${{ secrets.TRANSLATOR_KEY }}
+      - run: npm link
+        shell: powershell
 
+      - name: Publish via Doctor
+        run: |
+          if (${env:GITHUB_REF} -ne 'refs/heads/main') {
+            git clone -b dev https://github.com/estruyf/doctor-sample
+          } else {
+            git clone https://github.com/estruyf/doctor-sample
+          }
+
+          node ./scripts/prepare-sample.js
+          cd doctor-sample
+
+          $startClean = ""
+          if (${env:GITHUB_REF} -eq 'refs/heads/main' -or ${env:GITHUB_EVENT_NAME} -eq 'workflow_dispatch') {
+            $startClean = "--cleanStart"
+          }
+
+          $skipPages=""
+          # Check on which branch it is running
+          if (${env:GITHUB_EVENT_NAME} -eq 'schedule') {
+            $skipPages="--skipExistingPages"
+          }
+
+          doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd --confirm $startClean $skipPages
+        shell: powershell
+        env:
+          DEBUG: ${{ secrets.DEBUG }}
+          TRANSLATOR_KEY: ${{ secrets.TRANSLATOR_KEY }}
 
   ######################################
   ### Publishing on Windows with CMD ###
@@ -156,52 +154,51 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '#docs') }}
 
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-node@v1
-      with:
-        node-version: 14
-        registry-url: https://registry.npmjs.org/
-    
-    - name: Get npm cache directory
-      id: npm-cache
-      run: |
-        echo "::set-output name=dir::$(npm config get cache)"
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 18
+          registry-url: https://registry.npmjs.org/
 
-    - uses: actions/cache@v2
-      with:
-        path: ${{ steps.npm-cache.outputs.dir }}
-        key: ${{ runner.os }}-release-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-release-
-  
-    - run: npm ci
-      shell: cmd
-      
-    - run: npm start
-      shell: cmd
+      - name: Get npm cache directory
+        id: npm-cache
+        run: |
+          echo "::set-output name=dir::$(npm config get cache)"
 
-    - run: npm link
-      shell: cmd
+      - uses: actions/cache@v2
+        with:
+          path: ${{ steps.npm-cache.outputs.dir }}
+          key: ${{ runner.os }}-release-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-release-
 
-    - name: Publish via Doctor
-      run: |
-        IF not "%GITHUB_REF%"=="refs/heads/main" (git clone -b dev https://github.com/estruyf/doctor-sample) else (git clone https://github.com/estruyf/doctor-sample)
-        
+      - run: npm ci
+        shell: cmd
 
-        node ./scripts/prepare-sample.js
-        cd doctor-sample
+      - run: npm start
+        shell: cmd
 
-        IF "%GITHUB_REF%"=="refs/heads/main" (SET startClean="--cleanStart")
-        IF "%GITHUB_EVENT_NAME%"=="workflow_dispatch" (SET startClean="--cleanStart")
+      - run: npm link
+        shell: cmd
 
-        IF "%GITHUB_EVENT_NAME%"=="schedule" (SET skipPages="--skipExistingPages")
+      - name: Publish via Doctor
+        run: |
+          IF not "%GITHUB_REF%"=="refs/heads/main" (git clone -b dev https://github.com/estruyf/doctor-sample) else (git clone https://github.com/estruyf/doctor-sample)
 
-        doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd  --confirm %startClean% %skipPages%
-      shell: cmd
-      env:
-        DEBUG: ${{ secrets.DEBUG }}
-        TRANSLATOR_KEY: ${{ secrets.TRANSLATOR_KEY }}
 
+          node ./scripts/prepare-sample.js
+          cd doctor-sample
+
+          IF "%GITHUB_REF%"=="refs/heads/main" (SET startClean="--cleanStart")
+          IF "%GITHUB_EVENT_NAME%"=="workflow_dispatch" (SET startClean="--cleanStart")
+
+          IF "%GITHUB_EVENT_NAME%"=="schedule" (SET skipPages="--skipExistingPages")
+
+          doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd  --confirm %startClean% %skipPages%
+        shell: cmd
+        env:
+          DEBUG: ${{ secrets.DEBUG }}
+          TRANSLATOR_KEY: ${{ secrets.TRANSLATOR_KEY }}
 
   ##################################
   ### Run when a schedule failed ###
@@ -220,7 +217,6 @@ jobs:
           -H "Authorization: token ${{ secrets.ACTIONS_PAT }}" \
           https://api.github.com/repos/estruyf/doctor/actions/workflows/6155745/dispatches \
           -d '{"ref": "${{ github.ref }}" }'
-
 
   ##############################
   ### Start E2E with Cypress ###
@@ -253,70 +249,69 @@ jobs:
             browser: firefox
 
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-node@v1
-      with:
-        node-version: 14
-        registry-url: https://registry.npmjs.org/
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 18
+          registry-url: https://registry.npmjs.org/
 
-    - uses: actions/cache@v2
-      with:
-        path: ~/.npm
-        key: ${{ runner.os }}-release-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-release-
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-release-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-release-
 
-    - run: |
-        npm ci
-        
-    - name: Preparing the Cypress config
-      run: |
-        node ./scripts/prepare-e2e.js
-      env:
-        USERNAME: ${{ secrets.USERNAME }}
-        PASSWORD: ${{ secrets.PASSWORD }}
-        SITEURL: ${{ secrets[matrix.siteUrl] }}
-        ENVIRONMENT: ${{ matrix.siteUrl }}
-    
-    - name: Cypress E2E testing
-      run: |
-        ./node_modules/.bin/cypress verify
-        ./node_modules/.bin/cypress run --browser ${{ matrix.browser }}
-    
-    - name: Upload screenshots
-      uses: actions/upload-artifact@v2
-      if: ${{ always() }} # To make sure we can see what went wrong
-      with:
-        name: screenshots-${{ matrix.testTitle }}
-        path: ./**/screenshots/**/*.png
+      - run: |
+          npm ci
 
-    - name: Upload videos
-      uses: actions/upload-artifact@v2
-      if: ${{ always() }} # To make sure we can see what went wrong
-      with:
-        name: videos-${{ matrix.testTitle }}
-        path: ./**/cypress/videos/**/*.mp4
+      - name: Preparing the Cypress config
+        run: |
+          node ./scripts/prepare-e2e.js
+        env:
+          USERNAME: ${{ secrets.USERNAME }}
+          PASSWORD: ${{ secrets.PASSWORD }}
+          SITEURL: ${{ secrets[matrix.siteUrl] }}
+          ENVIRONMENT: ${{ matrix.siteUrl }}
 
-    - name: Prepare and generate reports
-      if: ${{ always() }}
-      run: |
-        envType="${ENVTYPE,,}"
-        envType="${envType/siteurl_/}"
+      - name: Cypress E2E testing
+        run: |
+          ./node_modules/.bin/cypress verify
+          ./node_modules/.bin/cypress run --browser ${{ matrix.browser }}
 
-        mv ./cypress/screenshots ./mochawesome-report
-        ./node_modules/.bin/mochawesome-merge --reportDir mochawesome-report > mochawesome-report/$envType.json
-        ./node_modules/.bin/marge ./mochawesome-report/$envType.json --charts -t "Doctor $envType" -p "Doctor $envType E2E Results"
-        find ./mochawesome-report/.  -name "*.json" -type f -delete
-      env:
-        ENVTYPE: ${{ matrix.siteUrl }}
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v2
+        if: ${{ always() }} # To make sure we can see what went wrong
+        with:
+          name: screenshots-${{ matrix.testTitle }}
+          path: ./**/screenshots/**/*.png
 
-    - name: Upload reports
-      uses: actions/upload-artifact@v2
-      if: ${{ always() }} # To make sure we can see what went wrong
-      with:
-        name: reports-${{ matrix.testTitle }}
-        path: ./mochawesome-report/**/*
+      - name: Upload videos
+        uses: actions/upload-artifact@v2
+        if: ${{ always() }} # To make sure we can see what went wrong
+        with:
+          name: videos-${{ matrix.testTitle }}
+          path: ./**/cypress/videos/**/*.mp4
 
+      - name: Prepare and generate reports
+        if: ${{ always() }}
+        run: |
+          envType="${ENVTYPE,,}"
+          envType="${envType/siteurl_/}"
+
+          mv ./cypress/screenshots ./mochawesome-report
+          ./node_modules/.bin/mochawesome-merge --reportDir mochawesome-report > mochawesome-report/$envType.json
+          ./node_modules/.bin/marge ./mochawesome-report/$envType.json --charts -t "Doctor $envType" -p "Doctor $envType E2E Results"
+          find ./mochawesome-report/.  -name "*.json" -type f -delete
+        env:
+          ENVTYPE: ${{ matrix.siteUrl }}
+
+      - name: Upload reports
+        uses: actions/upload-artifact@v2
+        if: ${{ always() }} # To make sure we can see what went wrong
+        with:
+          name: reports-${{ matrix.testTitle }}
+          path: ./mochawesome-report/**/*
 
   ####################################
   ### Push the results to gh pages ###
@@ -330,7 +325,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      
+
       - name: Download Linux report
         uses: actions/download-artifact@v2
         with:
@@ -358,14 +353,12 @@ jobs:
       - name: Check directory
         run: |
           ls ./reports -R
-      
+
       - name: Publish reports
         uses: JamesIves/github-pages-deploy-action@4.1.0
         with:
           branch: gh-pages
           folder: reports
-
-
 
   ###############################
   ### Release the new version ###
@@ -378,29 +371,29 @@ jobs:
     if: github.event_name != 'schedule' && success() && ${{ !contains(github.event.head_commit.message, '#docs') }}
 
     steps:
-    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-    - uses: actions/checkout@v2
-    - uses: actions/setup-node@v1
-      with:
-        node-version: 14
-        registry-url: https://registry.npmjs.org/
-  
-    - run: npm ci
-      
-    - run: npm start
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 18
+          registry-url: https://registry.npmjs.org/
 
-    - name: Publish release
-      run: npm publish --access public
-      if: startsWith(github.ref, 'refs/tags/v')
-      env:
-        NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
-        
-    - name: Update the package version
-      if: github.ref == 'refs/heads/dev'
-      run: node scripts/update-package-version.js $GITHUB_RUN_ID
-        
-    - name: Publish beta release
-      run: npm publish --tag next --access public
-      if: github.ref == 'refs/heads/dev'
-      env:
-        NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+      - run: npm ci
+
+      - run: npm start
+
+      - name: Publish release
+        run: npm publish --access public
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+
+      - name: Update the package version
+        if: github.ref == 'refs/heads/dev'
+        run: node scripts/update-package-version.js $GITHUB_RUN_ID
+
+      - name: Publish beta release
+        run: npm publish --tag next --access public
+        if: github.ref == 'refs/heads/dev'
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
