@@ -46,7 +46,7 @@ jobs:
           restore-keys: |
             ${{ matrix.os }}-release-
 
-      - run: npm ci
+      - run: npm i
 
       - run: npm start
 
@@ -108,7 +108,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-release-
 
-      - run: npm ci
+      - run: npm i
         shell: powershell
 
       - run: npm start
@@ -172,7 +172,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-release-
 
-      - run: npm ci
+      - run: npm i
         shell: cmd
 
       - run: npm start
@@ -263,7 +263,7 @@ jobs:
             ${{ runner.os }}-release-
 
       - run: |
-          npm ci
+          npm i
 
       - name: Preparing the Cypress config
         run: |
@@ -378,7 +378,7 @@ jobs:
           node-version: 18
           registry-url: https://registry.npmjs.org/
 
-      - run: npm ci
+      - run: npm i
 
       - run: npm start
 

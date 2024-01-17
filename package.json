@@ -41,22 +41,17 @@
     "type": "git",
     "url": "https://github.com/estruyf/doctor.git"
   },
-  "maintainers": [
-    {
-      "name": "Elio Struyf",
-      "email": "elio@struyfconsulting.be",
-      "url": "https://www.eliostruyf.com"
-    }
-  ],
-  "contributors": [
-    {
-      "name": "Elio Struyf",
-      "email": "elio@struyfconsulting.be",
-      "url": "https://www.eliostruyf.com"
-    }
-  ],
-  "funding": [
-    {
+  "maintainers": [{
+    "name": "Elio Struyf",
+    "email": "elio@struyfconsulting.be",
+    "url": "https://www.eliostruyf.com"
+  }],
+  "contributors": [{
+    "name": "Elio Struyf",
+    "email": "elio@struyfconsulting.be",
+    "url": "https://www.eliostruyf.com"
+  }],
+  "funding": [{
       "type": "github",
       "url": "https://github.com/sponsors/estruyf"
     },
