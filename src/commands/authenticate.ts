@@ -1,17 +1,21 @@
 import Listr = require("listr");
-import { ArgumentsHelper } from "../helpers/ArgumentsHelper";
-import { execScript } from "../helpers/execScript";
-import { CommandArguments } from "../models/CommandArguments";
-
+import { CommandArguments } from "@models";
+import { ArgumentsHelper, execScript } from "@helpers";
 
 export class Authenticate {
-
   /**
    * Authentication task - Splitted for output log of the device code
-   * @param auth 
+   * @param auth
    */
   public static async init(options: CommandArguments) {
-    const { auth, username, password, tenant, appId, certificateBase64Encoded } = options;
+    const {
+      auth,
+      username,
+      password,
+      tenant,
+      appId,
+      certificateBase64Encoded,
+    } = options;
 
     await new Listr([
       {
@@ -20,12 +24,28 @@ export class Authenticate {
           if (auth === "deviceCode") {
             await execScript([`login`], false, true);
           } else if (auth === "certificate") {
-            await execScript(ArgumentsHelper.parse(`login --authType certificate --appId "${appId}" --tenant "${tenant}" --certificateBase64Encoded "${certificateBase64Encoded}" ${password ? `--password ${password}` : `--password`}`), false, false, [certificateBase64Encoded, password]);
+            await execScript(
+              ArgumentsHelper.parse(
+                `login --authType certificate --appId "${appId}" --tenant "${tenant}" --certificateBase64Encoded "${certificateBase64Encoded}" ${
+                  password ? `--password ${password}` : `--password`
+                }`
+              ),
+              false,
+              false,
+              [certificateBase64Encoded, password]
+            );
           } else {
-            await execScript(ArgumentsHelper.parse(`login --authType password --userName "${username}" --password "${password}"`), false, false, [password]);
+            await execScript(
+              ArgumentsHelper.parse(
+                `login --authType password --userName "${username}" --password "${password}"`
+              ),
+              false,
+              false,
+              [password]
+            );
           }
-        }
-      }
+        },
+      },
     ]).run();
   }
 }

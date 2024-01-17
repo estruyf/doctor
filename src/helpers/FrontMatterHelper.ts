@@ -1,24 +1,32 @@
-import { PageFrontMatter } from "../models/PageFrontMatter";
-
+import { PageFrontMatter } from "@models";
 
 export class FrontMatterHelper {
-
   /**
    * Retrieve the Slug for the page
-   * @param data 
+   * @param data
    */
-  public static getSlug(data: PageFrontMatter, startFolder: string, filePath: string): string {
+  public static getSlug(
+    data: PageFrontMatter,
+    startFolder: string,
+    filePath: string
+  ): string {
     let { slug, title } = data;
 
-    const uniStartPath = startFolder.replace(/\\/g, '/');
-    const pathSlug = filePath.replace(/\\/g, '/').replace(uniStartPath, '').split('/');
+    const uniStartPath = startFolder.replace(/\\/g, "/");
+    const pathSlug = filePath
+      .replace(/\\/g, "/")
+      .replace(uniStartPath, "")
+      .split("/");
     pathSlug.pop();
-    const spFilePath = pathSlug.filter(s => s).join('/');
+    const spFilePath = pathSlug.filter((s) => s).join("/");
 
     if (!slug) {
-      slug = `${spFilePath ? `${spFilePath}/` : ''}${title.replace(/\//g, '-').replace(/ /g, '-').toLowerCase()}.aspx`
-    } else if (!(slug as string).endsWith('.aspx')) {
-      slug = `${slug}.aspx`
+      slug = `${spFilePath ? `${spFilePath}/` : ""}${title
+        .replace(/\//g, "-")
+        .replace(/ /g, "-")
+        .toLowerCase()}.aspx`;
+    } else if (!(slug as string).endsWith(".aspx")) {
+      slug = `${slug}.aspx`;
     }
     return slug;
   }

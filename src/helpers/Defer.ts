@@ -1,4 +1,4 @@
-import { Deferred } from '../models';
+import { Deferred } from "@models";
 
 export function defer<T>(): Deferred<T> {
   let resolve: (result: T) => void;
@@ -12,6 +12,6 @@ export function defer<T>(): Deferred<T> {
   return {
     resolve: resolve,
     reject: reject,
-    promise: promise
+    promise: promise,
   };
 }

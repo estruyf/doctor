@@ -43,4 +43,6 @@ export interface CommandArguments {
   siteDesign?: SiteDesign;
   markdown?: MarkdownSettings;
   shortcodesFolder?: string;
+
+  tocLevels: number[];
 }

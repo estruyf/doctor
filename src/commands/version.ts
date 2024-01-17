@@ -1,26 +1,27 @@
-import * as fs from "fs";
 import kleur = require("kleur");
-import * as path from "path";
+import { join } from "path";
+import { readFileAsync } from "@utils";
 
 export class Version {
-
   /**
    * Retrieve the version number
    */
-  public static start() {
-    const version = this.getVersion();
+  public static async start() {
+    const version = await this.getVersion();
     if (version) {
       console.log(`Current installed version: ${version}`);
     } else {
-      console.log(kleur.red('Unknown version!'));
+      console.log(kleur.red("Unknown version!"));
     }
   }
 
   /**
    * Retrieve the current version
    */
-  public static getVersion() {
-    const pkg = fs.readFileSync(path.join(__dirname, '../../package.json'), { encoding: 'utf-8' });
+  public static async getVersion() {
+    const pkg = await readFileAsync(join(__dirname, "../../package.json"), {
+      encoding: "utf-8",
+    });
     if (pkg) {
       const parsed = JSON.parse(pkg);
       return parsed.version;

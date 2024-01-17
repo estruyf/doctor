@@ -1,42 +1,50 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import * as fg from 'fast-glob';
-import { Logger } from '.';
-import { CliCommand } from './CliCommand';
+import * as fg from "fast-glob";
+import { join } from "path";
+import { Logger } from ".";
+import { CliCommand } from "./CliCommand";
+import { existsAsync, mkdirAsync, rmAsync, writeFileAsync } from "@utils";
 
 export class TempDataHelper {
-
   /**
    * Create data in the temp folder
-   * @param data 
+   * @param data
    */
-  public static create(data: any): string {
+  public static async create(data: any): Promise<string> {
     const crntFolder = process.cwd();
-    const tempPath = path.join(crntFolder, "./temp");
+    const tempPath = join(crntFolder, "./temp");
     Logger.debug(`Creating temp data in folder: ${tempPath}`);
-    if (!fs.existsSync(tempPath)) {
-      fs.mkdirSync(tempPath, { recursive: true });
+    if (!(await existsAsync(tempPath))) {
+      await mkdirAsync(tempPath, { recursive: true });
     }
 
-    const tempFilePath = path.join(tempPath, "./wpData.json");
-    fs.writeFileSync(tempFilePath, JSON.stringify(data, null, 2), { encoding: "utf-8" });
+    const tempFilePath = join(tempPath, "./wpData.json");
+    await writeFileAsync(tempFilePath, JSON.stringify(data, null, 2), {
+      encoding: "utf-8",
+    });
     return tempFilePath;
   }
 
   /**
    * Create a temp. page for multilingual
-   * @param data 
-   * @returns 
+   * @param data
+   * @returns
    */
-  public static createPage(originalPath: string, fileName: string, data: any): string {
+  public static async createPage(
+    originalPath: string,
+    fileName: string,
+    data: any
+  ): Promise<string> {
     Logger.debug(`Creating temp page in folder: ${originalPath}`);
-    
-    if (!fs.existsSync(originalPath)) {
-      fs.mkdirSync(originalPath, { recursive: true });
+
+    if (!(await existsAsync(originalPath))) {
+      await mkdirAsync(originalPath, { recursive: true });
     }
 
-    const tempFilePath = path.join(originalPath, `./${fileName}.machinetranslated.md`);
-    fs.writeFileSync(tempFilePath, data, { encoding: "utf-8" });
+    const tempFilePath = join(
+      originalPath,
+      `./${fileName}.machinetranslated.md`
+    );
+    await writeFileAsync(tempFilePath, data, { encoding: "utf-8" });
     return tempFilePath;
   }
 
@@ -46,17 +54,19 @@ export class TempDataHelper {
   public static async clear() {
     if (!CliCommand.options.debug) {
       const crntFolder = process.cwd();
-      const tempPath = path.join(crntFolder, "./temp");
-      if (fs.existsSync(tempPath)) {
-        fs.rmdirSync(tempPath, { recursive: true });
+      const tempPath = join(crntFolder, "./temp");
+      if (await existsAsync(tempPath)) {
+        await rmAsync(tempPath, { recursive: true });
       }
 
-      const uniformalStartFolder = crntFolder.replace(/\\/g, '/');
-      const files = await fg(`${uniformalStartFolder}/**/*.machinetranslated.md`);
+      const uniformalStartFolder = crntFolder.replace(/\\/g, "/");
+      const files = await fg(
+        `${uniformalStartFolder}/**/*.machinetranslated.md`
+      );
 
       if (files && files.length > 0) {
         for (const file of files) {
-          fs.rmSync(file);
+          await rmAsync(file);
         }
       }
     }

@@ -1,4 +1,4 @@
-import { ShortcodeRender } from "src/models";
+import { ShortcodeRender } from "@models";
 
 const getIcon = (type: string) => {
   switch (type.toLowerCase()) {
@@ -16,10 +16,12 @@ const getIcon = (type: string) => {
 };
 
 export const CalloutRenderer: ShortcodeRender = {
-  render: function (attrs: { title: string, type: string, bgColor: string, fgColor: string }, markup: string) {
-
+  render: function (
+    attrs: { title: string; type: string; bgColor: string; fgColor: string },
+    markup: string
+  ) {
     const title = attrs.title || "";
-    
+
     let type = attrs.type || "note";
     switch (type.toLowerCase()) {
       case "note":
@@ -44,12 +46,12 @@ export const CalloutRenderer: ShortcodeRender = {
 
     let styles = ``;
     if (attrs.bgColor) {
-      styles = `background-color: ${attrs.bgColor};`
+      styles = `background-color: ${attrs.bgColor};`;
     }
     if (attrs.fgColor) {
-      styles = `${styles} color: ${attrs.fgColor};`
+      styles = `${styles} color: ${attrs.fgColor};`;
     }
-    
+
     return `
       <div class="callout callout-${type}" style="${styles}">
         <div class="callout-heading">
@@ -62,7 +64,7 @@ export const CalloutRenderer: ShortcodeRender = {
         <div class="callout-content">
           <p>${markup}</p>
         </div>
-      </div>`
+      </div>`;
   },
-  beforeMarkdown: false
+  beforeMarkdown: false,
 };

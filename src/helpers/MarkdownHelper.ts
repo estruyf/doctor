@@ -1,51 +1,72 @@
-import { CliCommand } from './CliCommand';
-import * as CleanCSS from 'clean-css';
-import * as fg from 'fast-glob';
-import md = require('markdown-it');
-import hljs = require('highlight.js');
-import { MarkdownSettings } from '../models';
-import { ShortcodesHelpers } from './ShortcodesHelpers';
-import { encode } from 'html-entities';
-import { TempDataHelper } from './TempDataHelper';
+import * as CleanCSS from "clean-css";
+import * as fg from "fast-glob";
+import md = require("markdown-it");
+import hljs = require("highlight.js");
+import { encode } from "html-entities";
+import { CliCommand, ShortcodesHelpers, TempDataHelper } from "@helpers";
+import { CommandArguments, MarkdownSettings } from "@models";
 
 export class MarkdownHelper {
-
   /**
    * Fetched the Markdown files from the start folder
-   * @param ctx 
-   * @param startFolder 
+   * @param ctx
+   * @param startFolder
    */
   public static async fetchMDFiles(ctx: any, startFolder: string) {
-    const uniformalStartFolder = startFolder.replace(/\\/g, '/');
-    const files = await fg((`${uniformalStartFolder}/**/*.md`), { ignore: [`${uniformalStartFolder}/**/*.lang.md`, `${uniformalStartFolder}/**/*.machinetranslated.md`] });
+    const uniformalStartFolder = startFolder.replace(/\\/g, "/");
+    const files = await fg(`${uniformalStartFolder}/**/*.md`, {
+      ignore: [
+        `${uniformalStartFolder}/**/*.lang.md`,
+        `${uniformalStartFolder}/**/*.machinetranslated.md`,
+      ],
+    });
 
     if (files && files.length > 0) {
       ctx.files = files;
     } else {
-      return Promise.reject(new Error(`No markdown files found in the folder.`));
+      return Promise.reject(
+        new Error(`No markdown files found in the folder.`)
+      );
     }
   }
 
   /**
    * Convert the markdown string to doctor HTML
-   * @param markdown 
-   * @returns 
+   * @param markdown
+   * @param options
+   * @returns
    */
-  public static async getHtmlData(markdown: string) {
-    const converter = md({ html: true, breaks: true, highlight: (str, lang) => {
-      if (lang && hljs.getLanguage(lang)) {
-        try {
-          return `<pre class="hljs ${lang.toLowerCase().replace(/ /g, '_')}"><code>${hljs.highlight(lang, str, true).value}</code></pre>`;
-        } catch (__) {}
-      }
+  public static async getHtmlData(markdown: string, options: CommandArguments) {
+    const converter = md({
+      html: true,
+      breaks: true,
+      highlight: (str, lang) => {
+        if (lang && hljs.getLanguage(lang)) {
+          try {
+            return `<pre class="hljs ${lang
+              .toLowerCase()
+              .replace(/ /g, "_")}"><code>${
+              hljs.highlight(lang, str, true).value
+            }</code></pre>`;
+          } catch (__) {}
+        }
 
-      return `<pre class="hljs"><code>${hljs.highlightAuto(str).value}</code></pre>`;
-    }})
-    .use(require("markdown-it-anchor"), { permalink: true, permalinkClass: `toc-anchor` })
-    .use(require("markdown-it-table-of-contents"), { includeLevel: [1,2,3,4] });
+        return `<pre class="hljs"><code>${
+          hljs.highlightAuto(str).value
+        }</code></pre>`;
+      },
+    })
+      .use(require("markdown-it-anchor"), {
+        permalink: true,
+        permalinkClass: `toc-anchor`,
+      })
+      .use(require("markdown-it-table-of-contents"), {
+        includeLevel: options.tocLevels,
+      });
 
     const mdOptions = CliCommand.options.markdown;
-    const theme = mdOptions && mdOptions.theme ? mdOptions.theme.toLowerCase() : "dark";
+    const theme =
+      mdOptions && mdOptions.theme ? mdOptions.theme.toLowerCase() : "dark";
 
     const cleanCss = new CleanCSS({});
     let htmlMarkup = await ShortcodesHelpers.parseBefore(`
@@ -56,56 +77,66 @@ export class MarkdownHelper {
 </div>`);
     htmlMarkup = converter.render(htmlMarkup);
     htmlMarkup = await ShortcodesHelpers.parseAfter(htmlMarkup);
-    htmlMarkup = `${htmlMarkup}<style>${cleanCss.minify(this.getEditorStyles(theme === "light")).styles} ${cleanCss.minify(this.getShortcodeStyles()).styles}</style>`;
+    htmlMarkup = `${htmlMarkup}<style>${
+      cleanCss.minify(this.getEditorStyles(theme === "light")).styles
+    } ${cleanCss.minify(this.getShortcodeStyles()).styles}</style>`;
 
     return htmlMarkup;
   }
 
   /**
    * Retrieve the JSON data for the web part
-   * @param webPartTitle 
-   * @param markdown 
+   * @param webPartTitle
+   * @param markdown
    */
-  public static async getJsonData(webPartTitle: string, markdown: string, mdOptions: MarkdownSettings | null, wasAlreadyParsed: boolean = false): Promise<string> {
-    
+  public static async getJsonData(
+    webPartTitle: string,
+    markdown: string,
+    mdOptions: MarkdownSettings | null,
+    options: CommandArguments,
+    wasAlreadyParsed: boolean = false
+  ): Promise<string> {
     const allowHtml = mdOptions && mdOptions.allowHtml;
-    const theme = mdOptions && mdOptions.theme ? mdOptions.theme.toLowerCase() : "dark";
+    const theme =
+      mdOptions && mdOptions.theme ? mdOptions.theme.toLowerCase() : "dark";
 
     let wpData = {
       title: webPartTitle,
       serverProcessedContent: {
         searchablePlainTexts: {
-          code: encode(markdown)
-        }
+          code: encode(markdown),
+        },
       },
       dataVersion: "2.0",
       properties: {
         displayPreview: true,
         lineWrapping: true,
         miniMap: {
-          enabled: false
+          enabled: false,
         },
         previewState: "Show",
-        theme: theme === "dark" ? "Monokai" : "Base16Light"
-      }
-    }
+        theme: theme === "dark" ? "Monokai" : "Base16Light",
+      },
+    };
 
     if (allowHtml) {
-      let htmlMarkup = wasAlreadyParsed ? markdown : await this.getHtmlData(markdown);
+      let htmlMarkup = wasAlreadyParsed
+        ? markdown
+        : await this.getHtmlData(markdown, options);
 
       if (htmlMarkup) {
         wpData.serverProcessedContent["htmlStrings"] = {
-          html: htmlMarkup
-        }
+          html: htmlMarkup,
+        };
       }
     }
 
-    return TempDataHelper.create(wpData);
+    return await TempDataHelper.create(wpData);
   }
 
   /**
    * Retrieve the CSS styles for code highlighting
-   * @param light 
+   * @param light
    */
   private static getEditorStyles(light: boolean = false) {
     if (light) {

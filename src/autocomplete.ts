@@ -1,17 +1,22 @@
-import * as omelette from 'omelette';
-import { Command } from './commands/Command';
-import { OptionsHelper } from './helpers';
+import * as omelette from "omelette";
+import { Command } from "@commands";
+import { OptionsHelper } from "@helpers";
 
 export class Autocomplete {
   private complete: omelette.Instance = null;
-  private commands: string[] = [Command.cleanup, Command.init, Command.publish, Command.version];
+  private commands: string[] = [
+    Command.cleanup,
+    Command.init,
+    Command.publish,
+    Command.version,
+  ];
 
   constructor() {
     this.complete = omelette(`doctor`);
-    this.complete.on('complete', this.handleAutocomplete);
+    this.complete.on("complete", this.handleAutocomplete);
     this.complete.init();
   }
-  
+
   /**
    * Install the autocomplete functionality
    */
@@ -28,10 +33,13 @@ export class Autocomplete {
 
   /**
    * Handles the autocomplete per command
-   * @param fragment 
-   * @param data 
+   * @param fragment
+   * @param data
    */
-  private handleAutocomplete = (fragment: string, data: omelette.CallbackValue) => {
+  private handleAutocomplete = (
+    fragment: string,
+    data: omelette.CallbackValue
+  ) => {
     let replies: omelette.Choices = [];
     let allWords: string[] = [];
 
@@ -43,12 +51,14 @@ export class Autocomplete {
       if (allWords[0] !== Command.version && allWords[0] !== Command.cleanup) {
         const args = OptionsHelper.getArgs();
         const keys = Object.keys(args);
-        replies = keys.filter(k => !allWords.includes(k) && k.startsWith(`--`));
+        replies = keys.filter(
+          (k) => !allWords.includes(k) && k.startsWith(`--`)
+        );
       }
     }
 
-    data.reply(replies)
-  }
+    data.reply(replies);
+  };
 }
 
 export const autocomplete = new Autocomplete();

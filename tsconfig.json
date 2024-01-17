@@ -16,7 +16,13 @@
     "lib": [
       "DOM",
       "ES2015"
-    ]
+    ],
+    "paths": {
+      "@commands": ["src/commands"],
+      "@helpers": ["src/helpers"],
+      "@models": ["src/models"],
+      "@utils": ["src/utils"]
+    }
   },
   "include": [
     "src/**/*.ts"   

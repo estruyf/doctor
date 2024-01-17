@@ -1,21 +1,28 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import { ShortcodeRender } from '../models';
-import { Logger } from "../helpers";
+import { join } from "path";
+import { ShortcodeRender } from "@models";
+import { Logger } from "@helpers";
+import { existsAsync, readFileAsync } from "@utils";
 
 export const IconRenderer: ShortcodeRender = {
-  render: async function (attrs: { name: string }, markup: string): Promise<string> {
-
+  render: async function (
+    attrs: { name: string },
+    markup: string
+  ): Promise<string> {
     if (!attrs || !attrs.name) {
       return "";
     }
 
-    const iconName = `${attrs.name.toLowerCase().replace('ic_fluent_', '')}.svg`;
-    const iconPath = path.join(__dirname, `../../node_modules/@fluentui/svg-icons/icons/${iconName}`);
+    const iconName = `${attrs.name
+      .toLowerCase()
+      .replace("ic_fluent_", "")}.svg`;
+    const iconPath = join(
+      __dirname,
+      `../../node_modules/@fluentui/svg-icons/icons/${iconName}`
+    );
     Logger.debug(`Fetching icon: ${iconPath}`);
     try {
-      if (fs.existsSync(iconPath)) {
-        const icon = fs.readFileSync(iconPath, { encoding: "utf-8" });
+      if (await existsAsync(iconPath)) {
+        const icon = await readFileAsync(iconPath, { encoding: "utf-8" });
         Logger.debug(icon);
         return `
           <i data-icon-name="${attrs.name}" role="presentation" aria-hidden="true">
@@ -32,5 +39,5 @@ export const IconRenderer: ShortcodeRender = {
 
     return "";
   },
-  beforeMarkdown: false
+  beforeMarkdown: false,
 };
