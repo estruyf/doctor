@@ -4,7 +4,6 @@ export * from './ArgumentsHelper.js';
 export * from './Cleanup.js';
 export * from './CliCommand.js';
 export * from './ContextInfo.js';
-export * from './Defer.js';
 export * from './DoctorTranspiler.js';
 export * from './FileHelpers.js';
 export * from './FolderHelpers.js';

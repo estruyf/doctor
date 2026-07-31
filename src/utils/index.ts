@@ -1,4 +1,3 @@
-export * from "./execAsync.js";
 export * from "./existsAsync.js";
 export * from "./mkdirAsync.js";
 export * from "./readFileAsync.js";

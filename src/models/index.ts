@@ -1,7 +1,6 @@
 export * from './Chrome.js';
 export * from './CommandArguments.js';
 export * from './Control.js';
-export * from './Deferred.js';
 export * from './File.js';
 export * from './Folder.js';
 export * from './HeaderOptions.js';
