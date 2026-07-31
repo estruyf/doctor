@@ -31,16 +31,22 @@ export class MarkdownHelper {
     if (files && files.length > 0) {
       ctx.files = files;
 
-      // Group files by their relative parent folder for the summary output
+      // Group files by top-level folder for a concise summary output
       const folderCounts = new Map<string, number>();
       for (const file of files) {
         const rel = relative(uniformalStartFolder, dirname(file)) || ".";
-        folderCounts.set(rel, (folderCounts.get(rel) ?? 0) + 1);
+        const topLevel =
+          rel === "." ? "." : rel.split("/").filter(Boolean)[0] || ".";
+        folderCounts.set(topLevel, (folderCounts.get(topLevel) ?? 0) + 1);
       }
 
       const folderLines = [...folderCounts.entries()]
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(([folder, count]) => `  ./${folder}/ (${count} ${count === 1 ? "file" : "files"})`)
+        .map(([folder, count]) =>
+          folder === "."
+            ? `  ./ (${count} ${count === 1 ? "file" : "files"})`
+            : `  ./${folder}/ (${count} ${count === 1 ? "file" : "files"})`
+        )
         .join("\n");
 
       task.output = `Found ${files.length} ${files.length === 1 ? "file" : "files"}:\n${folderLines}`;

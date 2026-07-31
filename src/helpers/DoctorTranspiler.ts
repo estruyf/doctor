@@ -55,13 +55,13 @@ export class DoctorTranspiler {
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const filename = basename(file);
-      task.output = `[${i + 1}/${total}] ${filename}`;
+      const pageStart = Date.now();
+      task.output = `[${i + 1}/${total}] Processing ${file}`;
 
       Logger.debug(`Processing file: ${file}`);
 
       try {
-        await this.processFile(file, task, options, output);
+        await this.processFile(file, task, options, output, null, i + 1, total);
       } catch (e) {
         StatusHelper.addError();
         Logger.debug(e.message);
@@ -69,6 +69,8 @@ export class DoctorTranspiler {
         if (!options.continueOnError) {
           throw new Error(e.message);
         }
+      } finally {
+        StatusHelper.addPageDuration(file, Date.now() - pageStart);
       }
     }
   }
@@ -88,9 +90,16 @@ export class DoctorTranspiler {
     options: CommandArguments,
     output: PublishOutput,
     languagePageSlug: string | null = null,
+    currentIndex: number = 0,
+    totalFiles: number = 0,
   ) {
     const { webUrl, webPartTitle, skipExistingPages, disableComments } =
       options;
+    const progressPrefix =
+      currentIndex > 0 && totalFiles > 0 ? `[${currentIndex}/${totalFiles}] ` : "";
+    const setProgress = (message: string) => {
+      task.output = `${progressPrefix}${message}`;
+    };
 
     if (file.endsWith(".md")) {
       const filename = basename(file);
@@ -98,9 +107,7 @@ export class DoctorTranspiler {
       let contents = await readFileAsync(file, { encoding: "utf-8" });
       if (contents) {
         // Compute hash once — used for change detection and state recording
-        const contentHash = options.skipUnchanged
-          ? StateHelper.hashContent(contents)
-          : null;
+        const contentHash = StateHelper.hashContent(contents);
 
         const markup: matter.GrayMatterFile<string> = matter(contents);
 
@@ -145,10 +152,10 @@ export class DoctorTranspiler {
             file,
           );
 
-        // Change detection: skip unchanged files when --skipUnchanged is set
-        if (options.skipUnchanged && contentHash && !languagePageSlug) {
+        // Change detection: skip unchanged files unless --forceAll is set
+        if (!options.forceAll && !languagePageSlug) {
           if (!StateHelper.hasChanged(slug, contentHash)) {
-            task.output = `Skipped (unchanged): ${filename}`;
+            setProgress(`Skipped (unchanged): ${file}`);
             Logger.debug(`Skipping unchanged file: ${filename}`);
             StatusHelper.addPageSkipped();
             return;
@@ -166,7 +173,9 @@ export class DoctorTranspiler {
 
         // Image processing
         if (imgElms && imgElms.length > 0) {
-          task.output = `Uploading ${imgElms.length} image${imgElms.length === 1 ? "" : "s"} from ${filename}`;
+          setProgress(
+            `Uploading ${imgElms.length} image${imgElms.length === 1 ? "" : "s"} from ${file}`,
+          );
 
           markup.content = await this.processImages(
             $,
@@ -181,9 +190,11 @@ export class DoctorTranspiler {
 
         // Anchor processing
         if (anchorElms && anchorElms.length > 0) {
-          task.output = `Processing ${anchorElms.length} link${anchorElms.length === 1 ? "" : "s"} in ${filename}`;
+          setProgress(
+            `Processing ${anchorElms.length} link${anchorElms.length === 1 ? "" : "s"} in ${file}`,
+          );
 
-          Logger.debug(`Number of links in ${filename}: ${anchorElms.length}`);
+          Logger.debug(`Number of links in ${file}: ${anchorElms.length}`);
 
           try {
             markup.content = await this.processLinks(
@@ -193,8 +204,10 @@ export class DoctorTranspiler {
               markup.content,
               options,
             );
-          } catch (e) {
-            throw new Error(e.message);
+          } catch (e: any) {
+            const message =
+              typeof e === "string" ? e : e?.message || JSON.stringify(e);
+            throw new Error(`Failed while processing links in ${file}. ${message}`);
           }
         }
 
@@ -213,7 +226,7 @@ export class DoctorTranspiler {
         }
 
         if (markup && markup.content) {
-          task.output = `Checking if page exists: ${slug}`;
+          setProgress(`Checking if page exists: ${slug}`);
 
           // Check if the page already exists
           const existed = await PagesHelper.createPageIfNotExists(
@@ -236,9 +249,11 @@ export class DoctorTranspiler {
             (existed && !skipExistingPages) ||
             (existed && languagePageSlug)
           ) {
-            task.output = existed
+            setProgress(
+              existed
               ? `Updating existing page: ${title}`
-              : `Creating new page: ${title}`;
+              : `Creating new page: ${title}`,
+            );
 
             // Retrieving all the controls from the page, so that we can start replacing the
             const controlData: string = await PagesHelper.getPageControls(
@@ -276,19 +291,19 @@ export class DoctorTranspiler {
 
             // Check if metadata needs to be added to the page
             if (metadata) {
-              task.output = `Setting metadata for ${filename}`;
+              setProgress(`Setting metadata for ${file}`);
               await PagesHelper.setPageMetadata(webUrl, slug, metadata);
             }
 
             // Check if page needs to be published
             if (typeof draft === "undefined" || !draft) {
-              task.output = `Publishing page: ${title}`;
+              setProgress(`Publishing page: ${title}`);
               await PagesHelper.publishPageIfNeeded(webUrl, slug);
             }
 
             // Set the page its description
             if (description) {
-              task.output = `Setting page description for ${filename}`;
+              setProgress(`Setting page description for ${file}`);
               await PagesHelper.setPageDescription(webUrl, slug, description);
             }
 
@@ -298,12 +313,17 @@ export class DoctorTranspiler {
               StatusHelper.addPageCreated();
             }
 
-            // Record hash so next run can skip unchanged files
-            if (options.skipUnchanged && contentHash) {
+            // Record hash so future runs can skip unchanged files and resume reliably
+            if (!options.disableStatePersistence) {
               StateHelper.markPublished(slug, contentHash);
+              await StateHelper.save(
+                webUrl,
+                options.assetLibrary,
+                options.stateFile,
+              );
             }
           } else {
-            task.output = `Skipped (already exists): ${filename}`;
+            setProgress(`Skipped (already exists): ${file}`);
             Logger.debug(`Skipping "${filename}" as it already exists`);
             StatusHelper.addPageSkipped();
           }
@@ -475,6 +495,13 @@ export class DoctorTranspiler {
         // Get the slug
         const mdData = matter(mdContents);
         if (!mdData || !mdData.data) {
+          continue;
+        }
+
+        if (!mdData.data.slug && !mdData.data.title) {
+          Logger.debug(
+            `Skipping link target without title/slug front matter: ${mdFilePath}`,
+          );
           continue;
         }
 

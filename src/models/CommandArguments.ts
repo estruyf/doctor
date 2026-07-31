@@ -10,6 +10,7 @@ export interface RuntimeOptions {
   commandName?: string;
   debug: boolean;
   verbose: boolean;
+  timingDetails: boolean;
   continueOnError: boolean;
   retryWhenFailed: boolean;
   confirm: boolean;
@@ -29,12 +30,14 @@ export interface PublishOptions {
   startFolderRel: string;
   outputFolder?: string;
   assetLibrary: string;
+  stateFile: string;
+  disableStatePersistence: boolean;
   webPartTitle: string;
   webUrl: string;
   overwriteImages: boolean;
   skipPrecheck: boolean;
   skipExistingPages: boolean;
-  skipUnchanged: boolean;
+  forceAll: boolean;
   pageTemplate: string | null;
 }
 
@@ -60,6 +63,7 @@ export interface TaskToggleOptions {
   skipPages: boolean;
   skipNavigation: boolean;
   skipSiteDesign: boolean;
+  applyTheme: boolean;
   cleanEnd: boolean;
   cleanStart: boolean;
 }

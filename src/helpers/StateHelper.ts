@@ -1,7 +1,7 @@
 import { createHash } from "crypto";
 import { executeWithRetry, FileHelpers, Logger } from "@helpers";
 import { CliCommand } from "@helpers";
-import { join } from "path";
+import { basename, dirname, join } from "path";
 import { writeFileAsync } from "@utils";
 import { tmpdir } from "os";
 
@@ -17,8 +17,29 @@ export interface DoctorState {
   pages: Record<string, DoctorStateEntry>;
 }
 
-const STATE_FOLDER = ".doctor";
-const STATE_FILE = "state.json";
+const DEFAULT_STATE_FILE = ".doctor/state.json";
+
+const normalizeStateTarget = (
+  assetLibrary: string,
+  stateFile: string,
+): { folderPath: string; fileName: string; filePath: string } => {
+  const normalizedStateFile = (stateFile || DEFAULT_STATE_FILE)
+    .replace(/\\/g, "/")
+    .replace(/^\/+/, "")
+    .replace(/\/+$/, "");
+  const fileName = basename(normalizedStateFile) || "state.json";
+  const folderPart = dirname(normalizedStateFile).replace(/\\/g, "/");
+  const folderPath =
+    folderPart && folderPart !== "."
+      ? `${assetLibrary}/${folderPart}`
+      : assetLibrary;
+  const filePath =
+    folderPart && folderPart !== "."
+      ? `${assetLibrary}/${folderPart}/${fileName}`
+      : `${assetLibrary}/${fileName}`;
+
+  return { folderPath, fileName, filePath };
+};
 
 export class StateHelper {
   private static state: DoctorState | null = null;
@@ -33,9 +54,14 @@ export class StateHelper {
    * Download the state file from SharePoint.
    * Returns an empty state if the file does not exist yet.
    */
-  public static async load(webUrl: string, assetLibrary: string): Promise<void> {
+  public static async load(
+    webUrl: string,
+    assetLibrary: string,
+    stateFile: string = DEFAULT_STATE_FILE,
+  ): Promise<void> {
     StateHelper.loaded = true;
-    const relUrl = FileHelpers.getRelUrl(webUrl, `${assetLibrary}/${STATE_FOLDER}/${STATE_FILE}`);
+    const target = normalizeStateTarget(assetLibrary, stateFile);
+    const relUrl = FileHelpers.getRelUrl(webUrl, target.filePath);
 
     try {
       const { stdout } = await executeWithRetry(
@@ -95,22 +121,34 @@ export class StateHelper {
   /**
    * Upload the updated state back to SharePoint.
    */
-  public static async save(webUrl: string, assetLibrary: string): Promise<void> {
+  public static async save(
+    webUrl: string,
+    assetLibrary: string,
+    stateFile: string = DEFAULT_STATE_FILE,
+  ): Promise<void> {
     if (!StateHelper.state) return;
 
     const json = JSON.stringify(StateHelper.state, null, 2);
     const tmpPath = join(tmpdir(), `doctor-state-${Date.now()}.json`);
+    const target = normalizeStateTarget(assetLibrary, stateFile);
 
     try {
       await writeFileAsync(tmpPath, json, { encoding: "utf-8" });
 
-      // Ensure the .doctor folder exists
-      const folderPath = `${assetLibrary}/${STATE_FOLDER}`;
-      const folderUrl = FileHelpers.getRelUrl(webUrl, folderPath);
+      // Ensure the target state folder exists
+      const folderUrl = FileHelpers.getRelUrl(webUrl, target.folderPath);
       try {
+        const parentFolderUrl =
+          dirname(target.folderPath).replace(/\\/g, "/") === "."
+            ? assetLibrary
+            : dirname(target.folderPath).replace(/\\/g, "/");
         await executeWithRetry(
           "spo folder add",
-          { webUrl, parentFolderUrl: assetLibrary, name: STATE_FOLDER },
+          {
+            webUrl,
+            parentFolderUrl,
+            name: basename(target.folderPath),
+          },
           CliCommand.getRetry()
         );
       } catch {
@@ -121,14 +159,15 @@ export class StateHelper {
         "spo file add",
         {
           webUrl,
-          folder: folderPath,
+          folder: target.folderPath,
           path: tmpPath,
-          nameFile: STATE_FILE,
+          fileName: target.fileName,
+          overwrite: true,
         },
         CliCommand.getRetry()
       );
 
-      Logger.debug(`State saved to SharePoint: ${folderUrl}/${STATE_FILE}`);
+      Logger.debug(`State saved to SharePoint: ${folderUrl}/${target.fileName}`);
     } finally {
       // Clean up temp file
       try {

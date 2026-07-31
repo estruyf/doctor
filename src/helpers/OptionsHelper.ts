@@ -36,6 +36,7 @@ export class OptionsHelper {
       "--folder": String,
       "--url": String,
       "--library": String,
+      "--stateFile": String,
       "--webPartTitle": String,
       "--outputFolder": String,
       "--pageTemplate": String,
@@ -49,6 +50,7 @@ export class OptionsHelper {
 
       "--debug": Boolean,
       "--verbose": Boolean,
+      "--timingDetails": Boolean,
       "--confirm": Boolean,
       "--continueOnError": Boolean,
       "--retryWhenFailed": Boolean,
@@ -60,7 +62,9 @@ export class OptionsHelper {
       "--skipPages": Boolean,
       "--skipNavigation": Boolean,
       "--skipSiteDesign": Boolean,
-      "--skipUnchanged": Boolean,
+      "--applyTheme": Boolean,
+      "--forceAll": Boolean,
+      "--disableStatePersistence": Boolean,
 
       "-a": "--auth",
       "-f": "--folder",
@@ -108,6 +112,11 @@ export class OptionsHelper {
       startFolderRel: args["--folder"] || options["folder"] || "./src",
       assetLibrary:
         args["--library"] || options["library"] || "Shared Documents",
+      stateFile: args["--stateFile"] || options["stateFile"] || ".doctor/state.json",
+      disableStatePersistence:
+        (args["--disableStatePersistence"] as any) ||
+        options["disableStatePersistence"] ||
+        false,
       webPartTitle:
         args["--webPartTitle"] ||
         options["webPartTitle"] ||
@@ -118,9 +127,9 @@ export class OptionsHelper {
         (args["--skipExistingPages"] as any) ||
         options["skipExistingPages"] ||
         false,
-      skipUnchanged:
-        (args["--skipUnchanged"] as any) ||
-        options["skipUnchanged"] ||
+      forceAll:
+        (args["--forceAll"] as any) ||
+        options["forceAll"] ||
         false,
       continueOnError:
         (args["--continueOnError"] as any) ||
@@ -136,6 +145,10 @@ export class OptionsHelper {
         args["--debug"] ||
         false,
       verbose: args["--verbose"] || false,
+      timingDetails:
+        (args["--timingDetails"] as any) ||
+        options["timingDetails"] ||
+        false,
       cleanEnd: args["--cleanEnd"] || false,
       cleanStart: args["--cleanStart"] || false,
       confirm: args["--confirm"] || false,
@@ -154,6 +167,7 @@ export class OptionsHelper {
       skipPages: args["--skipPages"] || false,
       skipNavigation: args["--skipNavigation"] || false,
       skipSiteDesign: args["--skipSiteDesign"] || false,
+      applyTheme: args["--applyTheme"] || options["applyTheme"] || false,
       cleanQuickLaunch:
         args["--cleanQuickLaunch"] || options["cleanQuickLaunch"] || false,
       cleanTopNavigation:

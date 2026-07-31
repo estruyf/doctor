@@ -1,11 +1,63 @@
 import { CliCommand } from "./CliCommand.js";
 import { spawn } from "node:child_process";
-import { createRequire } from "node:module";
+import { executeCommand } from "@pnp/cli-microsoft365";
+import { access, readFile } from "node:fs/promises";
 import { Logger } from "./Logger.js";
 import { StatusHelper } from "./index.js";
 
 const EXECUTE_COMMAND_TIMEOUT_MS = 120000;
-const require = createRequire(import.meta.url);
+
+const toErrorMessage = (error: any): string => {
+  if (!error) {
+    return "Unknown error";
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  const candidates = [
+    error?.error?.message,
+    error?.stderr,
+    error?.stdout,
+    error?.message,
+  ];
+
+  const isObjectPlaceholder = (value: string): boolean => {
+    const normalized = value.trim().toLowerCase();
+    return (
+      normalized === "[object object]" ||
+      normalized === "error: [object object]" ||
+      normalized.endsWith(": [object object]")
+    );
+  };
+
+  for (const candidate of candidates) {
+    if (
+      typeof candidate === "string" &&
+      candidate.trim().length > 0 &&
+      !isObjectPlaceholder(candidate)
+    ) {
+      return candidate;
+    }
+  }
+
+  for (const candidate of candidates) {
+    if (candidate && typeof candidate === "object") {
+      try {
+        return JSON.stringify(candidate);
+      } catch {
+        // Ignore and continue
+      }
+    }
+  }
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return `${error}`;
+  }
+};
 
 export const executeWithRetry = async (
   commandName: string,
@@ -30,9 +82,15 @@ export const executeWithRetry = async (
       StatusHelper.addRetry();
       await new Promise((resolve) => setTimeout(resolve, 5000));
 
-      return await executeThroughCliWithTimeout(commandName, options);
+      try {
+        return await executeThroughCliWithTimeout(commandName, options);
+      } catch (retryError) {
+        throw new Error(
+          `Command failed: ${commandName}. ${toErrorMessage(retryError)}`
+        );
+      }
     }
-    throw e;
+    throw new Error(`Command failed: ${commandName}. ${toErrorMessage(e)}`);
   }
 };
 
@@ -40,10 +98,18 @@ const executeThroughCliWithTimeout = async (
   commandName: string,
   options: any
 ) => {
+  const normalized = (CliCommand.getName() || "").toLowerCase();
+  if (normalized === "m365" || normalized === "localm365") {
+    return await executeM365WithTimeout(commandName, options);
+  }
+
   const commandParts = commandName.split(" ").filter(Boolean);
   const optionArgs = serializeOptionsToArgv(options);
   const fullArgs = [...commandParts, ...optionArgs];
-  const invocation = resolveCliInvocation(CliCommand.getName(), fullArgs);
+  const invocation = {
+    command: CliCommand.getName(),
+    args: fullArgs,
+  };
 
   Logger.debug(
     `CLI exec: ${invocation.command} ${invocation.args
@@ -62,6 +128,8 @@ const executeThroughCliWithTimeout = async (
     let stderr = "";
     let didTimeout = false;
     let isSettled = false;
+    let exitCode: number | null = null;
+    let exitSignal: NodeJS.Signals | null = null;
 
     const timeout = setTimeout(() => {
       didTimeout = true;
@@ -88,8 +156,13 @@ const executeThroughCliWithTimeout = async (
       reject(error);
     });
 
-    // Resolve on process exit so we don't hang waiting for stream close.
-    child.on("exit", (code) => {
+    child.on("exit", (code, signal) => {
+      exitCode = code;
+      exitSignal = signal;
+    });
+
+    // Use "close" to ensure stdout/stderr streams are fully flushed.
+    child.on("close", () => {
       if (isSettled) {
         return;
       }
@@ -100,8 +173,28 @@ const executeThroughCliWithTimeout = async (
         return;
       }
 
-      if (code && code !== 0) {
-        reject(new Error(stderr || stdout || `Command exited with code ${code}`));
+      if (exitCode && exitCode !== 0) {
+        const stderrText = stderr?.trim();
+        const stdoutText = stdout?.trim();
+        const isPlaceholder = (value: string): boolean => {
+          const normalized = value.trim().toLowerCase();
+          return (
+            normalized === "[object object]" ||
+            normalized === "error: [object object]" ||
+            normalized.endsWith(": [object object]")
+          );
+        };
+
+        const message =
+          (stderrText && !isPlaceholder(stderrText) ? stderrText : "") ||
+          (stdoutText && !isPlaceholder(stdoutText) ? stdoutText : "") ||
+          `Command exited with code ${exitCode}`;
+        reject(new Error(message));
+        return;
+      }
+
+      if (exitSignal) {
+        reject(new Error(`Command terminated by signal ${exitSignal}`));
         return;
       }
 
@@ -110,35 +203,58 @@ const executeThroughCliWithTimeout = async (
   });
 };
 
-const resolveCliInvocation = (
-  baseCommand: string,
-  args: string[]
-): { command: string; args: string[] } => {
-  const normalized = (baseCommand || "").toLowerCase();
+const executeM365WithTimeout = async (
+  commandName: string,
+  options: any
+): Promise<{ stdout: string; stderr: string }> => {
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(`Command timed out after ${EXECUTE_COMMAND_TIMEOUT_MS}ms`));
+    }, EXECUTE_COMMAND_TIMEOUT_MS);
+  });
 
-  if (normalized === "m365" || normalized === "localm365") {
+  const commandPromise = (async () => {
+    const normalizedOptions = await resolveFileOptionReferences(options);
+    const result = await executeCommand(commandName, normalizedOptions);
+    const stdout = result?.stdout ? `${result.stdout}` : "";
+    const stderr = result?.stderr ? `${result.stderr}` : "";
+
+    if (stderr.trim().length > 0) {
+      throw new Error(stderr);
+    }
+
+    return { stdout, stderr };
+  })();
+
+  return await Promise.race([commandPromise, timeoutPromise]);
+};
+
+const resolveFileOptionReferences = async (options: any): Promise<any> => {
+  if (!options || typeof options !== "object") {
+    return options;
+  }
+
+  const normalized: Record<string, any> = { ...options };
+  for (const [key, value] of Object.entries(normalized)) {
+    if (typeof value !== "string" || !value.startsWith("@")) {
+      continue;
+    }
+
+    const filePath = value.slice(1);
+    if (!filePath) {
+      continue;
+    }
+
     try {
-      const cliEntrypoint = require.resolve(
-        "@pnp/cli-microsoft365/dist/index.js"
-      );
-
-      return {
-        command: process.execPath,
-        args: [cliEntrypoint, ...args],
-      };
+      await access(filePath);
+      normalized[key] = await readFile(filePath, { encoding: "utf-8" });
     } catch {
-      // Fallback to direct command execution if package resolution fails.
-      return {
-        command: baseCommand,
-        args,
-      };
+      // Keep original value when it's not a local file reference.
+      normalized[key] = value;
     }
   }
 
-  return {
-    command: baseCommand,
-    args,
-  };
+  return normalized;
 };
 
 const serializeOptionsToArgv = (options: any): string[] => {

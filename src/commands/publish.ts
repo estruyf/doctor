@@ -10,6 +10,7 @@ import {
   SiteHelpers,
   PagesHelper,
   MultilingualHelper,
+  PrecheckHelper,
   StateHelper,
   StatusHelper,
 } from "@helpers";
@@ -24,6 +25,7 @@ export class Publish {
    * @returns A promise that resolves when the publish pipeline completes.
    */
   public static async start(options: CommandArguments) {
+    const publishStart = Date.now();
     Logger.debug(
       `Running with the following options: ${Logger.mask(
         JSON.stringify(options),
@@ -73,14 +75,21 @@ export class Publish {
         {
           title: `Load publish state`,
           task: async () =>
-            await StateHelper.load(webUrl, options.assetLibrary),
-          enabled: () => options.skipUnchanged && !options.skipPages,
+            await StateHelper.load(webUrl, options.assetLibrary, options.stateFile),
+          enabled: () => !options.disableStatePersistence && !options.skipPages,
         },
         {
           title: `Fetch all markdown files`,
           task: async (ctx, task) =>
             await MarkdownHelper.fetchMDFiles(ctx, task, startFolder),
           enabled: () => !options.skipPages,
+          rendererOptions: { persistentOutput: true },
+        },
+        {
+          title: `Pre-process checks`,
+          task: async (ctx, task) =>
+            await PrecheckHelper.validate(ctx, task, options),
+          enabled: () => !options.skipPages && !options.skipPrecheck,
           rendererOptions: { persistentOutput: true },
         },
         {
@@ -111,8 +120,8 @@ export class Publish {
         {
           title: `Save publish state`,
           task: async () =>
-            await StateHelper.save(webUrl, options.assetLibrary),
-          enabled: () => options.skipUnchanged && !options.skipPages,
+            await StateHelper.save(webUrl, options.assetLibrary, options.stateFile),
+          enabled: () => !options.disableStatePersistence && !options.skipPages,
         },
       ],
       {
@@ -138,6 +147,7 @@ export class Publish {
     const imagesSkipped = StatusHelper.getImagesSkipped();
     const retries = StatusHelper.getRetries();
     const errors = StatusHelper.getErrors();
+    const totalDurationMs = Date.now() - publishStart;
 
     const pageDetail = [
       created > 0 ? `${created} created` : null,
@@ -167,8 +177,44 @@ export class Publish {
       ),
     );
     console.info(kleur.white(` Retries: ${retries}`));
+    console.info(kleur.white(` Time:    ${this.formatDuration(totalDurationMs)}`));
+
+    if (options.timingDetails) {
+      const timingStats = StatusHelper.getPageTimingStats();
+      if (timingStats) {
+        console.info(kleur.white(` Avg/page: ${this.formatDuration(timingStats.averageMs)}`));
+        console.info(
+          kleur.white(
+            ` Fastest: ${this.formatDuration(timingStats.fastest.durationMs)} (${timingStats.fastest.filePath})`,
+          ),
+        );
+        console.info(
+          kleur.white(
+            ` Slowest: ${this.formatDuration(timingStats.slowest.durationMs)} (${timingStats.slowest.filePath})`,
+          ),
+        );
+      }
+    }
     if (errors > 0) {
       console.info(kleur.bold().red(` Errors:  ${errors}`));
     }
+  }
+
+  private static formatDuration(durationMs: number): string {
+    const safeDurationMs = Math.max(0, Math.round(durationMs));
+    const totalSeconds = Math.floor(safeDurationMs / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const milliseconds = safeDurationMs % 1000;
+
+    if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    }
+
+    if (totalSeconds > 0) {
+      return `${totalSeconds}.${`${milliseconds}`.padStart(3, "0")}s`;
+    }
+
+    return `${safeDurationMs}ms`;
   }
 }

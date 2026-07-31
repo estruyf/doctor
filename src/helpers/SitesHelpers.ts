@@ -41,7 +41,8 @@ export class SiteHelpers {
    * @param options
    */
   public static async changeLook(task: TaskOutput, options: CommandArguments) {
-    const { siteDesign, webUrl, assetLibrary, overwriteImages } = options;
+    const { siteDesign, webUrl, assetLibrary, overwriteImages, applyTheme } =
+      options;
     if (!siteDesign || Object.keys(siteDesign).length === 0) {
       return;
     }
@@ -51,7 +52,7 @@ export class SiteHelpers {
     );
     Logger.debug(JSON.stringify(siteDesign, null, 2));
 
-    if (siteDesign.theme) {
+    if (siteDesign.theme && applyTheme) {
       try {
         // Try to enable a custom theme
         await executeWithRetry(
@@ -96,6 +97,11 @@ export class SiteHelpers {
               )
             );
           }
+        }
+        if (siteDesign.theme && !applyTheme) {
+          Logger.debug(
+            `Skipping site theme "${siteDesign.theme}" because --applyTheme is not enabled.`,
+          );
         }
       }
     }
@@ -159,7 +165,7 @@ export class SiteHelpers {
         let imgUrl = siteDesign.logo;
 
         if (imgUrl) {
-          const imgPath = join(process.cwd(), siteDesign.logo);
+          const imgPath = join(options.startFolder, siteDesign.logo);
 
           Logger.debug(
             `Setting site logo with the following path: "${imgPath}"`

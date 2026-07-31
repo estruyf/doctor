@@ -10,6 +10,7 @@ export class StatusHelper {
     public imagesUploaded = 0,
     public imagesSkipped = 0,
     public retries = 0,
+    public pageDurations: { filePath: string; durationMs: number }[] = [],
   ) {}
 
   public static getInstance() {
@@ -89,5 +90,37 @@ export class StatusHelper {
 
   public static getErrors() {
     return StatusHelper.getInstance().errors;
+  }
+
+  public static addPageDuration(filePath: string, durationMs: number) {
+    StatusHelper.getInstance().pageDurations.push({ filePath, durationMs });
+  }
+
+  public static getPageTimingStats() {
+    const durations = StatusHelper.getInstance().pageDurations;
+    if (!durations || durations.length === 0) {
+      return null;
+    }
+
+    let slowest = durations[0];
+    let fastest = durations[0];
+    let total = 0;
+
+    for (const duration of durations) {
+      total += duration.durationMs;
+      if (duration.durationMs > slowest.durationMs) {
+        slowest = duration;
+      }
+      if (duration.durationMs < fastest.durationMs) {
+        fastest = duration;
+      }
+    }
+
+    return {
+      count: durations.length,
+      averageMs: total / durations.length,
+      slowest,
+      fastest,
+    };
   }
 }
