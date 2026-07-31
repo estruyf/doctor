@@ -4,5 +4,6 @@ export enum Command {
   publish = "publish",
   version = "version",
   setup = "setup",
-  cleanup = "cleanup"
+  cleanup = "cleanup",
+  status = "status",
 }

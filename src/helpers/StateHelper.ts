@@ -95,8 +95,22 @@ export class StateHelper {
     Logger.debug("No existing state file found — starting fresh.");
   }
 
+  /** Returns the number of pages currently tracked in state. */
+  public static getPageCount(): number {
+    return StateHelper.state ? Object.keys(StateHelper.state.pages).length : 0;
+  }
+
+  /** Returns true if the slug is already tracked in the loaded state. */
+  public static isTracked(slug: string): boolean {
+    return !!(StateHelper.state && StateHelper.state.pages[slug]);
+  }
+
+  /** Returns all slugs currently tracked in state. */
+  public static getTrackedSlugs(): string[] {
+    return StateHelper.state ? Object.keys(StateHelper.state.pages) : [];
+  }
+
   /**
-   * Returns true if the file at the given slug has changed since the last publish.
    * Always returns true when state has not been loaded.
    */
   public static hasChanged(slug: string, contentHash: string): boolean {

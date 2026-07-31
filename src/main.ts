@@ -1,5 +1,5 @@
 import kleur from "kleur";
-import { Command, Init, Publish, Version } from "@commands";
+import { Command, Init, Publish, Status, Version } from "@commands";
 import { CommandArguments } from "@models";
 import {
   CliCommand,
@@ -56,6 +56,8 @@ export class Commands {
         await Init.start(options);
       } else if (options.task === Command.version) {
         Version.start();
+      } else if (options.task === Command.status) {
+        await Status.start(options);
       } else if (options.task === Command.setup) {
         autocomplete.setup();
       } else if (options.task === Command.cleanup) {
