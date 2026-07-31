@@ -4,6 +4,10 @@ import { ListData } from "@models";
 export class ListHelpers {
   private static pageList: ListData | null = null;
 
+  public static reset() {
+    ListHelpers.pageList = null;
+  }
+
   /**
    * Retrieve the site pages library
    * @param webUrl

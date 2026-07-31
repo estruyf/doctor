@@ -3,7 +3,13 @@ import { Command, Init, Publish, Version } from "@commands";
 import { CommandArguments } from "@models";
 import {
   CliCommand,
+  FileHelpers,
+  FolderHelpers,
+  ListHelpers,
   Logger,
+  NavigationHelper,
+  PagesHelper,
+  StateHelper,
   ShortcodesHelpers,
   StatusHelper,
 } from "@helpers";
@@ -23,9 +29,9 @@ export class Commands {
       // Disable the CLI update check to speed up the process
       process.env["CLIMICROSOFT365_NOUPDATE"] = "1";
 
+      Commands.resetRuntimeState();
       Logger.init(options.debug);
       CliCommand.init(options);
-      StatusHelper.getInstance();
 
       console.log("");
       console.log(
@@ -68,5 +74,18 @@ export class Commands {
       );
       console.log("");
     }
+  }
+
+  private static resetRuntimeState() {
+    Logger.reset();
+    CliCommand.reset();
+    StatusHelper.reset();
+    ShortcodesHelpers.reset();
+    StateHelper.reset();
+    NavigationHelper.reset();
+    FileHelpers.reset();
+    PagesHelper.reset();
+    ListHelpers.reset();
+    FolderHelpers.reset();
   }
 }

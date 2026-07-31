@@ -8,6 +8,10 @@ export class Logger {
     Logger.isDebugRun = value;
   }
 
+  public static reset() {
+    Logger.isDebugRun = false;
+  }
+
   public static debug(msg: any) {
     if (Logger.isDebugRun) {
       const formattedMessage = typeof msg === "string" ? msg : JSON.stringify(msg);

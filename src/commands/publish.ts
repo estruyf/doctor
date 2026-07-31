@@ -118,7 +118,7 @@ export class Publish {
       {
         renderer: "default",
         fallbackRenderer: "verbose",
-        fallbackRendererCondition: options.debug,
+        fallbackRendererCondition: options.debug || options.verbose,
       }
     )
       .run()
@@ -172,4 +172,3 @@ export class Publish {
     }
   }
 }
-

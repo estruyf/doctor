@@ -12,6 +12,11 @@ export class FileHelpers {
   private static allPages: File[] = [];
   private static checkedFiles: string[] = [];
 
+  public static reset() {
+    FileHelpers.allPages = [];
+    FileHelpers.checkedFiles = [];
+  }
+
   /**
    * Retrieve the relative path for the file
    * @param webUrl

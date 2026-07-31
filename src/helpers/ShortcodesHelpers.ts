@@ -11,18 +11,21 @@ import { Shortcode, TocPosition } from "@models";
 import { Logger } from "@helpers";
 import { existsAsync } from "@utils";
 
+const defaultShortcodes: Shortcode = {
+  icon: IconRenderer,
+  callout: CalloutRenderer,
+  toc: TableOfContentsRenderer,
+};
+
 export class ShortcodesHelpers {
-  private static shortcodes: Shortcode = {
-    icon: IconRenderer,
-    callout: CalloutRenderer,
-    toc: TableOfContentsRenderer,
-  };
+  private static shortcodes: Shortcode = { ...defaultShortcodes };
 
   /**
    * Initialize the shortcodes
    * @param shortcodes
    */
   public static async init(shortcodes: string = "./shortcodes") {
+    ShortcodesHelpers.reset();
     // console.log(`Initializing shortcodes from folder: ${shortcodes}`);
 
     let files: string[] = [];
@@ -46,6 +49,11 @@ export class ShortcodesHelpers {
         }
       }
     }
+
+  }
+
+  public static reset() {
+    ShortcodesHelpers.shortcodes = { ...defaultShortcodes };
   }
 
   /**

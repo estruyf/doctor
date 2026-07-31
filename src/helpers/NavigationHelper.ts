@@ -10,6 +10,11 @@ export class NavigationHelper {
   private static qlElms: NavigationItem[] | null = null;
   private static tnElms: NavigationItem[] | null = null;
 
+  public static reset() {
+    NavigationHelper.qlElms = null;
+    NavigationHelper.tnElms = null;
+  }
+
   /**
     * Synchronizes site navigation with the provided menu definition.
     * Optionally cleans existing quick launch and/or top navigation nodes first,

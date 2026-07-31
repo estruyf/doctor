@@ -19,6 +19,10 @@ export class StatusHelper {
     return StatusHelper.instance;
   }
 
+  public static reset() {
+    StatusHelper.instance = new StatusHelper();
+  }
+
   public static addRetry() {
     ++StatusHelper.getInstance().retries;
   }

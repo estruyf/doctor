@@ -29,4 +29,12 @@ export class CliCommand {
       cleanTopNavigation: CliCommand.cleanTopNavigation,
     };
   }
+
+  public static reset() {
+    CliCommand.cmdName = "m365";
+    CliCommand.retry = false;
+    CliCommand.cleanQuickLaunch = false;
+    CliCommand.cleanTopNavigation = false;
+    CliCommand.options = null;
+  }
 }

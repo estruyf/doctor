@@ -23,6 +23,12 @@ export class PagesHelper {
   private static processedPages: { [slug: string]: number } = {};
   private static listFieldMap: { [listId: string]: Map<string, string> } = {};
 
+  public static reset() {
+    PagesHelper.pages = [];
+    PagesHelper.processedPages = {};
+    PagesHelper.listFieldMap = {};
+  }
+
   /**
    * Retrieve all the pages from the current site
    * @param webUrl

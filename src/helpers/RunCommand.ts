@@ -1,5 +1,5 @@
 import { CliCommand } from "./CliCommand.js";
-import crossSpawn from "cross-spawn";
+import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { Logger } from "./Logger.js";
 import { StatusHelper } from "./index.js";
@@ -52,7 +52,7 @@ const executeThroughCliWithTimeout = async (
   );
 
   return await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
-    const child = crossSpawn(invocation.command, invocation.args, {
+    const child = spawn(invocation.command, invocation.args, {
       env: {
         ...process.env,
         CLIMICROSOFT365_NOUPDATE: "1",

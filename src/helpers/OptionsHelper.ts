@@ -48,6 +48,7 @@ export class OptionsHelper {
       "--cleanTopNavigation": Boolean,
 
       "--debug": Boolean,
+      "--verbose": Boolean,
       "--confirm": Boolean,
       "--continueOnError": Boolean,
       "--retryWhenFailed": Boolean,
@@ -134,6 +135,7 @@ export class OptionsHelper {
         (process.env.DEBUG && process.env.DEBUG === "true") ||
         args["--debug"] ||
         false,
+      verbose: args["--verbose"] || false,
       cleanEnd: args["--cleanEnd"] || false,
       cleanStart: args["--cleanStart"] || false,
       confirm: args["--confirm"] || false,
