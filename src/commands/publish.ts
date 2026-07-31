@@ -118,11 +118,45 @@ export class Publish {
         throw err;
       });
 
+    const created = StatusHelper.getPagesCreated();
+    const updated = StatusHelper.getPagesUpdated();
+    const skipped = StatusHelper.getPagesSkipped();
+    const imagesUploaded = StatusHelper.getImages();
+    const imagesSkipped = StatusHelper.getImagesSkipped();
+    const retries = StatusHelper.getRetries();
+    const errors = StatusHelper.getErrors();
+
+    const pageDetail = [
+      created > 0 ? `${created} created` : null,
+      updated > 0 ? `${updated} updated` : null,
+      skipped > 0 ? `${skipped} skipped` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+    const imageDetail = [
+      imagesUploaded > 0 ? `${imagesUploaded} uploaded` : null,
+      imagesSkipped > 0 ? `${imagesSkipped} skipped` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
     console.log("");
     console.info(kleur.bold().bgYellow().black(` Publishing stats `));
-    console.info(kleur.white(` Pages: ${StatusHelper.getPages()}`));
-    console.info(kleur.white(` Images: ${StatusHelper.getImages()}`));
-    console.info(kleur.white(` Retries: ${StatusHelper.getRetries()}`));
+    console.info(
+      kleur.white(
+        ` Pages:   ${created + updated + skipped}${pageDetail ? `  (${pageDetail})` : ""}`,
+      ),
+    );
+    console.info(
+      kleur.white(
+        ` Images:  ${imagesUploaded + imagesSkipped}${imageDetail ? `  (${imageDetail})` : ""}`,
+      ),
+    );
+    console.info(kleur.white(` Retries: ${retries}`));
+    if (errors > 0) {
+      console.info(kleur.bold().red(` Errors:  ${errors}`));
+    }
   }
 }
 

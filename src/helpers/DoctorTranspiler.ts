@@ -46,17 +46,23 @@ export class DoctorTranspiler {
     Logger.debug(`Web URL: ${webUrl}`);
 
     const { files } = ctx;
+    const total = files.length;
 
-    Logger.debug(`Number of markdown files found: ${files.length}`);
+    Logger.debug(`Number of markdown files found: ${total}`);
 
     await PagesHelper.getAllPages(webUrl);
 
-    for (const file of files) {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const filename = basename(file);
+      task.output = `[${i + 1}/${total}] ${filename}`;
+
       Logger.debug(`Processing file: ${file}`);
 
       try {
         await this.processFile(file, task, options, output);
       } catch (e) {
+        StatusHelper.addError();
         Logger.debug(e.message);
 
         if (!options.continueOnError) {
@@ -87,7 +93,6 @@ export class DoctorTranspiler {
 
     if (file.endsWith(".md")) {
       const filename = basename(file);
-      task.output = `Started processing: ${filename}`;
 
       let contents = await readFileAsync(file, { encoding: "utf-8" });
       if (contents) {
@@ -145,7 +150,7 @@ export class DoctorTranspiler {
 
         // Image processing
         if (imgElms && imgElms.length > 0) {
-          task.output = `Uploading images referenced in ${filename}`;
+          task.output = `Uploading ${imgElms.length} image${imgElms.length === 1 ? "" : "s"} from ${filename}`;
 
           markup.content = await this.processImages(
             $,
@@ -154,12 +159,13 @@ export class DoctorTranspiler {
             markup.content,
             options,
             output,
+            task,
           );
         }
 
         // Anchor processing
         if (anchorElms && anchorElms.length > 0) {
-          task.output = `Processing links in ${filename}`;
+          task.output = `Processing ${anchorElms.length} link${anchorElms.length === 1 ? "" : "s"} in ${filename}`;
 
           Logger.debug(`Number of links in ${filename}: ${anchorElms.length}`);
 
@@ -191,7 +197,7 @@ export class DoctorTranspiler {
         }
 
         if (markup && markup.content) {
-          task.output = `Creating or updating the page in SharePoint for ${filename}`;
+          task.output = `Checking if page exists: ${slug}`;
 
           // Check if the page already exists
           const existed = await PagesHelper.createPageIfNotExists(
@@ -214,6 +220,10 @@ export class DoctorTranspiler {
             (existed && !skipExistingPages) ||
             (existed && languagePageSlug)
           ) {
+            task.output = existed
+              ? `Updating existing page: ${title}`
+              : `Creating new page: ${title}`;
+
             // Retrieving all the controls from the page, so that we can start replacing the
             const controlData: string = await PagesHelper.getPageControls(
               webUrl,
@@ -250,12 +260,13 @@ export class DoctorTranspiler {
 
             // Check if metadata needs to be added to the page
             if (metadata) {
+              task.output = `Setting metadata for ${filename}`;
               await PagesHelper.setPageMetadata(webUrl, slug, metadata);
             }
 
             // Check if page needs to be published
             if (typeof draft === "undefined" || !draft) {
-              task.output = `Publishing ${filename}`;
+              task.output = `Publishing page: ${title}`;
               await PagesHelper.publishPageIfNeeded(webUrl, slug);
             }
 
@@ -265,9 +276,15 @@ export class DoctorTranspiler {
               await PagesHelper.setPageDescription(webUrl, slug, description);
             }
 
-            StatusHelper.addPage();
+            if (existed) {
+              StatusHelper.addPageUpdated();
+            } else {
+              StatusHelper.addPageCreated();
+            }
           } else {
+            task.output = `Skipped (already exists): ${filename}`;
             Logger.debug(`Skipping "${filename}" as it already exists`);
+            StatusHelper.addPageSkipped();
           }
         }
 
@@ -324,6 +341,7 @@ export class DoctorTranspiler {
    * @param contents
    * @param options
    * @param output
+   * @param task
    */
   private static async processImages(
     $: CheerioAPI,
@@ -332,6 +350,7 @@ export class DoctorTranspiler {
     contents: string,
     options: CommandArguments,
     output: PublishOutput,
+    task: TaskOutput,
   ) {
     const { startFolder, assetLibrary, webUrl, overwriteImages } = options;
 
@@ -339,9 +358,13 @@ export class DoctorTranspiler {
       .filter((i) => !$(i).attr("src").startsWith(`http`))
       .map((img) => $(img).attr("src"));
     const uImgSources = [...new Set(imgSources)];
+    const total = uImgSources.length;
 
-    for (const imgSource of uImgSources) {
+    for (let idx = 0; idx < uImgSources.length; idx++) {
+      const imgSource = uImgSources[idx];
       Logger.debug(`Adding image: ${imgSource} - ${imgSources.length}`);
+
+      task.output = `Uploading image [${idx + 1}/${total}]: ${imgSource}`;
 
       const imgDirectory = join(dirname(filePath), dirname(imgSource));
       const imgPath = join(dirname(filePath), imgSource);
