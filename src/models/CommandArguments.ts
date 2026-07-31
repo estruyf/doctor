@@ -5,7 +5,7 @@ import {
   SiteDesign,
 } from "./index.js";
 export interface CommandArguments {
-  task: string;
+  task: string | null;
   auth: "deviceCode" | "password" | "certificate";
   startFolder: string;
   startFolderRel: string;

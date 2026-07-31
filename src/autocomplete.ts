@@ -3,7 +3,7 @@ import { Command } from "@commands";
 import { OptionsHelper } from "@helpers";
 
 export class Autocomplete {
-  private complete: omelette.Instance = null;
+  private complete: omelette.Instance | null = null;
   private commands: string[] = [
     Command.cleanup,
     Command.init,
@@ -22,15 +22,11 @@ export class Autocomplete {
    * @returns Nothing.
    */
   public setup() {
-    this.complete.setupShellInitFile();
+    this.complete?.setupShellInitFile();
   }
 
-  /**
-   * Removes shell initialization that was added for Doctor autocompletion.
-   * @returns Nothing.
-   */
   public cleanup() {
-    this.complete.cleanupShellInitFile();
+    this.complete?.cleanupShellInitFile();
   }
 
   /**

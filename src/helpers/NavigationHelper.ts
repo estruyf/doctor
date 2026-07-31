@@ -18,7 +18,7 @@ export class NavigationHelper {
     * @param navigation The navigation model to apply.
     * @returns A promise that resolves when all configured navigation updates are complete.
    */
-  public static async update(webUrl: string, navigation: Menu) {
+  public static async update(webUrl: string, navigation: Menu | undefined) {
     if (!navigation) {
       return;
     }
@@ -47,6 +47,7 @@ export class NavigationHelper {
             location as LocationType
           );
 
+          if (!navElms) continue;
           const weightedItems = menu.items
             .filter((i) => !!i.weight)
             .sort(this.itemWeightSorting);
@@ -72,7 +73,7 @@ export class NavigationHelper {
             const rootNode = await this.createNavigationElm(
               webUrl,
               location as LocationType,
-              item.name,
+              item.name || "",
               item.url || ""
             );
 
@@ -153,7 +154,7 @@ export class NavigationHelper {
     location: LocationType
   ) {
     Logger.debug(`Starting ${location} clean-up job`);
-    const navElms: NavigationItem[] = await this.getNavigationElms(
+    const navElms: NavigationItem[] | null = await this.getNavigationElms(
       webUrl,
       location
     );
@@ -187,23 +188,23 @@ export class NavigationHelper {
       const parentIds = item.parent.toLowerCase().replace(/ /g, "").split("/");
       for (let idx = 0; idx < parentIds.length; idx++) {
         const parentId = parentIds[idx];
-        const itemSet = idx === 0 ? items : crntItem.items || [];
+        const itemSet = idx === 0 ? items : (crntItem?.items ?? []);
 
-        crntItem = itemSet.find((i) => i.id === parentId);
+        crntItem = itemSet.find((i) => i.id === parentId) ?? null;
 
         if (!crntItem) {
           itemSet.push({ name: parentId, id: parentId, url: "" });
-          crntItem = itemSet.find((i) => i.id === parentId);
+          crntItem = itemSet.find((i) => i.id === parentId) ?? null;
         }
 
-        if (typeof crntItem.items === "undefined") {
+        if (crntItem && typeof crntItem.items === "undefined") {
           crntItem.items = [];
         }
       }
     }
 
     // Check if item exists, and need to be updated
-    const navItems = crntItem ? crntItem.items : items;
+    const navItems = crntItem?.items ?? items;
     let navItemIdx = navItems.findIndex((i) => i.id === item.id);
     if (
       navItemIdx !== -1 &&
@@ -220,7 +221,7 @@ export class NavigationHelper {
         url: slug
           ? `${webUrl}${webUrl.endsWith("/") ? "" : "/"}sitepages/${slug}`
           : "",
-        weight: item.weight || null,
+        weight: item.weight ?? undefined,
         updated: true,
       };
 
@@ -229,13 +230,13 @@ export class NavigationHelper {
       );
     } else {
       // Add the new item to the menu
-      (crntItem ? crntItem.items : items).push({
+      (crntItem?.items ?? items).push({
         id: (item.id || item.name || title).toLowerCase().replace(/ /g, ""),
         url: slug
           ? `${webUrl}${webUrl.endsWith("/") ? "" : "/"}sitepages/${slug}`
           : "",
         name: item.name || title,
-        weight: item.weight || null,
+        weight: item.weight ?? undefined,
         items: [],
       });
     }
@@ -251,7 +252,7 @@ export class NavigationHelper {
     * @param type The navigation location to query.
     * @returns A promise that resolves to the list of navigation nodes, or null for unsupported locations.
    */
-  private static async getNavigationElms(webUrl: string, type: LocationType): Promise<NavigationItem[]> {
+  private static async getNavigationElms(webUrl: string, type: LocationType): Promise<NavigationItem[] | null> {
     if (type === "QuickLaunch") {
       if (!this.qlElms) {
         const { stdout } = await executeWithRetry(
@@ -328,7 +329,7 @@ export class NavigationHelper {
     type: LocationType,
     name: string,
     url: string,
-    id: number = null
+    id: number | null = null
   ): Promise<NavigationItem | null> {
     if (name) {
       const options: any = {
@@ -353,6 +354,7 @@ export class NavigationHelper {
 
       return typeof item === "string" ? JSON.parse(item) : item;
     }
+    return null;
   }
 
   /**
@@ -391,12 +393,12 @@ export class NavigationHelper {
       const parentNode = await this.createNavigationElm(
         webUrl,
         type,
-        item.name,
-        item.url,
+        item.name || "",
+        item.url || "",
         rootId
       );
 
-      if (item.items && item.items.length > 0 && parentNode.Id) {
+      if (item.items && item.items.length > 0 && parentNode?.Id) {
         await this.createSubNavigationItems(
           webUrl,
           type,

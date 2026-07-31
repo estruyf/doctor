@@ -123,7 +123,7 @@ export class ShortcodesHelpers {
               tocPostProcessing = attributes.position;
             }
 
-            const scHtml = await shortcode.render(attributes, $elm.html());
+            const scHtml = await shortcode.render(attributes, $elm.html() ?? "");
             $elm.replaceWith(scHtml);
 
             Logger.debug(`Shortcode "${tag}" its HTML:`);

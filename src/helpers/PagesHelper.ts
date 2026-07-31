@@ -101,7 +101,7 @@ export class PagesHelper {
         if (PagesHelper.pages && PagesHelper.pages.length > 0) {
           const page = PagesHelper.pages.find(
             (page: File) =>
-              page.FileRef.toLowerCase() === relativeUrl.toLowerCase()
+              page.FileRef?.toLowerCase() === relativeUrl.toLowerCase()
           );
           if (page) {
             // Page already existed
@@ -373,7 +373,7 @@ export class PagesHelper {
     slug: string,
     webUrl: string,
     options: CommandArguments,
-    wpId: string = null,
+    wpId: string | null | undefined = null,
     mdOptions: MarkdownSettings | null,
     wasAlreadyParsed: boolean = false
   ) {
@@ -468,7 +468,7 @@ export class PagesHelper {
   public static async setPageMetadata(
     webUrl: string,
     slug: string,
-    metadata: { [fieldName: string]: any } = null
+    metadata: { [fieldName: string]: any } | null = null
   ) {
     const pageId = await this.getPageId(webUrl, slug);
     const pageList = await ListHelpers.getSitePagesList(webUrl);
@@ -654,6 +654,7 @@ export class PagesHelper {
     let untouched: string[] = [];
     for (const page of PagesHelper.pages) {
       const { FileRef: url } = page;
+      if (!url) continue;
       const slug = url.toLowerCase().split("/sitepages/")[1];
       if (!PagesHelper.processedPages[slug]) {
         untouched.push(slug);

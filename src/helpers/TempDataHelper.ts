@@ -52,7 +52,7 @@ export class TempDataHelper {
    * Clear the temp folder
    */
   public static async clear() {
-    if (!CliCommand.options.debug) {
+    if (!CliCommand.options?.debug) {
       const crntFolder = process.cwd();
       const tempPath = join(crntFolder, "./temp");
       if (await existsAsync(tempPath)) {

@@ -17,7 +17,7 @@ export class Translator {
     language: string,
     contents: string,
     region: string = "global"
-  ): Promise<TranslationsResponse[]> {
+  ): Promise<TranslationsResponse[] | null> {
     Logger.debug(`Translator will translate the page to ${language}`);
 
     let options = {

@@ -71,11 +71,11 @@ const executeThroughCliWithTimeout = async (
       );
     }, EXECUTE_COMMAND_TIMEOUT_MS);
 
-    child.stdout.on("data", (data) => {
+    child.stdout?.on("data", (data) => {
       stdout += `${data}`;
     });
 
-    child.stderr.on("data", (data) => {
+    child.stderr?.on("data", (data) => {
       stderr += `${data}`;
     });
 

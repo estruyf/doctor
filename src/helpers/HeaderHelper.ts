@@ -21,7 +21,7 @@ export class HeaderHelper {
     filePath: string,
     webUrl: string,
     slug: string,
-    header: HeaderOptions,
+    header: HeaderOptions | undefined,
     options: CommandArguments,
     isCopy: boolean = false
   ) {

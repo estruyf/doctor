@@ -27,7 +27,7 @@ export class Publish {
     Logger.debug(
       `Running with the following options: ${Logger.mask(
         JSON.stringify(options),
-        [options.password, options.certificateBase64Encoded]
+        [options.password, options.certificateBase64Encoded].filter((v): v is string => !!v)
       )}`
     );
 
@@ -93,7 +93,7 @@ export class Publish {
         {
           title: `Updating navigation`,
           task: async () =>
-            await NavigationHelper.update(webUrl, ouput.navigation),
+            await NavigationHelper.update(webUrl, ouput.navigation ?? undefined),
           enabled: () => !options.skipNavigation,
         },
         {

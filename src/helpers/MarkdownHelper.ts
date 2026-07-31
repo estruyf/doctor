@@ -86,7 +86,7 @@ export class MarkdownHelper {
         includeLevel: options.tocLevels,
       });
 
-    const mdOptions = CliCommand.options.markdown;
+    const mdOptions = CliCommand.options?.markdown;
     const theme =
       mdOptions && mdOptions.theme ? mdOptions.theme.toLowerCase() : "dark";
 

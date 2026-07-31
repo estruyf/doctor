@@ -19,7 +19,7 @@ export class FileHelpers {
    * @param filePath
    */
   public static getRelUrl(webUrl: string, filePath: string) {
-    const relWebUrl = webUrl.split("sharepoint.com").pop();
+    const relWebUrl = webUrl.split("sharepoint.com").pop() || "";
     return `${relWebUrl.startsWith("/") ? "" : "/"}${relWebUrl}${
       relWebUrl.endsWith("/") ? "" : "/"
     }${filePath}`;

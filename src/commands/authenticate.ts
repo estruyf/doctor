@@ -83,15 +83,15 @@ export class Authenticate {
             await this.executeLogin(certificateLoginOptions, [
               certificateBase64Encoded,
               password,
-            ]);
+            ].filter((v): v is string => !!v));
           } else {
             await this.executeLogin(
               {
                 authType: "password",
-                userName: username,
-                password,
+                userName: username || "",
+                password: password || "",
               },
-              [password]
+              [password].filter((v): v is string => !!v)
             );
           }
         },

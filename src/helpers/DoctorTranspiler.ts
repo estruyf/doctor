@@ -87,7 +87,7 @@ export class DoctorTranspiler {
     task: TaskOutput,
     options: CommandArguments,
     output: PublishOutput,
-    languagePageSlug: string = null,
+    languagePageSlug: string | null = null,
   ) {
     const { webUrl, webPartTitle, skipExistingPages, disableComments } =
       options;
@@ -247,7 +247,7 @@ export class DoctorTranspiler {
             );
             if (controlData) {
               const webparts: Control[] = JSON.parse(controlData);
-              const markdownWp: Control = webparts.find(
+              const markdownWp: Control | undefined = webparts.find(
                 (c: Control) =>
                   c.webPartData && c.webPartData.title === webPartTitle,
               );
@@ -257,8 +257,8 @@ export class DoctorTranspiler {
                 slug,
                 webUrl,
                 options,
-                markdownWp ? markdownWp.id : null,
-                options.markdown,
+                markdownWp ? markdownWp.id : undefined,
+                options.markdown ?? null,
                 file.endsWith(`.machinetranslated.md`),
               );
             }
@@ -376,8 +376,8 @@ export class DoctorTranspiler {
     const { startFolder, assetLibrary, webUrl, overwriteImages } = options;
 
     const imgSources = imgElms
-      .filter((i) => !$(i).attr("src").startsWith(`http`))
-      .map((img) => $(img).attr("src"));
+      .filter((i) => !!$(i).attr("src") && !$(i).attr("src")!.startsWith(`http`))
+      .map((img) => $(img).attr("src")!);
     const uImgSources = [...new Set(imgSources)];
     const total = uImgSources.length;
 
@@ -439,23 +439,24 @@ export class DoctorTranspiler {
     const { webUrl, startFolder } = options;
 
     const fLinks = linkElms.filter(
-      (i) => !$(i).attr("href").startsWith(`http`),
+      (i) => !!$(i).attr("href") && !$(i).attr("href")!.startsWith(`http`),
     );
     const uLinks = [...new Set(fLinks)];
 
     for (const link of uLinks) {
       const $link = $(link);
       const fileLink = $link.attr("href");
+      if (!fileLink) continue;
       let mdFile = "";
 
       Logger.debug(`Processing link: ${fileLink} for ${filePath}`);
 
       if (fileLink.endsWith(`.md`)) {
-        mdFile = $link.attr("href");
+        mdFile = fileLink;
       } else if (fileLink === ".") {
         mdFile = basename(filePath);
       } else {
-        mdFile = `${$link.attr("href")}.md`;
+        mdFile = `${fileLink}.md`;
       }
 
       const mdFilePath = join(dirname(filePath), mdFile);
@@ -468,13 +469,13 @@ export class DoctorTranspiler {
           encoding: "utf-8",
         });
         if (!mdContents) {
-          return;
+          continue;
         }
 
         // Get the slug
         const mdData = matter(mdContents);
         if (!mdData || !mdData.data) {
-          return;
+          continue;
         }
 
         const slug = FrontMatterHelper.getSlug(

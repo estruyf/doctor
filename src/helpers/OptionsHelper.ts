@@ -167,7 +167,7 @@ export class OptionsHelper {
    * @param options
    */
   public static async promptForMissingArgs(options: CommandArguments) {
-    const questions = [];
+    const questions: any[] = [];
 
     if (!options.task) {
       questions.push({
