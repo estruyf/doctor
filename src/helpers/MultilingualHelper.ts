@@ -15,10 +15,10 @@ import {
   PageLocalization,
   PageLocalizationCreation,
   PublishOutput,
+  TaskOutput,
 } from "@models";
 import { Logger } from "./Logger.js";
 import { DoctorTranspiler } from "./DoctorTranspiler.js";
-import { Subscriber } from "rxjs";
 import { TempDataHelper } from "./TempDataHelper.js";
 import { existsAsync, readFileAsync } from "@utils";
 
@@ -27,11 +27,11 @@ const FEATURE_ID = "24611c05-ee19-45da-955f-6602264abaf8";
 export class MultilingualHelper {
   /**
    * Start the multilingual process
-   * @param ctx
+   * @param task
    * @param options
    */
   public static async start(
-    ctx: any,
+    task: TaskOutput,
     options: CommandArguments
   ): Promise<void> {
     const { webUrl, multilingual } = options;
@@ -142,7 +142,7 @@ export class MultilingualHelper {
    * @param filePath
    * @param slug
    * @param options
-   * @param observer
+   * @param task
    * @param output
    * @returns
    */
@@ -151,7 +151,7 @@ export class MultilingualHelper {
     filePath: string,
     slug: string,
     options: CommandArguments,
-    observer: Subscriber<string>,
+    task: TaskOutput,
     output: PublishOutput
   ) {
     const { webUrl } = options;
@@ -220,7 +220,7 @@ export class MultilingualHelper {
           );
           await DoctorTranspiler.processFile(
             localePath,
-            observer,
+            task,
             options,
             output,
             translatedSlug
@@ -322,7 +322,7 @@ export class MultilingualHelper {
               );
               await DoctorTranspiler.processFile(
                 pagePath,
-                observer,
+                task,
                 options,
                 output,
                 translatedSlug

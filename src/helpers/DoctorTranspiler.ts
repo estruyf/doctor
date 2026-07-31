@@ -4,7 +4,9 @@ import matter from "gray-matter";
 import MarkdownIt from "markdown-it";
 import {
   CommandArguments,
+  PublishContext,
   PublishOutput,
+  TaskOutput,
   Control,
   PageFrontMatter,
 } from "@models";
@@ -19,7 +21,6 @@ import {
   PagesHelper,
   StatusHelper,
 } from "@helpers";
-import { Observable, Subscriber } from "rxjs";
 import { basename, join, dirname } from "path";
 import { existsAsync, mkdirAsync, readFileAsync, writeFileAsync } from "@utils";
 
@@ -29,48 +30,46 @@ export class DoctorTranspiler {
   /**
    * Process the retrieved Markdown files
    * @param ctx
+   * @param task
+   * @param options
+   * @param output
    */
   public static async processMDFiles(
-    ctx: any,
+    ctx: PublishContext,
+    task: TaskOutput,
     options: CommandArguments,
     output: PublishOutput,
-  ): Promise<Observable<string>> {
+  ): Promise<void> {
     const { webUrl } = options;
 
     Logger.debug("Starting processing the markdown files...");
     Logger.debug(`Web URL: ${webUrl}`);
 
-    return new Observable((observer) => {
-      (async () => {
-        const { files } = ctx;
+    const { files } = ctx;
 
-        Logger.debug(`Number of markdown files found: ${files.length}`);
+    Logger.debug(`Number of markdown files found: ${files.length}`);
 
-        await PagesHelper.getAllPages(webUrl);
+    await PagesHelper.getAllPages(webUrl);
 
-        for (const file of files) {
-          Logger.debug(`Processing file: ${file}`);
+    for (const file of files) {
+      Logger.debug(`Processing file: ${file}`);
 
-          try {
-            await this.processFile(file, observer, options, output);
-          } catch (e) {
-            observer.error(e);
-            Logger.debug(e.message);
+      try {
+        await this.processFile(file, task, options, output);
+      } catch (e) {
+        Logger.debug(e.message);
 
-            if (!options.continueOnError) {
-              throw new Error(e.message);
-            }
-          }
+        if (!options.continueOnError) {
+          throw new Error(e.message);
         }
-        observer.complete();
-      })();
-    });
+      }
+    }
   }
 
   /**
    * Process page
    * @param file
-   * @param observer
+   * @param task
    * @param converter
    * @param options
    * @param output
@@ -78,7 +77,7 @@ export class DoctorTranspiler {
    */
   public static async processFile(
     file: string,
-    observer: Subscriber<string>,
+    task: TaskOutput,
     options: CommandArguments,
     output: PublishOutput,
     languagePageSlug: string = null,
@@ -88,7 +87,7 @@ export class DoctorTranspiler {
 
     if (file.endsWith(".md")) {
       const filename = basename(file);
-      observer.next(`Started processing: ${filename}`);
+      task.output = `Started processing: ${filename}`;
 
       let contents = await readFileAsync(file, { encoding: "utf-8" });
       if (contents) {
@@ -146,7 +145,7 @@ export class DoctorTranspiler {
 
         // Image processing
         if (imgElms && imgElms.length > 0) {
-          observer.next(`Uploading images referenced in ${filename}`);
+          task.output = `Uploading images referenced in ${filename}`;
 
           markup.content = await this.processImages(
             $,
@@ -160,7 +159,7 @@ export class DoctorTranspiler {
 
         // Anchor processing
         if (anchorElms && anchorElms.length > 0) {
-          observer.next(`Processing links in ${filename}`);
+          task.output = `Processing links in ${filename}`;
 
           Logger.debug(`Number of links in ${filename}: ${anchorElms.length}`);
 
@@ -192,9 +191,7 @@ export class DoctorTranspiler {
         }
 
         if (markup && markup.content) {
-          observer.next(
-            `Creating or updating the page in SharePoint for ${filename}`,
-          );
+          task.output = `Creating or updating the page in SharePoint for ${filename}`;
 
           // Check if the page already exists
           const existed = await PagesHelper.createPageIfNotExists(
@@ -258,13 +255,13 @@ export class DoctorTranspiler {
 
             // Check if page needs to be published
             if (typeof draft === "undefined" || !draft) {
-              observer.next(`Publishing ${filename}`);
+              task.output = `Publishing ${filename}`;
               await PagesHelper.publishPageIfNeeded(webUrl, slug);
             }
 
             // Set the page its description
             if (description) {
-              observer.next(`Setting page description for ${filename}`);
+              task.output = `Setting page description for ${filename}`;
               await PagesHelper.setPageDescription(webUrl, slug, description);
             }
 
@@ -311,7 +308,7 @@ export class DoctorTranspiler {
             file,
             slug,
             options,
-            observer,
+            task,
             output,
           );
         }

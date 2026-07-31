@@ -1,4 +1,4 @@
-import Listr from "listr";
+import { Listr } from "listr2";
 import { CommandArguments } from "@models";
 import { Logger } from "@helpers";
 import { executeCommand } from "@pnp/cli-microsoft365";
@@ -61,10 +61,11 @@ export class Authenticate {
       certificateBase64Encoded,
     } = options;
 
-    await new Listr([
-      {
-        title: `Authenticate to M365 with ${auth}`,
-        task: async () => {
+    await new Listr<object, "default", "verbose">(
+      [
+        {
+          title: `Authenticate to M365 with ${auth}`,
+          task: async () => {
           if (auth === "deviceCode") {
             await this.executeLogin({}, [], true);
           } else if (auth === "certificate") {
@@ -95,8 +96,12 @@ export class Authenticate {
           }
         },
       },
-    ], {
-      renderer: options.debug ? "verbose" : "default",
-    }).run();
+    ],
+    {
+      renderer: "default",
+      fallbackRenderer: "verbose",
+      fallbackRendererCondition: options.debug,
+    }
+    ).run();
   }
 }

@@ -1,4 +1,4 @@
-import Listr from "listr";
+import { Listr } from "listr2";
 import kleur from "kleur";
 import { Authenticate } from "@commands";
 import {
@@ -8,11 +8,11 @@ import {
   MarkdownHelper,
   NavigationHelper,
   SiteHelpers,
-  Cleanup,
+  PagesHelper,
   MultilingualHelper,
   StatusHelper,
 } from "@helpers";
-import { CommandArguments, PublishOutput } from "@models";
+import { CommandArguments, PublishContext, PublishOutput } from "@models";
 import { existsAsync } from "@utils";
 
 export class Publish {
@@ -53,51 +53,61 @@ export class Publish {
     // Initializes the authentication
     await Authenticate.init(options);
 
-    await new Listr([
-      {
-        title: `Clean up all the files`,
-        task: async () => {
-          await FileHelpers.cleanUp(options, "sitepages");
-          await FileHelpers.cleanUp(options, options.assetLibrary);
+    await new Listr<PublishContext, "default", "verbose">(
+      [
+        {
+          title: `Clean up all the files`,
+          task: async () => {
+            await FileHelpers.cleanUp(options, "sitepages");
+            await FileHelpers.cleanUp(options, options.assetLibrary);
+          },
+          enabled: () => options.cleanStart && options.confirm,
         },
-        enabled: () => options.cleanStart && options.confirm,
-      },
+        {
+          title: `Multilingual site configuration`,
+          task: async (ctx, task) =>
+            await MultilingualHelper.start(task, options),
+          enabled: () => !!options.multilingual?.enableTranslations,
+        },
+        {
+          title: `Fetch all markdown files`,
+          task: async (ctx, task) =>
+            await MarkdownHelper.fetchMDFiles(ctx, task, startFolder),
+          enabled: () => !options.skipPages,
+          rendererOptions: { persistentOutput: true },
+        },
+        {
+          title: `Process markdown files`,
+          task: async (ctx, task) =>
+            await DoctorTranspiler.processMDFiles(ctx, task, options, ouput),
+          enabled: () => !options.skipPages,
+          rendererOptions: { persistentOutput: true },
+        },
+        {
+          title: `Updating navigation`,
+          task: async () =>
+            await NavigationHelper.update(webUrl, ouput.navigation),
+          enabled: () => !options.skipNavigation,
+        },
+        {
+          title: `Change the look of the site`,
+          task: async (ctx, task) => await SiteHelpers.changeLook(task, options),
+          enabled: () => !!options.siteDesign && !options.skipSiteDesign,
+        },
+        {
+          title: `Post cleanup`,
+          task: async (ctx, task) =>
+            await PagesHelper.clean(webUrl, task, options),
+          enabled: () => options.cleanEnd && options.confirm,
+          rendererOptions: { persistentOutput: true },
+        },
+      ],
       {
-        title: `Multilingual site configuration`,
-        task: async (ctx: any) => await MultilingualHelper.start(ctx, options),
-        enabled: () => !!options.multilingual.enableTranslations,
-      },
-      {
-        title: `Fetch all markdown files`,
-        task: async (ctx: any) =>
-          await MarkdownHelper.fetchMDFiles(ctx, startFolder),
-        enabled: () => !options.skipPages,
-      },
-      {
-        title: `Process markdown files`,
-        task: async (ctx: any) =>
-          await DoctorTranspiler.processMDFiles(ctx, options, ouput),
-        enabled: () => !options.skipPages,
-      },
-      {
-        title: `Updating navigation`,
-        task: async () =>
-          await NavigationHelper.update(webUrl, ouput.navigation),
-        enabled: () => !options.skipNavigation,
-      },
-      {
-        title: `Change the look of the site`,
-        task: async (ctx: any) => await SiteHelpers.changeLook(ctx, options),
-        enabled: () => !!options.siteDesign && !options.skipSiteDesign,
-      },
-      {
-        title: `Post cleanup`,
-        task: async (ctx: any) => await Cleanup.start(ctx, options),
-        enabled: () => options.cleanEnd && options.confirm,
-      },
-    ], {
-      renderer: options.debug ? "verbose" : "default",
-    })
+        renderer: "default",
+        fallbackRenderer: "verbose",
+        fallbackRendererCondition: options.debug,
+      }
+    )
       .run()
       .catch((err) => {
         console.log("");
@@ -115,3 +125,4 @@ export class Publish {
     console.info(kleur.white(` Retries: ${StatusHelper.getRetries()}`));
   }
 }
+

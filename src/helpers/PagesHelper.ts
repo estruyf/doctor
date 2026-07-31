@@ -1,10 +1,10 @@
-import { Observable } from "rxjs";
 import {
   Page,
   PageTemplate,
   File,
   MarkdownSettings,
   CommandArguments,
+  TaskOutput,
 } from "@models";
 import {
   CliCommand,
@@ -41,46 +41,41 @@ export class PagesHelper {
    */
   public static async clean(
     webUrl: string,
+    task: TaskOutput,
     options: CommandArguments
-  ): Promise<Observable<string>> {
-    return new Observable((observer) => {
-      (async () => {
-        const untouched = this.getUntouchedPages().filter(
-          (slug) =>
-            !slug.toLowerCase().startsWith("templates") &&
-            slug.endsWith(".aspx")
-        );
-        Logger.debug(`Removing the following files`);
-        Logger.debug(untouched);
-        for (const slug of untouched) {
-          try {
-            if (slug) {
-              Logger.debug(`Cleaning up page: ${slug}`);
-              observer.next(`Cleaning up page: ${slug}`);
-              const filePath = `sitepages/${slug}`;
-              const relUrl = FileHelpers.getRelUrl(webUrl, filePath);
-              await executeWithRetry(
-                "spo file remove",
-                {
-                  webUrl,
-                  url: relUrl,
-                  force: true,
-                },
-                CliCommand.getRetry()
-              );
-            }
-          } catch (e) {
-            observer.error(e);
-            Logger.debug(e.message);
-
-            if (!options.continueOnError) {
-              throw new Error(e.message);
-            }
-          }
+  ): Promise<void> {
+    const untouched = this.getUntouchedPages().filter(
+      (slug) =>
+        !slug.toLowerCase().startsWith("templates") &&
+        slug.endsWith(".aspx")
+    );
+    Logger.debug(`Removing the following files`);
+    Logger.debug(untouched);
+    for (const slug of untouched) {
+      try {
+        if (slug) {
+          Logger.debug(`Cleaning up page: ${slug}`);
+          task.output = `Cleaning up page: ${slug}`;
+          const filePath = `sitepages/${slug}`;
+          const relUrl = FileHelpers.getRelUrl(webUrl, filePath);
+          await executeWithRetry(
+            "spo file remove",
+            {
+              webUrl,
+              url: relUrl,
+              force: true,
+            },
+            CliCommand.getRetry()
+          );
         }
-        observer.complete();
-      })();
-    });
+      } catch (e) {
+        Logger.debug(e.message);
+
+        if (!options.continueOnError) {
+          throw new Error(e.message);
+        }
+      }
+    }
   }
 
   /**

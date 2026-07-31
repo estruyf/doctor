@@ -4,7 +4,7 @@ import MarkdownIt from "markdown-it";
 import markdownItAnchor from "markdown-it-anchor";
 import markdownItTableOfContents from "markdown-it-table-of-contents";
 import { CliCommand, ShortcodesHelpers, TempDataHelper } from "@helpers";
-import { CommandArguments, MarkdownSettings } from "@models";
+import { CommandArguments, MarkdownSettings, PublishContext, TaskOutput } from "@models";
 import hljs from "highlight.js";
 import { encode } from "html-entities";
 
@@ -12,9 +12,10 @@ export class MarkdownHelper {
   /**
    * Fetched the Markdown files from the start folder
    * @param ctx
+   * @param task
    * @param startFolder
    */
-  public static async fetchMDFiles(ctx: any, startFolder: string) {
+  public static async fetchMDFiles(ctx: PublishContext, task: TaskOutput, startFolder: string) {
     const uniformalStartFolder = startFolder.replace(/\\/g, "/");
     const files = await fg(`${uniformalStartFolder}/**/*.md`, {
       ignore: [

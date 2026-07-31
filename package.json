@@ -98,13 +98,12 @@
     "html-entities": "2.6.0",
     "inquirer": "13.3.2",
     "kleur": "4.1.5",
-    "listr": "0.14.3",
+    "listr2": "^11.0.0",
     "markdown-it": "14.1.1",
     "markdown-it-anchor": "9.2.0",
     "markdown-it-shortcode-tag": "1.1.0",
     "markdown-it-table-of-contents": "1.1.0",
     "mime": "4.1.0",
-    "omelette": "0.4.17",
-    "rxjs": "7.8.2"
+    "omelette": "0.4.17"
   }
 }

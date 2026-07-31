@@ -1,5 +1,5 @@
 import { join } from "path";
-import { CommandArguments } from "@models";
+import { CommandArguments, TaskOutput } from "@models";
 import {
   CliCommand,
   executeWithRetry,
@@ -37,10 +37,10 @@ const isAuthOrPermissionError = (message: string): boolean => {
 export class SiteHelpers {
   /**
    * Change the look of the site
-   * @param ctx
+   * @param task
    * @param options
    */
-  public static async changeLook(ctx: any, options: CommandArguments) {
+  public static async changeLook(task: TaskOutput, options: CommandArguments) {
     const { siteDesign, webUrl, assetLibrary, overwriteImages } = options;
     if (!siteDesign || Object.keys(siteDesign).length === 0) {
       return;
