@@ -21,5 +21,5 @@ export * from './SitesHelpers.js';
 export * from './StatusHelper.js';
 export * from './TempDataHelper.js';
 export * from './Translator.js';
-export * from './runCommand.js';
-export * from './logger.js';
+export * from './RunCommand.js';
+export * from './Logger.js';

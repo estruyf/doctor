@@ -146,7 +146,7 @@ export class FileHelpers {
           }
         }
       } catch (e) {
-        throw e.message;
+        throw new Error(e.message);
       }
     }
   }

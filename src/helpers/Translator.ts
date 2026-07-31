@@ -1,5 +1,4 @@
-import { Logger } from "./logger.js";
-import { v4 as uuidv4 } from "uuid";
+import { Logger } from "./Logger.js";
 import { TranslationsResponse } from "@models";
 
 export class Translator {
@@ -27,7 +26,7 @@ export class Translator {
         "Ocp-Apim-Subscription-Key": key,
         "Ocp-Apim-Subscription-Region": region,
         "Content-type": "application/json",
-        "X-ClientTraceId": uuidv4().toString(),
+        "X-ClientTraceId": crypto.randomUUID(),
       },
       body: JSON.stringify([
         {

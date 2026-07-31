@@ -16,7 +16,7 @@ import {
   PageLocalizationCreation,
   PublishOutput,
 } from "@models";
-import { Logger } from "./logger.js";
+import { Logger } from "./Logger.js";
 import { DoctorTranspiler } from "./DoctorTranspiler.js";
 import { Subscriber } from "rxjs";
 import { TempDataHelper } from "./TempDataHelper.js";
@@ -36,12 +36,6 @@ export class MultilingualHelper {
   ): Promise<void> {
     const { webUrl, multilingual } = options;
     const url = webUrl.endsWith("/") ? webUrl : `${webUrl}/`;
-
-    // console.log(`Processing multilingual settings for the site...`, {
-    //   webUrl,
-    //   url,
-    //   multilingual
-    // });
 
     if (!multilingual) {
       return;

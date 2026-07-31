@@ -244,7 +244,7 @@ export class OptionsHelper {
         confirm: options.confirm || answers.confirm,
       };
     } catch (e) {
-      throw e.message;
+      throw new Error(e.message);
     }
   }
 }

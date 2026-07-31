@@ -30,14 +30,6 @@ export class Publish {
       )}`
     );
 
-    console.log("Running the publish command");
-    // console.log(
-    //   Logger.mask(
-    //     JSON.stringify(options, null, 2),
-    //     [options.password, options.certificateBase64Encoded]
-    //   )
-    // );
-
     if (!(await existsAsync(options.startFolder))) {
       return Promise.reject(
         new Error(`The provided folder location doesn't exist.`)
@@ -53,12 +45,6 @@ export class Publish {
     }
 
     const { startFolder, webUrl } = options;
-
-    // console.log("Starting the publishing process with the following configuration:");
-    // console.log({
-    //   startFolder,
-    //   webUrl
-    // });
 
     let ouput: PublishOutput = {
       navigation: options.menu ? { ...options.menu } : null,

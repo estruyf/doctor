@@ -1,7 +1,7 @@
 import { CliCommand } from "./CliCommand.js";
 import crossSpawn from "cross-spawn";
 import { createRequire } from "node:module";
-import { Logger } from "./logger.js";
+import { Logger } from "./Logger.js";
 import { defer, StatusHelper } from "./index.js";
 import { Deferred } from "@models";
 import { execAsync } from "@utils";

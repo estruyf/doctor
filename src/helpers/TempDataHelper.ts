@@ -17,7 +17,7 @@ export class TempDataHelper {
       await mkdirAsync(tempPath, { recursive: true });
     }
 
-    const tempFilePath = join(tempPath, "./wpData.json");
+    const tempFilePath = join(tempPath, `./${crypto.randomUUID()}.json`);
     await writeFileAsync(tempFilePath, JSON.stringify(data, null, 2), {
       encoding: "utf-8",
     });

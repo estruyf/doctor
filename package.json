@@ -92,7 +92,6 @@
     "cheerio": "1.2.0",
     "clean-css": "5.3.3",
     "cross-spawn": "7.0.6",
-    "esm": "3.2.25",
     "fast-glob": "3.3.3",
     "gray-matter": "4.0.3",
     "highlight.js": "11.11.1",
@@ -106,8 +105,6 @@
     "markdown-it-table-of-contents": "1.1.0",
     "mime": "4.1.0",
     "omelette": "0.4.17",
-    "react": "17.0.2",
-    "rxjs": "7.8.2",
-    "uuid": "13.0.0"
+    "rxjs": "7.8.2"
   }
 }

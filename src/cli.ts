@@ -66,18 +66,17 @@ export async function cli(args: string[]) {
   } catch (e: any | Error) {
     await TempDataHelper.clear();
 
-    console.log("ERROR:", e);
-    // if (typeof e === "string") {
-    //   console.log(
-    //     kleur.bgRed().bold().white(` ERROR: `),
-    //     kleur.bold().red(e)
-    //   );
-    // } else {
-    //   console.log(
-    //     kleur.bgRed().bold().white(` ERROR: `),
-    //     kleur.bold().red(e.message?.toString() || JSON.stringify(e))
-    //   );
-    // }
+    if (typeof e === "string") {
+      console.log(
+        kleur.bgRed().bold().white(` ERROR: `),
+        kleur.bold().red(e)
+      );
+    } else {
+      console.log(
+        kleur.bgRed().bold().white(` ERROR: `),
+        kleur.bold().red(e.message?.toString() || JSON.stringify(e))
+      );
+    }
     process.exit(1);
   }
 }

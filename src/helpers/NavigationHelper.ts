@@ -1,14 +1,14 @@
 import { CliCommand } from "./index.js";
 import { Menu, MenuItem, MenuType, NavigationItem } from "@models";
-import { executeWithRetry } from "./runCommand.js";
-import { Logger } from "./logger.js";
+import { executeWithRetry } from "./RunCommand.js";
+import { Logger } from "./Logger.js";
 
 type LocationType = "QuickLaunch" | "TopNavigationBar";
 const WEIGHT_VALUE = 99999;
 
 export class NavigationHelper {
-  private static qlElms: NavigationItem[] | string = null;
-  private static tnElms: NavigationItem[] | string = null;
+  private static qlElms: NavigationItem[] | null = null;
+  private static tnElms: NavigationItem[] | null = null;
 
   /**
     * Synchronizes site navigation with the provided menu definition.
@@ -251,7 +251,7 @@ export class NavigationHelper {
     * @param type The navigation location to query.
     * @returns A promise that resolves to the list of navigation nodes, or null for unsupported locations.
    */
-  private static async getNavigationElms(webUrl: string, type: LocationType) {
+  private static async getNavigationElms(webUrl: string, type: LocationType): Promise<NavigationItem[]> {
     if (type === "QuickLaunch") {
       if (!this.qlElms) {
         const { stdout } = await executeWithRetry(
@@ -263,11 +263,9 @@ export class NavigationHelper {
           },
           CliCommand.getRetry()
         );
-        this.qlElms = stdout;
+        this.qlElms = JSON.parse(stdout);
       }
-      return typeof this.qlElms === "string"
-        ? JSON.parse(this.qlElms)
-        : this.qlElms;
+      return this.qlElms;
     }
 
     if (type === "TopNavigationBar") {
@@ -281,11 +279,9 @@ export class NavigationHelper {
           },
           CliCommand.getRetry()
         );
-        this.tnElms = stdout;
+        this.tnElms = JSON.parse(stdout);
       }
-      return typeof this.tnElms === "string"
-        ? JSON.parse(this.tnElms)
-        : this.tnElms;
+      return this.tnElms;
     }
 
     // This should never happen, but one can never really know for sure

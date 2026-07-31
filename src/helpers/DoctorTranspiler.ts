@@ -58,7 +58,7 @@ export class DoctorTranspiler {
             Logger.debug(e.message);
 
             if (!options.continueOnError) {
-              throw e.message;
+              throw new Error(e.message);
             }
           }
         }
@@ -89,10 +89,6 @@ export class DoctorTranspiler {
     if (file.endsWith(".md")) {
       const filename = basename(file);
       observer.next(`Started processing: ${filename}`);
-
-      // if (file.includes('..') || path.isAbsolute(file)) {
-      //   throw new Error(`Invalid file path`);
-      // }
 
       let contents = await readFileAsync(file, { encoding: "utf-8" });
       if (contents) {
@@ -177,7 +173,7 @@ export class DoctorTranspiler {
               options,
             );
           } catch (e) {
-            throw e.message;
+            throw new Error(e.message);
           }
         }
 
