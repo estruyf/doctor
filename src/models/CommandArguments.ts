@@ -15,6 +15,7 @@ export interface CommandArguments {
   overwriteImages: boolean;
   skipPrecheck: boolean;
   skipExistingPages: boolean;
+  skipUnchanged: boolean;
   debug: boolean;
   continueOnError: boolean;
   retryWhenFailed: boolean;

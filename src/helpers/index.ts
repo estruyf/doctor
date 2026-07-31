@@ -16,6 +16,7 @@ export * from './OptionsHelper.js';
 export * from './PagesHelper.js';
 export * from './ShortcodesHelpers.js';
 export * from './SitesHelpers.js';
+export * from './StateHelper.js';
 export * from './StatusHelper.js';
 export * from './TempDataHelper.js';
 export * from './Translator.js';

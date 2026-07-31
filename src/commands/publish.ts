@@ -10,6 +10,7 @@ import {
   SiteHelpers,
   PagesHelper,
   MultilingualHelper,
+  StateHelper,
   StatusHelper,
 } from "@helpers";
 import { CommandArguments, PublishContext, PublishOutput } from "@models";
@@ -70,6 +71,12 @@ export class Publish {
           enabled: () => !!options.multilingual?.enableTranslations,
         },
         {
+          title: `Load publish state`,
+          task: async () =>
+            await StateHelper.load(webUrl, options.assetLibrary),
+          enabled: () => options.skipUnchanged && !options.skipPages,
+        },
+        {
           title: `Fetch all markdown files`,
           task: async (ctx, task) =>
             await MarkdownHelper.fetchMDFiles(ctx, task, startFolder),
@@ -100,6 +107,12 @@ export class Publish {
             await PagesHelper.clean(webUrl, task, options),
           enabled: () => options.cleanEnd && options.confirm,
           rendererOptions: { persistentOutput: true },
+        },
+        {
+          title: `Save publish state`,
+          task: async () =>
+            await StateHelper.save(webUrl, options.assetLibrary),
+          enabled: () => options.skipUnchanged && !options.skipPages,
         },
       ],
       {

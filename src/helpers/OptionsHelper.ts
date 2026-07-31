@@ -59,6 +59,7 @@ export class OptionsHelper {
       "--skipPages": Boolean,
       "--skipNavigation": Boolean,
       "--skipSiteDesign": Boolean,
+      "--skipUnchanged": Boolean,
 
       "-a": "--auth",
       "-f": "--folder",
@@ -115,6 +116,10 @@ export class OptionsHelper {
       skipExistingPages:
         (args["--skipExistingPages"] as any) ||
         options["skipExistingPages"] ||
+        false,
+      skipUnchanged:
+        (args["--skipUnchanged"] as any) ||
+        options["skipUnchanged"] ||
         false,
       continueOnError:
         (args["--continueOnError"] as any) ||

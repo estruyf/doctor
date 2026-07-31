@@ -19,6 +19,7 @@ import {
   MultilingualHelper,
   NavigationHelper,
   PagesHelper,
+  StateHelper,
   StatusHelper,
 } from "@helpers";
 import { basename, join, dirname } from "path";
@@ -96,6 +97,11 @@ export class DoctorTranspiler {
 
       let contents = await readFileAsync(file, { encoding: "utf-8" });
       if (contents) {
+        // Compute hash once — used for change detection and state recording
+        const contentHash = options.skipUnchanged
+          ? StateHelper.hashContent(contents)
+          : null;
+
         const markup: matter.GrayMatterFile<string> = matter(contents);
 
         // Don't process language files, these will be processed later in the process
@@ -138,6 +144,16 @@ export class DoctorTranspiler {
             options.startFolder,
             file,
           );
+
+        // Change detection: skip unchanged files when --skipUnchanged is set
+        if (options.skipUnchanged && contentHash && !languagePageSlug) {
+          if (!StateHelper.hasChanged(slug, contentHash)) {
+            task.output = `Skipped (unchanged): ${filename}`;
+            Logger.debug(`Skipping unchanged file: ${filename}`);
+            StatusHelper.addPageSkipped();
+            return;
+          }
+        }
 
         // Check if comments are disabled on global level, or overwrite it from page level
         const disablePageComments =
@@ -280,6 +296,11 @@ export class DoctorTranspiler {
               StatusHelper.addPageUpdated();
             } else {
               StatusHelper.addPageCreated();
+            }
+
+            // Record hash so next run can skip unchanged files
+            if (options.skipUnchanged && contentHash) {
+              StateHelper.markPublished(slug, contentHash);
             }
           } else {
             task.output = `Skipped (already exists): ${filename}`;
