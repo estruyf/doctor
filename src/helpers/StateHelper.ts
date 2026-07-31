@@ -2,7 +2,7 @@ import { createHash } from "crypto";
 import { executeWithRetry, FileHelpers, Logger } from "@helpers";
 import { CliCommand } from "@helpers";
 import { basename, dirname, join } from "path";
-import { writeFileAsync } from "@utils";
+import { readFileAsync, writeFileAsync } from "@utils";
 import { tmpdir } from "os";
 
 export interface DoctorStateEntry {
@@ -62,20 +62,25 @@ export class StateHelper {
     StateHelper.loaded = true;
     const target = normalizeStateTarget(assetLibrary, stateFile);
     const relUrl = FileHelpers.getRelUrl(webUrl, target.filePath);
+    const tmpPath = join(tmpdir(), `doctor-state-load-${Date.now()}.json`);
 
     try {
-      const { stdout } = await executeWithRetry(
+      // spo file get --asString is broken with executeCommand (returns "[object Object]").
+      // Use --asFile to download to a temp path, then read it ourselves.
+      await executeWithRetry(
         "spo file get",
         {
           webUrl,
           url: relUrl,
-          asString: true,
+          asFile: true,
+          path: tmpPath,
         },
         CliCommand.getRetry()
       );
 
-      if (stdout) {
-        const parsed = JSON.parse(typeof stdout === "string" ? stdout : JSON.stringify(stdout));
+      const content = await readFileAsync(tmpPath, { encoding: "utf-8" });
+      if (content) {
+        const parsed = JSON.parse(content as string);
         if (parsed && parsed.version) {
           StateHelper.state = parsed as DoctorState;
           Logger.debug(`State loaded: ${Object.keys(StateHelper.state.pages).length} pages`);
@@ -83,7 +88,12 @@ export class StateHelper {
         }
       }
     } catch {
-      // File not found — first run; start with empty state
+      // File not found or unreadable — first run; start with empty state
+    } finally {
+      try {
+        const { unlink } = await import("fs/promises");
+        await unlink(tmpPath);
+      } catch {}
     }
 
     StateHelper.state = {

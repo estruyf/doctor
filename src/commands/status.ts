@@ -50,7 +50,7 @@ export class Status {
             statePageCount = StateHelper.getPageCount();
             task.output = statePageCount > 0
               ? `${statePageCount} pages tracked in state`
-              : `No state found — this may be the first publish`;
+              : `No pages tracked yet — run 'doctor publish' to populate state`;
           },
           enabled: () => !options.disableStatePersistence,
           rendererOptions: { persistentOutput: true },
