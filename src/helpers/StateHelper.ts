@@ -34,6 +34,20 @@ const isAlreadyExistsError = (error: unknown): boolean => {
   );
 };
 
+const toErrorMessage = (error: unknown): string => {
+  if (typeof error === "string") {
+    return error;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+};
+
 const normalizeStateTarget = (
   assetLibrary: string,
   stateFile: string,
@@ -102,8 +116,10 @@ export class StateHelper {
           return;
         }
       }
-    } catch {
-      // File not found or unreadable — first run; start with empty state
+    } catch (error) {
+      Logger.debug(
+        `Failed to load publish state from "${relUrl}". Falling back to empty state. ${toErrorMessage(error)}`,
+      );
     } finally {
       try {
         const { unlink } = await import("fs/promises");

@@ -207,6 +207,20 @@ const executeM365WithTimeout = async (
   commandName: string,
   options: any
 ): Promise<{ stdout: string; stderr: string }> => {
+  const asText = (value: unknown): string => {
+    if (typeof value === "string") {
+      return value;
+    }
+    if (value === null || typeof value === "undefined") {
+      return "";
+    }
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  };
+
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => {
       reject(new Error(`Command timed out after ${EXECUTE_COMMAND_TIMEOUT_MS}ms`));
@@ -216,8 +230,8 @@ const executeM365WithTimeout = async (
   const commandPromise = (async () => {
     const normalizedOptions = await resolveFileOptionReferences(options);
     const result = await executeCommand(commandName, normalizedOptions);
-    const stdout = result?.stdout ? `${result.stdout}` : "";
-    const stderr = result?.stderr ? `${result.stderr}` : "";
+    const stdout = asText(result?.stdout);
+    const stderr = asText(result?.stderr);
 
     if (stderr.trim().length > 0) {
       throw new Error(stderr);
