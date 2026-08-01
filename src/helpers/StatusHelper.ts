@@ -48,6 +48,13 @@ export class StatusHelper {
     ++StatusHelper.getInstance().pagesSkipped;
   }
 
+  public static addPagesSkipped(count: number) {
+    if (count <= 0) {
+      return;
+    }
+    StatusHelper.getInstance().pagesSkipped += count;
+  }
+
   public static addError() {
     ++StatusHelper.getInstance().errors;
   }

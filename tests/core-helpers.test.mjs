@@ -60,14 +60,14 @@ test("OptionsHelper.parseArguments maps raw CLI arguments", () => {
     "https://contoso.sharepoint.com/sites/docs",
     "--folder",
     "./docs",
-    "--skipUnchanged",
+    "--forceAll",
     "--applyTheme",
   ]);
 
   assert.equal(parsed.task, "publish");
   assert.equal(parsed.webUrl, "https://contoso.sharepoint.com/sites/docs");
   assert.equal(parsed.startFolder, "./docs");
-  assert.equal(parsed.skipUnchanged, true);
+  assert.equal(parsed.forceAll, true);
   assert.equal(parsed.applyTheme, true);
   assert.equal(parsed.auth, "deviceCode");
 });

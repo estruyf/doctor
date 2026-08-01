@@ -47,14 +47,26 @@ export class DoctorTranspiler {
     Logger.debug(`Web URL: ${webUrl}`);
 
     const { files } = ctx;
-    const total = files.length;
-
-    Logger.debug(`Number of markdown files found: ${total}`);
+    Logger.debug(`Number of markdown files found: ${files.length}`);
 
     await PagesHelper.getAllPages(webUrl);
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+    let filesToProcess = files;
+    if (!options.forceAll) {
+      const plan = await this.buildProcessingPlan(files, options);
+      filesToProcess = plan.filesToProcess;
+      StatusHelper.addPagesSkipped(plan.skippedUnchanged);
+      task.output = `Processing ${filesToProcess.length} changed/new page${filesToProcess.length === 1 ? "" : "s"} (${plan.skippedUnchanged} unchanged skipped)`;
+    }
+
+    const total = filesToProcess.length;
+    if (total === 0) {
+      task.output = "No changed/new pages to process";
+      return;
+    }
+
+    for (let i = 0; i < filesToProcess.length; i++) {
+      const file = filesToProcess[i];
       const pageStart = Date.now();
       task.output = `[${i + 1}/${total}] Processing ${file}`;
 
@@ -73,6 +85,58 @@ export class DoctorTranspiler {
         StatusHelper.addPageDuration(file, Date.now() - pageStart);
       }
     }
+  }
+
+  private static async buildProcessingPlan(
+    files: string[],
+    options: CommandArguments,
+  ): Promise<{ filesToProcess: string[]; skippedUnchanged: number }> {
+    const filesToProcess: string[] = [];
+    let skippedUnchanged = 0;
+
+    for (const file of files) {
+      if (!file.endsWith(".md")) {
+        continue;
+      }
+
+      const contents = await readFileAsync(file, { encoding: "utf-8" });
+      if (!contents) {
+        filesToProcess.push(file);
+        continue;
+      }
+
+      try {
+        const markup = matter(contents);
+
+        // Translation pages are handled from source pages when multilingual linking runs.
+        if (markup.data && markup.data.type === "translation") {
+          continue;
+        }
+
+        if (!markup.data || !markup.data.title) {
+          filesToProcess.push(file);
+          continue;
+        }
+
+        const slug = FrontMatterHelper.getSlug(
+          markup.data as PageFrontMatter,
+          options.startFolder,
+          file,
+        );
+        const contentHash = StateHelper.hashContent(contents);
+
+        if (StateHelper.hasChanged(slug, contentHash)) {
+          filesToProcess.push(file);
+        } else {
+          skippedUnchanged++;
+        }
+      } catch {
+        // Keep error handling behavior in processFile by letting it process this file normally.
+        filesToProcess.push(file);
+      }
+    }
+
+    return { filesToProcess, skippedUnchanged };
   }
 
   /**
