@@ -35,6 +35,7 @@ export class Status {
 
     const { startFolder, webUrl } = options;
     let statePageCount = 0;
+    let localFilesChecked = 0;
 
     const ctx: PublishContext = { files: [] };
     const entries: StatusEntry[] = [];
@@ -64,6 +65,7 @@ export class Status {
           title: `Compare with state`,
           task: async (c, task) => {
             const total = c.files.length;
+            localFilesChecked = c.files.filter((file) => file.endsWith(".md")).length;
             let processed = 0;
 
             for (const file of c.files) {
@@ -81,7 +83,8 @@ export class Status {
               let slug: string;
               try {
                 const markup = matter(contents);
-                if (!markup.data?.title && !markup.data?.slug) continue;
+                if (markup.data?.type === "translation") continue;
+                if (!markup.data?.title) continue;
                 slug = FrontMatterHelper.getSlug(
                   markup.data as PageFrontMatter,
                   startFolder,
@@ -128,7 +131,7 @@ export class Status {
     console.log("");
     console.info(kleur.bold().bgYellow().black(` Status summary `));
     console.info(kleur.white(` State tracking: ${statePageCount} pages`));
-    console.info(kleur.white(` Local files:    ${entries.length} checked`));
+    console.info(kleur.white(` Local files:    ${localFilesChecked} checked`));
     console.log("");
 
     this.printGroup(kleur.green().bold(`  ✦ New (${newPages.length})`), newPages, "file");

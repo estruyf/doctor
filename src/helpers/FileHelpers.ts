@@ -151,7 +151,9 @@ export class FileHelpers {
           }
         }
       } catch (e) {
-        throw new Error(e.message);
+        const errorMessage =
+          typeof e === "string" ? e : e instanceof Error ? e.message : JSON.stringify(e);
+        throw new Error(errorMessage);
       }
     }
   }

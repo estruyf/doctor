@@ -47,18 +47,13 @@ export class PrecheckHelper {
         continue;
       }
 
-      if (!data.title && !data.slug) {
-        issues.push(
-          `Missing page identity (title or slug required): ${filePath}`,
-        );
+      if (!data.title) {
+        issues.push(`Missing required title: ${filePath}`);
         continue;
       }
 
       const resolvedSlug = FrontMatterHelper.getSlug(
-        {
-          ...data,
-          title: data.title || data.slug || "",
-        } as PageFrontMatter,
+        data as PageFrontMatter,
         options.startFolder,
         filePath,
       ).toLowerCase();

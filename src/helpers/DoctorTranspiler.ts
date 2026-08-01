@@ -25,6 +25,16 @@ import {
 import { basename, join, dirname } from "path";
 import { existsAsync, mkdirAsync, readFileAsync, writeFileAsync } from "@utils";
 
+const getErrorMessage = (error: unknown): string => {
+  if (typeof error === "string") {
+    return error;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return JSON.stringify(error);
+};
+
 export class DoctorTranspiler {
   private static converter = new MarkdownIt({ html: true, breaks: true });
 
@@ -76,10 +86,11 @@ export class DoctorTranspiler {
         await this.processFile(file, task, options, output, null, i + 1, total);
       } catch (e) {
         StatusHelper.addError();
-        Logger.debug(e.message);
+        const errorMessage = getErrorMessage(e);
+        Logger.debug(errorMessage);
 
         if (!options.continueOnError) {
-          throw new Error(e.message);
+          throw new Error(errorMessage);
         }
       } finally {
         StatusHelper.addPageDuration(file, Date.now() - pageStart);
@@ -494,9 +505,10 @@ export class DoctorTranspiler {
         contents = contents.replace(new RegExp(imgSource, "g"), imgUrl);
         StatusHelper.addImage();
       } catch (e) {
+        const errorMessage = getErrorMessage(e);
         return Promise.reject(
           new Error(
-            `Something failed while uploading the image asset. ${e.message}`,
+            `Something failed while uploading the image asset. ${errorMessage}`,
           ),
         );
       }
