@@ -75,10 +75,12 @@ export class PagesHelper {
           );
         }
       } catch (e) {
-        Logger.debug(e.message);
+        const errorMessage =
+          typeof e === "string" ? e : e instanceof Error ? e.message : JSON.stringify(e);
+        Logger.debug(errorMessage);
 
         if (!options.continueOnError) {
-          throw new Error(e.message);
+          throw new Error(errorMessage);
         }
       }
     }

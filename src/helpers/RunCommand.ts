@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { executeCommand } from "@pnp/cli-microsoft365";
 import { access, readFile } from "node:fs/promises";
 import { Logger } from "./Logger.js";
-import { StatusHelper } from "./index.js";
+import { StatusHelper } from "./StatusHelper.js";
 
 const EXECUTE_COMMAND_TIMEOUT_MS = 120000;
 

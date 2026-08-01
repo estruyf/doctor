@@ -176,9 +176,15 @@ export class StateHelper {
 
       // Ensure the target state folder exists
       const folderUrl = FileHelpers.getRelUrl(webUrl, target.folderPath);
-      const folderPart = target.folderPath
-        .replace(/^\/+/, "")
-        .replace(`${assetLibrary}/`, "");
+      const normalizedAssetLibrary = assetLibrary.replace(/^\/+|\/+$/g, "");
+      const normalizedTargetFolder = target.folderPath.replace(/^\/+|\/+$/g, "");
+      const folderPart = normalizedTargetFolder.startsWith(
+        `${normalizedAssetLibrary}/`,
+      )
+        ? normalizedTargetFolder.slice(normalizedAssetLibrary.length + 1)
+        : normalizedTargetFolder === normalizedAssetLibrary
+          ? ""
+          : normalizedTargetFolder;
       const nestedFolders = folderPart.split("/").filter(Boolean);
       let currentPath = assetLibrary;
 
