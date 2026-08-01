@@ -19,6 +19,21 @@ export interface DoctorState {
 
 const DEFAULT_STATE_FILE = ".doctor/state.json";
 
+const isAlreadyExistsError = (error: unknown): boolean => {
+  const message =
+    typeof error === "string"
+      ? error
+      : error && typeof error === "object" && "message" in error
+        ? String((error as { message: unknown }).message)
+        : JSON.stringify(error);
+
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("already exists") ||
+    normalized.includes("a file or folder with the name")
+  );
+};
+
 const normalizeStateTarget = (
   assetLibrary: string,
   stateFile: string,
@@ -161,22 +176,29 @@ export class StateHelper {
 
       // Ensure the target state folder exists
       const folderUrl = FileHelpers.getRelUrl(webUrl, target.folderPath);
-      try {
-        const parentFolderUrl =
-          dirname(target.folderPath).replace(/\\/g, "/") === "."
-            ? assetLibrary
-            : dirname(target.folderPath).replace(/\\/g, "/");
-        await executeWithRetry(
-          "spo folder add",
-          {
-            webUrl,
-            parentFolderUrl,
-            name: basename(target.folderPath),
-          },
-          CliCommand.getRetry()
-        );
-      } catch {
-        // Folder already exists — ignore
+      const folderPart = target.folderPath
+        .replace(/^\/+/, "")
+        .replace(`${assetLibrary}/`, "");
+      const nestedFolders = folderPart.split("/").filter(Boolean);
+      let currentPath = assetLibrary;
+
+      for (const folderName of nestedFolders) {
+        try {
+          await executeWithRetry(
+            "spo folder add",
+            {
+              webUrl,
+              parentFolderUrl: `/${currentPath}`,
+              name: folderName,
+            },
+            CliCommand.getRetry()
+          );
+        } catch (error) {
+          if (!isAlreadyExistsError(error)) {
+            throw error;
+          }
+        }
+        currentPath = `${currentPath}/${folderName}`;
       }
 
       await executeWithRetry(

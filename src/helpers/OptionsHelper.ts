@@ -63,6 +63,7 @@ export class OptionsHelper {
       "--skipNavigation": Boolean,
       "--skipSiteDesign": Boolean,
       "--applyTheme": Boolean,
+      "--skipPrecheck": Boolean,
       "--forceAll": Boolean,
       "--disableStatePersistence": Boolean,
 
@@ -144,7 +145,7 @@ export class OptionsHelper {
         (process.env.DEBUG && process.env.DEBUG === "true") ||
         args["--debug"] ||
         false,
-      verbose: args["--verbose"] || false,
+      verbose: args["--verbose"] || options["verbose"] || false,
       timingDetails:
         (args["--timingDetails"] as any) ||
         options["timingDetails"] ||
