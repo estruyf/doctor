@@ -133,6 +133,7 @@ const executeThroughCliWithTimeout = async (
 
     const timeout = setTimeout(() => {
       didTimeout = true;
+      isSettled = true;
       child.kill("SIGTERM");
       reject(
         new Error(`Command timed out after ${EXECUTE_COMMAND_TIMEOUT_MS}ms`)
@@ -221,23 +222,33 @@ const executeM365WithTimeout = async (
     }
   };
 
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+
   const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(() => {
+    timeoutHandle = setTimeout(() => {
       reject(new Error(`Command timed out after ${EXECUTE_COMMAND_TIMEOUT_MS}ms`));
     }, EXECUTE_COMMAND_TIMEOUT_MS);
+    // unref so the timer does not keep the Node event loop alive if everything else finishes
+    timeoutHandle.unref?.();
   });
 
   const commandPromise = (async () => {
-    const normalizedOptions = await resolveFileOptionReferences(options);
-    const result = await executeCommand(commandName, normalizedOptions);
-    const stdout = asText(result?.stdout);
-    const stderr = asText(result?.stderr);
+    try {
+      const normalizedOptions = await resolveFileOptionReferences(options);
+      const result = await executeCommand(commandName, normalizedOptions);
+      const stdout = asText(result?.stdout);
+      const stderr = asText(result?.stderr);
 
-    if (stderr.trim().length > 0) {
-      throw new Error(stderr);
+      if (stderr.trim().length > 0) {
+        throw new Error(stderr);
+      }
+
+      return { stdout, stderr };
+    } finally {
+      if (timeoutHandle !== null) {
+        clearTimeout(timeoutHandle);
+      }
     }
-
-    return { stdout, stderr };
   })();
 
   return await Promise.race([commandPromise, timeoutPromise]);
