@@ -126,13 +126,11 @@ const executeThroughCliWithTimeout = async (
     });
     let stdout = "";
     let stderr = "";
-    let didTimeout = false;
     let isSettled = false;
     let exitCode: number | null = null;
     let exitSignal: NodeJS.Signals | null = null;
 
     const timeout = setTimeout(() => {
-      didTimeout = true;
       isSettled = true;
       child.kill("SIGTERM");
       reject(
@@ -169,10 +167,6 @@ const executeThroughCliWithTimeout = async (
       }
       isSettled = true;
       clearTimeout(timeout);
-
-      if (didTimeout) {
-        return;
-      }
 
       if (exitCode && exitCode !== 0) {
         const stderrText = stderr?.trim();

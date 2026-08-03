@@ -119,8 +119,13 @@ export class Publish {
         },
         {
           title: `Save publish state`,
-          task: async () =>
-            await StateHelper.save(webUrl, options.assetLibrary, options.stateFile),
+          task: async (_, task) => {
+            if (!StateHelper.isDirty()) {
+              task.skip(`No changes to save`);
+              return;
+            }
+            await StateHelper.save(webUrl, options.assetLibrary, options.stateFile);
+          },
           enabled: () => !options.disableStatePersistence && !options.skipPages,
         },
       ],

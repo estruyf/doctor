@@ -126,6 +126,7 @@ export class OptionsHelper {
         (args["--skipPrecheck"] as any) || options["skipPrecheck"] || false,
       skipExistingPages:
         (args["--skipExistingPages"] as any) ||
+        (args["--skipExisting"] as any) ||
         options["skipExistingPages"] ||
         false,
       forceAll:

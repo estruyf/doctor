@@ -502,7 +502,8 @@ export class DoctorTranspiler {
           webUrl,
           overwriteImages,
         );
-        contents = contents.replace(new RegExp(imgSource, "g"), imgUrl);
+        const escapedImgSource = imgSource.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        contents = contents.replace(new RegExp(escapedImgSource, "g"), imgUrl);
         StatusHelper.addImage();
       } catch (e) {
         const errorMessage = getErrorMessage(e);

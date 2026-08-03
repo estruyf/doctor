@@ -122,13 +122,12 @@ export class PagesHelper {
         }
       }
 
-      const { stdout: pageDataOutput } = await executeCommand("spo page get", {
-        webUrl,
-        name: slug,
-        metadataOnly: true,
-        output: "json",
-      });
-      let pageData: Page = JSON.parse(pageDataOutput);
+      const { stdout: pageDataOutput } = await executeWithRetry(
+        "spo page get",
+        { webUrl, name: slug, metadataOnly: true, output: "json" },
+        CliCommand.getRetry()
+      );
+      let pageData: Page = JSON.parse(pageDataOutput || "{}");
 
       PagesHelper.processedPages[slug] = (
         pageData as Page

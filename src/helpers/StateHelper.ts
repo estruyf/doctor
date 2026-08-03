@@ -73,6 +73,7 @@ const normalizeStateTarget = (
 export class StateHelper {
   private static state: DoctorState | null = null;
   private static loaded = false;
+  private static dirty = false;
 
   /** Compute a SHA-256 hex digest of the given string content. */
   public static hashContent(content: string): string {
@@ -171,6 +172,12 @@ export class StateHelper {
       sourceHash: contentHash,
       publishedAt: new Date().toISOString(),
     };
+    StateHelper.dirty = true;
+  }
+
+  /** Returns true if state has been modified since the last load. */
+  public static isDirty(): boolean {
+    return StateHelper.dirty;
   }
 
   /**
@@ -249,5 +256,6 @@ export class StateHelper {
   public static reset(): void {
     StateHelper.state = null;
     StateHelper.loaded = false;
+    StateHelper.dirty = false;
   }
 }
