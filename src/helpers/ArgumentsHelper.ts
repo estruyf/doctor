@@ -1,5 +1,3 @@
-
-
 export class ArgumentsHelper {
 
   /**
@@ -7,7 +5,7 @@ export class ArgumentsHelper {
    * @param command 
    */
   public static parse(command: string) {
-    const argsRegEx = /([^\s'"]([^\s'"]*(['"])([^\3]*?)\3)+[^\s'"]*)|[^\s'"]+|(['"])([^\5]*?)\5/gi;
+    const argsRegEx = /([^\s'"]*(['"]).*?\2[^\s'"]*)|[^\s'"]+/gi;
     return command.match(argsRegEx);
   }
 }

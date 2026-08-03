@@ -1,4 +1,4 @@
-import { Chrome } from ".";
+import { Chrome } from "./index.js";
 
 export interface SiteDesign {
   logo?: string;

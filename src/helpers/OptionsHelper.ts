@@ -1,7 +1,7 @@
 import { join } from "path";
-import * as arg from "arg";
-import * as kleur from "kleur";
-import * as inquirer from "inquirer";
+import arg from "arg";
+import kleur from "kleur";
+import inquirer from "inquirer";
 import { CommandArguments } from "@models";
 import { Command } from "@commands";
 import { existsAsync, readFileAsync } from "@utils";
@@ -36,6 +36,7 @@ export class OptionsHelper {
       "--folder": String,
       "--url": String,
       "--library": String,
+      "--stateFile": String,
       "--webPartTitle": String,
       "--outputFolder": String,
       "--pageTemplate": String,
@@ -48,18 +49,23 @@ export class OptionsHelper {
       "--cleanTopNavigation": Boolean,
 
       "--debug": Boolean,
+      "--verbose": Boolean,
+      "--timingDetails": Boolean,
       "--confirm": Boolean,
       "--continueOnError": Boolean,
       "--retryWhenFailed": Boolean,
 
       "--disableComments": Boolean,
-      "--disableTracking": Boolean,
 
       "--skipExistingPages": Boolean,
       "--skipExisting": Boolean,
       "--skipPages": Boolean,
       "--skipNavigation": Boolean,
       "--skipSiteDesign": Boolean,
+      "--applyTheme": Boolean,
+      "--skipPrecheck": Boolean,
+      "--forceAll": Boolean,
+      "--disableStatePersistence": Boolean,
 
       "-a": "--auth",
       "-f": "--folder",
@@ -101,12 +107,17 @@ export class OptionsHelper {
         options["certificateBase64Encoded"] ||
         null,
       commandName:
-        args["--commandName"] || options["commandName"] || "localm365",
+        args["--commandName"] || options["commandName"] || "m365",
       webUrl: args["--url"] || options["url"] || null,
       startFolder: args["--folder"] || options["folder"] || "./src",
       startFolderRel: args["--folder"] || options["folder"] || "./src",
       assetLibrary:
         args["--library"] || options["library"] || "Shared Documents",
+      stateFile: args["--stateFile"] || options["stateFile"] || ".doctor/state.json",
+      disableStatePersistence:
+        (args["--disableStatePersistence"] as any) ||
+        options["disableStatePersistence"] ||
+        false,
       webPartTitle:
         args["--webPartTitle"] ||
         options["webPartTitle"] ||
@@ -115,7 +126,12 @@ export class OptionsHelper {
         (args["--skipPrecheck"] as any) || options["skipPrecheck"] || false,
       skipExistingPages:
         (args["--skipExistingPages"] as any) ||
+        (args["--skipExisting"] as any) ||
         options["skipExistingPages"] ||
+        false,
+      forceAll:
+        (args["--forceAll"] as any) ||
+        options["forceAll"] ||
         false,
       continueOnError:
         (args["--continueOnError"] as any) ||
@@ -125,11 +141,15 @@ export class OptionsHelper {
         (args["--retryWhenFailed"] as any) ||
         options["retryWhenFailed"] ||
         false,
-      disableTracking: args["--disableTracking"] || false,
       menu: options["menu"] || null,
       debug:
         (process.env.DEBUG && process.env.DEBUG === "true") ||
         args["--debug"] ||
+        false,
+      verbose: args["--verbose"] || options["verbose"] || false,
+      timingDetails:
+        (args["--timingDetails"] as any) ||
+        options["timingDetails"] ||
         false,
       cleanEnd: args["--cleanEnd"] || false,
       cleanStart: args["--cleanStart"] || false,
@@ -149,6 +169,7 @@ export class OptionsHelper {
       skipPages: args["--skipPages"] || false,
       skipNavigation: args["--skipNavigation"] || false,
       skipSiteDesign: args["--skipSiteDesign"] || false,
+      applyTheme: args["--applyTheme"] || options["applyTheme"] || false,
       cleanQuickLaunch:
         args["--cleanQuickLaunch"] || options["cleanQuickLaunch"] || false,
       cleanTopNavigation:
@@ -164,7 +185,7 @@ export class OptionsHelper {
    * @param options
    */
   public static async promptForMissingArgs(options: CommandArguments) {
-    const questions = [];
+    const questions: any[] = [];
 
     if (!options.task) {
       questions.push({
@@ -246,7 +267,9 @@ export class OptionsHelper {
         confirm: options.confirm || answers.confirm,
       };
     } catch (e) {
-      throw e.message;
+      const errorMessage =
+        typeof e === "string" ? e : e instanceof Error ? e.message : JSON.stringify(e);
+      throw new Error(errorMessage);
     }
   }
 }

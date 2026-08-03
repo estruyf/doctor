@@ -1,16 +1,27 @@
 
-
 export class StatusHelper {
   private static instance: StatusHelper;
 
-  private constructor(public pages = 0, public images = 0, public retries = 0) {}
+  private constructor(
+    public pagesCreated = 0,
+    public pagesUpdated = 0,
+    public pagesSkipped = 0,
+    public errors = 0,
+    public imagesUploaded = 0,
+    public imagesSkipped = 0,
+    public retries = 0,
+    public pageDurations: { filePath: string; durationMs: number }[] = [],
+  ) {}
 
   public static getInstance() {
     if (!StatusHelper.instance) {
       StatusHelper.instance = new StatusHelper();
     }
-
     return StatusHelper.instance;
+  }
+
+  public static reset() {
+    StatusHelper.instance = new StatusHelper();
   }
 
   public static addRetry() {
@@ -18,11 +29,39 @@ export class StatusHelper {
   }
 
   public static addImage() {
-    ++StatusHelper.getInstance().images;
+    ++StatusHelper.getInstance().imagesUploaded;
   }
 
+  public static addImageSkipped() {
+    ++StatusHelper.getInstance().imagesSkipped;
+  }
+
+  public static addPageCreated() {
+    ++StatusHelper.getInstance().pagesCreated;
+  }
+
+  public static addPageUpdated() {
+    ++StatusHelper.getInstance().pagesUpdated;
+  }
+
+  public static addPageSkipped() {
+    ++StatusHelper.getInstance().pagesSkipped;
+  }
+
+  public static addPagesSkipped(count: number) {
+    if (count <= 0) {
+      return;
+    }
+    StatusHelper.getInstance().pagesSkipped += count;
+  }
+
+  public static addError() {
+    ++StatusHelper.getInstance().errors;
+  }
+
+  /** @deprecated Use addPageCreated / addPageUpdated instead. */
   public static addPage() {
-    ++StatusHelper.getInstance().pages;
+    ++StatusHelper.getInstance().pagesUpdated;
   }
 
   public static getRetries() {
@@ -30,10 +69,65 @@ export class StatusHelper {
   }
 
   public static getImages() {
-    return StatusHelper.getInstance().images;
+    return StatusHelper.getInstance().imagesUploaded;
+  }
+
+  public static getImagesSkipped() {
+    return StatusHelper.getInstance().imagesSkipped;
   }
 
   public static getPages() {
-    return StatusHelper.getInstance().pages;
+    return (
+      StatusHelper.getInstance().pagesCreated +
+      StatusHelper.getInstance().pagesUpdated
+    );
+  }
+
+  public static getPagesCreated() {
+    return StatusHelper.getInstance().pagesCreated;
+  }
+
+  public static getPagesUpdated() {
+    return StatusHelper.getInstance().pagesUpdated;
+  }
+
+  public static getPagesSkipped() {
+    return StatusHelper.getInstance().pagesSkipped;
+  }
+
+  public static getErrors() {
+    return StatusHelper.getInstance().errors;
+  }
+
+  public static addPageDuration(filePath: string, durationMs: number) {
+    StatusHelper.getInstance().pageDurations.push({ filePath, durationMs });
+  }
+
+  public static getPageTimingStats() {
+    const durations = StatusHelper.getInstance().pageDurations;
+    if (!durations || durations.length === 0) {
+      return null;
+    }
+
+    let slowest = durations[0];
+    let fastest = durations[0];
+    let total = 0;
+
+    for (const duration of durations) {
+      total += duration.durationMs;
+      if (duration.durationMs > slowest.durationMs) {
+        slowest = duration;
+      }
+      if (duration.durationMs < fastest.durationMs) {
+        fastest = duration;
+      }
+    }
+
+    return {
+      count: durations.length,
+      averageMs: total / durations.length,
+      slowest,
+      fastest,
+    };
   }
 }

@@ -1,31 +1,42 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
-    "target": "es6",
+    "target": "es2020",
     "forceConsistentCasingInFileNames": true,
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "module": "nodenext",
+    "moduleResolution": "NodeNext",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "declaration": true,
     "sourceMap": true,
     "experimentalDecorators": true,
     "skipLibCheck": true,
     "outDir": "dist",
+    "rootDir": "src",
     "inlineSources": false,
-    "strictNullChecks": false,
+    "strictNullChecks": true,
     "noUnusedLocals": true,
     "lib": [
       "DOM",
-      "ES2015"
+      "ES2020"
     ],
     "paths": {
-      "@commands": ["src/commands"],
-      "@helpers": ["src/helpers"],
-      "@models": ["src/models"],
-      "@utils": ["src/utils"]
+      "@commands": [
+        "src/commands/index.ts"
+      ],
+      "@helpers": [
+        "src/helpers/index.ts"
+      ],
+      "@models": [
+        "src/models/index.ts"
+      ],
+      "@utils": [
+        "src/utils/index.ts"
+      ]
     }
   },
   "include": [
-    "src/**/*.ts"   
+    "src/**/*.ts"
   ],
   "exclude": [
     "node_modules"

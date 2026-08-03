@@ -14,17 +14,12 @@ export class Init {
   
   Paragraph`;
 
-  /**
-   * Starts the project creation process
-   * @param options
-   */
   public static async start(options: CommandArguments) {
     const { startFolder } = options;
     const crntFolder = process.cwd();
     const indexFile = join(startFolder, "index.md");
     const configFile = join(crntFolder, "doctor.json");
 
-    // Create the initial folder and files
     if (!(await existsAsync(startFolder))) {
       await mkdirAsync(startFolder, { recursive: true });
     }

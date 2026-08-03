@@ -1,12 +1,12 @@
 import { dirname, join, parse } from "path";
-import * as matter from "gray-matter";
+import matter from "gray-matter";
 import {
   ApiHelper,
   AccessToken,
   Contextinfo,
   Translator,
   MarkdownHelper,
-} from ".";
+} from "./index.js";
 import {
   Item,
   PageTranslations,
@@ -15,23 +15,18 @@ import {
   PageLocalization,
   PageLocalizationCreation,
   PublishOutput,
+  TaskOutput,
 } from "@models";
-import { Logger } from "./logger";
-import { DoctorTranspiler } from "./DoctorTranspiler";
-import { Subscriber } from "rxjs";
-import { TempDataHelper } from "./TempDataHelper";
+import { Logger } from "./Logger.js";
+import { DoctorTranspiler } from "./DoctorTranspiler.js";
+import { TempDataHelper } from "./TempDataHelper.js";
 import { existsAsync, readFileAsync } from "@utils";
 
 const FEATURE_ID = "24611c05-ee19-45da-955f-6602264abaf8";
 
 export class MultilingualHelper {
-  /**
-   * Start the multilingual process
-   * @param ctx
-   * @param options
-   */
   public static async start(
-    ctx: any,
+    task: TaskOutput,
     options: CommandArguments
   ): Promise<void> {
     const { webUrl, multilingual } = options;
@@ -59,7 +54,6 @@ export class MultilingualHelper {
     );
 
     if (multilingual.enableTranslations) {
-      // When the feature is enabled, the DefinitionId is returned
       if (!isEnabled || !isEnabled.DefinitionId) {
         await ApiHelper.post(
           `${url}_api/web/features/add(guid'${FEATURE_ID}')`,
@@ -71,7 +65,6 @@ export class MultilingualHelper {
         );
       }
 
-      // Fetch the languages to enable them on the site
       if (
         multilingual.languages ||
         typeof multilingual.overwriteTranslationsOnChange !== "undefined"
@@ -134,22 +127,12 @@ export class MultilingualHelper {
     }
   }
 
-  /**
-   * Process multilingual pages
-   * @param localization
-   * @param filePath
-   * @param slug
-   * @param options
-   * @param observer
-   * @param output
-   * @returns
-   */
   public static async linkPage(
     localization: PageLocalization,
     filePath: string,
     slug: string,
     options: CommandArguments,
-    observer: Subscriber<string>,
+    task: TaskOutput,
     output: PublishOutput
   ) {
     const { webUrl } = options;
@@ -168,7 +151,6 @@ export class MultilingualHelper {
     const token = await AccessToken.get(url);
     Logger.debug(`Token retrieved: ${token.length}`);
 
-    // 1. Check if the page is already linked to the corresponding language
     const translations: PageTranslations = await ApiHelper.get(
       `${url}_api/sitepages/pages/GetByUrl('sitepages/${encodeURIComponent(
         slug
@@ -218,7 +200,7 @@ export class MultilingualHelper {
           );
           await DoctorTranspiler.processFile(
             localePath,
-            observer,
+            task,
             options,
             output,
             translatedSlug
@@ -259,7 +241,6 @@ export class MultilingualHelper {
               }
             }
 
-            // Convert MD to HTML to correctly translate the page. MD not supported by the translator API.
             const htmlContent = await MarkdownHelper.getHtmlData(
               content,
               options
@@ -320,7 +301,7 @@ export class MultilingualHelper {
               );
               await DoctorTranspiler.processFile(
                 pagePath,
-                observer,
+                task,
                 options,
                 output,
                 translatedSlug
@@ -332,14 +313,6 @@ export class MultilingualHelper {
     }
   }
 
-  /**
-   * Retrieve the translate page for the current locale to process
-   * @param locale
-   * @param translatedPages
-   * @param url
-   * @param slug
-   * @param token
-   */
   private static async getTranslatedPage(
     locale: string,
     translatedPages: Item[],

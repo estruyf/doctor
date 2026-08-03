@@ -1,9 +1,9 @@
-import * as omelette from "omelette";
+import omelette from "omelette";
 import { Command } from "@commands";
 import { OptionsHelper } from "@helpers";
 
 export class Autocomplete {
-  private complete: omelette.Instance = null;
+  private complete: omelette.Instance | null = null;
   private commands: string[] = [
     Command.cleanup,
     Command.init,
@@ -17,25 +17,14 @@ export class Autocomplete {
     this.complete.init();
   }
 
-  /**
-   * Install the autocomplete functionality
-   */
   public setup() {
-    this.complete.setupShellInitFile();
+    this.complete?.setupShellInitFile();
   }
 
-  /**
-   * Cleanup the autocomplete functionality
-   */
   public cleanup() {
-    this.complete.cleanupShellInitFile();
+    this.complete?.cleanupShellInitFile();
   }
 
-  /**
-   * Handles the autocomplete per command
-   * @param fragment
-   * @param data
-   */
   private handleAutocomplete = (
     fragment: string,
     data: omelette.CallbackValue
