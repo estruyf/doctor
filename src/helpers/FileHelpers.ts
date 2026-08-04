@@ -216,6 +216,9 @@ export class FileHelpers {
         webUrl,
         folder: crntFolder,
         path: imgPath,
+        // Set explicitly to avoid the CLI deprecation warning. Whether an
+        // existing file may be replaced is already decided in `create`.
+        overwrite: true,
       },
       CliCommand.getRetry()
     );

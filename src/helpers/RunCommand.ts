@@ -232,8 +232,10 @@ const executeM365WithTimeout = async (
       const stdout = asText(result?.stdout);
       const stderr = asText(result?.stderr);
 
+      // The CLI for Microsoft 365 rejects when a command fails, so anything on
+      // stderr of a resolved command is a warning or verbose log, not an error.
       if (stderr.trim().length > 0) {
-        throw new Error(stderr);
+        Logger.debug(`Command "${commandName}" reported on stderr: ${stderr}`);
       }
 
       return { stdout, stderr };
