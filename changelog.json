@@ -24,6 +24,10 @@
         "title": "New `doctor status` command to see which pages are new, modified, deleted, or unchanged before publishing."
       },
       {
+        "id": 58,
+        "title": "New `doctor workflow` command which generates the `.github/workflows/doctor.yml` GitHub Actions workflow to publish your documentation."
+      },
+      {
         "id": null,
         "title": "Publish state is stored on the site (`Shared Documents/.doctor/state.json` by default) and saved after each page, so a failed run can resume where it left off."
       },

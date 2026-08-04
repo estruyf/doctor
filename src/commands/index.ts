@@ -4,3 +4,4 @@ export * from "./init.js";
 export * from "./publish.js";
 export * from "./status.js";
 export * from "./version.js";
+export * from "./workflow.js";

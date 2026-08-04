@@ -53,6 +53,8 @@ When you want to create page to page links, you can provide the relative path fr
 
 The menu property allows you to create a navigation structure for you static content. The `Menu` object has the following properties:
 
+> **Info**: A complete explanation of how the navigation gets created can be found on the [navigation](../navigation) page.
+
 - menu
   - `QuickLaunch` OR `TopNavigationBar` - Default is `QuickLaunch`
     - **id**: `string` (required) - Navigation id. This can be used to create a hierarchy in your navigation.

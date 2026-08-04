@@ -2,7 +2,7 @@
 title: Options
 date: 2021-02-22T10:06:07.167Z
 lastmod: 2026-08-04T00:00:00.000Z
-weight: 5
+weight: 6
 draft: false
 keywords:
   - ""
@@ -370,7 +370,9 @@ You can also define a static navigation structure in the `doctor.json` file. Exa
 }
 ```
 
-The menu property can contain a `QuickLaunch` and/or `TopNavigationBar` elment with their corresponding static navigation links under the `items` property. More information about navigation items can be found in the [menu section](../pages/#Menu).
+The menu property can contain a `QuickLaunch` and/or `TopNavigationBar` elment with their corresponding static navigation links under the `items` property. More information about navigation items can be found in the [menu section](../pages/#Menu) and on the [navigation](../navigation) page.
+
+> **Important**: The `menu` property is what enables the navigation. When it is not defined in the `doctor.json` file, the page level `menu` front matter is ignored.
 
 > **Important**: If you specify arguments during command execution, they will be used instead of the values defined in the `doctor.json` file.
 

@@ -1,5 +1,5 @@
 import kleur from "kleur";
-import { Command, Init, Publish, Status, Version } from "@commands";
+import { Command, Init, Publish, Status, Version, Workflow } from "@commands";
 import { CommandArguments } from "@models";
 import {
   CliCommand,
@@ -54,6 +54,8 @@ export class Commands {
         await Publish.start(options);
       } else if (options.task === Command.init) {
         await Init.start(options);
+      } else if (options.task === Command.workflow) {
+        await Workflow.start(options);
       } else if (options.task === Command.version) {
         Version.start();
       } else if (options.task === Command.status) {

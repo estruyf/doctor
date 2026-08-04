@@ -2,7 +2,7 @@
 title: Commands
 date: 2021-02-22T10:06:07.167Z
 lastmod: 2026-08-04T00:00:00.000Z
-weight: 4
+weight: 5
 draft: false
 keywords:
   - ""
@@ -106,6 +106,32 @@ At the end, you get a summary telling you how many pages will be published on th
 > **Info**: The `status` command always reports the real difference with the state. The `forceAll` option is ignored here, as it only influences what `doctor publish` reprocesses.
 
 Pages of the `translation` type, and pages without a `title` in their front matter, are not included in the comparison.
+
+### Workflow
+
+The `doctor workflow` command generates a [GitHub Actions](../devops) workflow which publishes your documentation.
+
+```sh
+doctor workflow
+```
+
+The command creates the `.github/workflows` folder when it does not exist yet, and writes a `doctor.yml` workflow file in it. The workflow runs when you push a change to the `main` branch, and can be started manually via the `workflow_dispatch` trigger.
+
+The generated workflow only passes the arguments which are not known yet. When your `doctor.json` file already contains the `url`, `appId`, and `tenant` values, these are left out of the `doctor publish` command, as `doctor` picks them up from the config file itself.
+
+Add the following secrets to your repository before running the workflow:
+
+| Secret | Description |
+| --- | --- |
+| `CERTIFICATE` | The base64 encoded contents of your certificate (`.pfx`, `.p12`, or `.pem`). |
+| `CERTIFICATE_PASSWORD` | The password of your certificate. |
+| `APP_ID` | The client ID of your Entra ID app registration. Only needed when `appId` is not in your `doctor.json` file. |
+| `TENANT_ID` | The ID of your tenant. Only needed when `tenant` is not in your `doctor.json` file. |
+| `SITE_URL` | The URL of the SharePoint site to publish to. Only needed when `url` is not in your `doctor.json` file. |
+
+> **Info**: An existing `.github/workflows/doctor.yml` file is never overwritten. Delete or rename it when you want to generate a new one.
+
+> **Important**: The generated workflow is a starting point. Change the branch, the path filter, or the arguments of the `doctor publish` command to match the way you work.
 
 ### Setup
 

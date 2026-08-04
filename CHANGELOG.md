@@ -17,6 +17,7 @@
 - New `--commandTimeout` option to configure the timeout of each command execution, which defaults to 2 minutes.
 - Page processing messages now show a `[x/total]` progress counter and the total publishing time is always shown.
 - Fix: navigation and link processing no longer fail on pages without a `title` or `slug` in their front matter.
+- [#58](https://github.com/estruyf/doctor/issues/58): New `doctor workflow` command which generates the `.github/workflows/doctor.yml` GitHub Actions workflow to publish your documentation.
 - [#104](https://github.com/estruyf/doctor/issues/104): New `mermaid` shortcode to render [Mermaid](https://mermaid.js.org/) diagrams on your pages.
 - [#112](https://github.com/estruyf/doctor/issues/112): Progress, log, and error messages now show the file path relative to the current folder instead of only the file name, so pages that share a name (like `index.md`) can be told apart. Failed pages are also listed by path in the publishing summary.
 - [#171](https://github.com/estruyf/doctor/issues/171): **Breaking**: certificate authentication is now the only supported authentication type. The `deviceCode` type is removed, as it signs you in as a user which does not work for all the APIs Doctor calls, and the `password` type is removed as it is no longer supported by the CLI for Microsoft 365. The `--appId`, `--tenant`, and `--certificate` options are now required.
