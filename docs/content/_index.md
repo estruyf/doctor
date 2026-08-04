@@ -8,11 +8,6 @@ images: []
 ---
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@estruyf/doctor" title="Check why it fails">
-    <img src="https://github.com/estruyf/doctor/actions/workflows/release.yml/badge.svg"
-        alt="Does it build and publish?" style="display: inline-block" />
-  </a>
-
   <a href="https://www.npmjs.com/package/@estruyf/doctor">
     <img src="https://img.shields.io/npm/v/@estruyf/doctor/latest?style=flat-square"
       alt="npm @estruyf/doctor@latest" />
@@ -34,4 +29,5 @@ As we understand that it is not the best experience for developers to write docu
 
 Under the hood, it makes use of the [CLI for Microsoft 365](https://pnp.github.io/cli-microsoft365/).
 
-> Today `doctor` is maintained by `Elio Struyf` and `Dmitriy Van der Elst`. Feel free to join the project if you have interest in.
+> Today `doctor` is maintained by `Elio Struyf` and `Dmitriy Van der Elst`. <br />
+> Feel free to join the project if you have interest in.
