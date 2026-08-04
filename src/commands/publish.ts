@@ -29,7 +29,7 @@ export class Publish {
     Logger.debug(
       `Running with the following options: ${Logger.mask(
         JSON.stringify(options),
-        [options.password, options.certificateBase64Encoded].filter((v): v is string => !!v)
+        [options.password, options.certificate].filter((v): v is string => !!v)
       )}`
     );
 

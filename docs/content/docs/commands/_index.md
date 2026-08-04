@@ -44,19 +44,19 @@ Initialize a standard project:
 doctor init
 ```
 
-Initialize a project using certificate authentication:
+Initialize a project with the details of your app registration:
 
 ```sh
-doctor init --auth certificate --certificateBase64Encoded <certificateBase64Encoded> --appId <appId> --tenant <tenant>
+doctor init --url <url> --appId <appId> --tenant <tenant>
 ```
 
 The command creates the following in the current folder:
 
 - The source folder (`./src` by default, or the one you passed with `-f, --folder`).
 - An `index.md` starter page in that folder, when it does not exist yet.
-- A `doctor.json` file, when it does not exist yet, containing the `$schema`, `auth`, `url`, `folder`, `overwriteImages`, `library`, and `webPartTitle` values.
+- A `doctor.json` file, when it does not exist yet, containing the `$schema`, `auth`, `url`, `folder`, `overwriteImages`, `library`, and `webPartTitle` values. The `appId` and `tenant` values are added when you passed them.
 
-> **Important**: `doctor init` does not store the `appId`, `tenant`, and `certificateBase64Encoded` values in the `doctor.json` file, as these are best kept out of source control. Pass them on each command execution, or add them yourself to the `doctor.json` file. Check the [certificate authentication](../certificate-authentication) section for more information.
+> **Important**: `doctor init` never writes your `certificate` or its `password` to the `doctor.json` file, as these are secrets which are best kept out of source control. Pass them on each command execution, ideally from a secret in your CI/CD pipeline. Check the [certificate authentication](../getting-started/certificate-authentication) section for more information.
 
 > **Info**: Existing files are never overwritten, so it is safe to run `doctor init` again in an existing project.
 

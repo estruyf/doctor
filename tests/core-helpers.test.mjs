@@ -73,7 +73,19 @@ test("OptionsHelper.parseArguments maps raw CLI arguments", () => {
   assert.equal(parsed.startFolder, "./docs");
   assert.equal(parsed.forceAll, true);
   assert.equal(parsed.applyTheme, true);
-  assert.equal(parsed.auth, "deviceCode");
+  assert.equal(parsed.auth, "certificate");
+});
+
+test("OptionsHelper.parseArguments always resolves to certificate authentication", () => {
+  const parsed = OptionsHelper.parseArguments({ auth: "deviceCode" }, [
+    "node",
+    "doctor",
+    "publish",
+    "--auth",
+    "password",
+  ]);
+
+  assert.equal(parsed.auth, "certificate");
 });
 
 test("OptionsHelper.parseArguments takes the options from the doctor.json config", () => {

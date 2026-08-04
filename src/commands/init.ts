@@ -47,12 +47,14 @@ export class Init {
         webPartTitle: options.webPartTitle,
       };
 
-      if (options.username) {
-        config.username = options.username;
+      // The app ID and tenant are identifiers, not secrets, so they are safe to
+      // store. The certificate and its password are deliberately left out.
+      if (options.appId) {
+        config.appId = options.appId;
       }
 
-      if (options.password) {
-        config.password = options.password;
+      if (options.tenant) {
+        config.tenant = options.tenant;
       }
 
       const jsonContents = JSON.stringify(config, null, 2);

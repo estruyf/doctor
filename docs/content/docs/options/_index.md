@@ -2,7 +2,7 @@
 title: Options
 date: 2021-02-22T10:06:07.167Z
 lastmod: 2026-08-04T00:00:00.000Z
-weight: 4
+weight: 5
 draft: false
 keywords:
   - ""
@@ -10,29 +10,49 @@ keywords:
 
 Options are specified via command arguments, or within a `doctor.json` file (automatically gets created on initialization `doctor init`).
 
-## For all commands
+## Authentication
+
+`doctor` authenticates with the certificate of your own Entra app registration. The `--appId`, `--tenant`, and `--certificate` options are **required** for every command which talks to SharePoint, and can be defined in the `doctor.json` file so you do not need to repeat them.
+
+> **Info**: Check out the [Certificate Authentication](../getting-started/certificate-authentication) section for the full setup of the app registration and the certificate.
 
 `-a, --auth <auth>`
-: Specify the authentication type to use. Values can be `deviceCode` (default), `certificate`, or `password`.
+: The authentication type to use. `certificate` is the only supported value, and it is the default.
 
-> **Info**: Check out the [Certificate Authentication](../certificate-authentication) section for more information about using the `certificate` approach.
-
-`--username <username>`
-: The username to use when authenticating with `--auth password`. When it is not provided, `doctor` prompts for it.
-
-> **Important**: Username/password authentication does not work for accounts with multi-factor authentication enabled. Use `deviceCode` or `certificate` in that case.
-
-`--password <password>`
-: The password to use when authenticating with `--auth password`, or the password of the PFX certificate when using `--auth certificate`. When it is not provided for the `password` authentication type, `doctor` prompts for it.
-
-`--tenant <tenant>`
-: The tenant ID to use when authenticating with `--auth certificate`.
+> **Important**: Since v2.0.0 the `deviceCode` and `password` authentication types are removed. Check the [authentication changes](#authentication-changes-in-v200) section below.
 
 `--appId <appId>`
-: The ID of the Azure AD application to use when authenticating with `--auth certificate`.
+: The ID of the Entra app registration to authenticate with. **Required**.
 
-`--certificateBase64Encoded <certificateBase64Encoded>`
-: The base64 encoded PFX certificate to use when authenticating with `--auth certificate`.
+`--tenant <tenant>`
+: The ID of the tenant to authenticate to. **Required**.
+
+`--certificate <certificate>`
+: The certificate to authenticate with. **Required**. This can be the path to your certificate file (`.pfx`, `.p12`, or `.pem`), relative to the folder from where you run `doctor`, or the base64 encoded contents of that file.
+
+```bash
+# Path to the certificate file
+doctor publish --certificate ./cert.pfx --appId <appId> --tenant <tenant> --url <url>
+
+# Base64 encoded certificate
+doctor publish --certificate <base64String> --appId <appId> --tenant <tenant> --url <url>
+```
+
+> **Info**: The base64 encoded value is the easiest option to use in a CI/CD pipeline, as you can store it as a secret. Use the `--password` option when your certificate is password protected.
+
+`--password <password>`
+: The password of your certificate file, when you protected it with one.
+
+### Authentication changes in v2.0.0
+
+Before v2.0.0, `doctor` could also authenticate with the `deviceCode` and `password` authentication types. Both are removed:
+
+- The `password` type is no longer supported by the CLI for Microsoft 365.
+- The `deviceCode` type signs you in as a user, which does not work for all the APIs `doctor` calls during a publishing run.
+
+Certificate authentication uses application permissions, which work for every API `doctor` needs, and it is the only type which works unattended in a CI/CD pipeline. If you used one of the removed types, follow the [certificate authentication](../getting-started/certificate-authentication) guide to set up an app registration.
+
+## For all commands
 
 `-u, --url <url>`
 : The URL of the site collection to use.
@@ -207,6 +227,9 @@ The options which got introduced in v2.0.0 can be defined in the `doctor.json` f
 {
   "$schema": "https://raw.githubusercontent.com/estruyf/doctor/dev/schema/2.0.0.json",
   "url": "https://<tenant>.sharepoint.com/sites/<documentation>",
+  "appId": "<appId>",
+  "tenant": "<tenant>",
+  "certificate": "./cert.pfx",
   "folder": "./src",
   "library": "Shared Documents",
   "commandTimeout": 120000,

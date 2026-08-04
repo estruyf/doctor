@@ -9,6 +9,8 @@
 - Publish state is stored on the site (`Shared Documents/.doctor/state.json` by default) and saved after each page, so a failed run can resume where it left off.
 - **Breaking**: unchanged pages are skipped by default. Use `--forceAll` to reprocess all pages like in previous versions.
 - **Breaking**: the `siteDesign.theme` is no longer applied automatically. Use the new `--applyTheme` flag to apply it.
+- **Breaking**: the `certificateBase64Encoded` option is renamed to `certificate`, which accepts the path to your certificate file (`.pfx`, `.p12`, or `.pem`) as well as its base64 encoded contents.
+- **Breaking**: certificate authentication is now the only supported authentication type. The `deviceCode` type is removed, as it signs you in as a user which does not work for all the APIs Doctor calls, and the `password` type is removed as it is no longer supported by the CLI for Microsoft 365. The `--appId`, `--tenant`, and `--certificate` options are now required.
 - New pre-process validation which checks the markdown files for duplicate slugs, missing titles, broken localization references, and front matter parse errors before any SharePoint call is made. Can be skipped with `--skipPrecheck`.
 - New `--verbose` flag for extended logging output, and `--timingDetails` to show per-page timing statistics after a publishing run.
 - New `--disableStatePersistence` and `--stateFile` options to disable or relocate the state file.

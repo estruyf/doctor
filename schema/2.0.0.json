@@ -8,7 +8,10 @@
   "examples": [
     {
       "url": "https://tenant.sharepoint.com/sites/documentation",
-      "auth": "deviceCode",
+      "auth": "certificate",
+      "appId": "00000000-0000-0000-0000-000000000000",
+      "tenant": "00000000-0000-0000-0000-000000000000",
+      "certificate": "./cert.pfx",
       "overwriteImages": false,
       "folder": "./src",
       "library": "Shared Documents",
@@ -61,44 +64,38 @@
       "$id": "#/properties/auth",
       "type": "string",
       "title": "auth",
-      "description": "Specify the authentication type to use. Values can be `deviceCode` (default), `certificate`, or `password`.",
-      "default": "deviceCode",
-      "enum": ["deviceCode", "certificate", "password"]
-    },
-    "username": {
-      "$id": "#/properties/username",
-      "type": "string",
-      "title": "username",
-      "description": "The username to use when using `password` authentication.",
-      "default": ""
+      "description": "The authentication type to use. `certificate` is the only supported value.",
+      "default": "certificate",
+      "enum": ["certificate"]
     },
     "password": {
       "$id": "#/properties/password",
       "type": "string",
       "title": "password",
-      "description": "The password to use when using `password` authentication. When using `certificate` authentication, you can optionally pass the password for the PFX certificate file.",
+      "description": "The password of your certificate file, when it is protected with one.",
       "default": ""
     },
     "appId": {
       "$id": "#/properties/appId",
       "type": "string",
       "title": "appId",
-      "description": "The `appId` to use for the certificate authentication.",
+      "description": "The ID of the Entra app registration to authenticate with. Required, unless you pass it with the `--appId` option.",
       "default": ""
     },
     "tenant": {
       "$id": "#/properties/tenant",
       "type": "string",
       "title": "tenant",
-      "description": "The `tenant` ID to use for the certificate authentication.",
+      "description": "The ID of the tenant to authenticate to. Required, unless you pass it with the `--tenant` option.",
       "default": ""
     },
-    "certificateBase64Encoded": {
-      "$id": "#/properties/certificateBase64Encoded",
+    "certificate": {
+      "$id": "#/properties/certificate",
       "type": "string",
-      "title": "certificateBase64Encoded",
-      "description": "The `certificateBase64Encoded` base64 string to use for the certificate authentication.",
-      "default": ""
+      "title": "certificate",
+      "description": "The certificate to authenticate with. This can be the path to your certificate file (`.pfx`, `.p12`, or `.pem`), or its base64 encoded contents. Required, unless you pass it with the `--certificate` option.",
+      "default": "",
+      "examples": ["./cert.pfx", "MIIJqQIBAzCCCW8GCSqGSIb..."]
     },
     "commandName": {
       "$id": "#/properties/commandName",

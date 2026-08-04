@@ -2,7 +2,7 @@
 title: Shortcodes
 date: 2021-02-22T10:06:07.167Z
 lastmod: 2021-02-22T10:06:07.167Z
-weight: 5
+weight: 6
 draft: false
 keywords:
   - ""

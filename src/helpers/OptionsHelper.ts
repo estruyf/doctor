@@ -27,11 +27,10 @@ export class OptionsHelper {
   public static getArgs() {
     return {
       "--auth": String,
-      "--username": String,
       "--password": String,
       "--tenant": String,
       "--appId": String,
-      "--certificateBase64Encoded": String,
+      "--certificate": String,
       "--commandName": String,
       "--folder": String,
       "--url": String,
@@ -95,19 +94,15 @@ export class OptionsHelper {
           ? "help"
           : args._[0]
         : null,
-      auth: (args["--auth"] as any) || options["auth"] || "deviceCode",
+      auth: "certificate",
       overwriteImages:
         (args["--overwriteImages"] as any) ||
         options["overwriteImages"] ||
         false,
-      username: args["--username"] || options["username"] || null,
       password: args["--password"] || options["password"] || null,
       tenant: args["--tenant"] || options["tenant"] || null,
       appId: args["--appId"] || options["appId"] || null,
-      certificateBase64Encoded:
-        args["--certificateBase64Encoded"] ||
-        options["certificateBase64Encoded"] ||
-        null,
+      certificate: args["--certificate"] || options["certificate"] || null,
       commandName:
         args["--commandName"] || options["commandName"] || "m365",
       commandTimeout:
@@ -221,22 +216,6 @@ export class OptionsHelper {
       });
     }
 
-    if (options.auth && options.auth === "password" && !options.username) {
-      questions.push({
-        type: "input",
-        name: "username",
-        message: "What is the username?",
-      });
-    }
-
-    if (options.auth && options.auth === "password" && !options.password) {
-      questions.push({
-        type: "password",
-        name: "password",
-        message: "What is the password?",
-      });
-    }
-
     if (options.cleanEnd && !options.confirm) {
       questions.push({
         type: "confirm",
@@ -262,8 +241,6 @@ export class OptionsHelper {
       return {
         ...options,
         task: options.task || answers.task,
-        username: options.username || answers.username,
-        password: options.password || answers.password,
         startFolder: join(
           process.cwd(),
           options.startFolder || answers.startFolder

@@ -18,12 +18,18 @@ export interface RuntimeOptions {
 }
 
 export interface AuthOptions {
-  auth: "deviceCode" | "password" | "certificate";
-  username?: string;
+  auth: "certificate";
+  /**
+   * The password of the certificate file, when it is protected with one.
+   */
   password?: string;
   tenant?: string;
   appId?: string;
-  certificateBase64Encoded?: string;
+  /**
+   * Path to the certificate file (`.pfx`, `.p12`, or `.pem`), or its base64
+   * encoded contents.
+   */
+  certificate?: string;
 }
 
 export interface PublishOptions {
