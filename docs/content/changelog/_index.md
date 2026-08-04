@@ -11,6 +11,17 @@ type: docs-main
 
 - New start for Doctor with Node.js >22 support.
 - Full refactoring to support the latest version of the CLI for Microsoft 365.
+- New `doctor status` command to see which pages are new, modified, deleted, or unchanged before publishing.
+- Publish state is stored on the site (`Shared Documents/.doctor/state.json` by default) and saved after each page, so a failed run can resume where it left off.
+- **Breaking**: unchanged pages are skipped by default. Use `--forceAll` to reprocess all pages like in previous versions.
+- **Breaking**: the `siteDesign.theme` is no longer applied automatically. Use the new `--applyTheme` flag to apply it.
+- New pre-process validation which checks the markdown files for duplicate slugs, missing titles, broken localization references, and front matter parse errors before any SharePoint call is made. Can be skipped with `--skipPrecheck`.
+- New `--verbose` flag for extended logging output, and `--timingDetails` to show per-page timing statistics after a publishing run.
+- New `--disableStatePersistence` and `--stateFile` options to disable or relocate the state file.
+- New `--skipExisting` alias for the `--skipExistingPages` option.
+- Page processing messages now show a `[x/total]` progress counter, the total publishing time is always shown, and link processing errors now include the full file path.
+- Fix: the site logo is now resolved relative to the configured folder instead of the current working directory.
+- Fix: navigation and link processing no longer fail on pages without a `title` or `slug` in their front matter.
 
 ## [1.12.1]
 

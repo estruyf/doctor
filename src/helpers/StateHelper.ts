@@ -52,10 +52,13 @@ const normalizeStateTarget = (
   assetLibrary: string,
   stateFile: string,
 ): { folderPath: string; fileName: string; filePath: string } => {
+  // The state file path is always relative to the asset library. Leading slashes
+  // and relative segments are stripped, so the state can never end up outside of it.
   const normalizedStateFile = (stateFile || DEFAULT_STATE_FILE)
     .replace(/\\/g, "/")
-    .replace(/^\/+/, "")
-    .replace(/\/+$/, "");
+    .split("/")
+    .filter((segment) => segment && segment !== "." && segment !== "..")
+    .join("/");
   const fileName = basename(normalizedStateFile) || "state.json";
   const folderPart = dirname(normalizedStateFile).replace(/\\/g, "/");
   const folderPath =
@@ -74,6 +77,7 @@ export class StateHelper {
   private static state: DoctorState | null = null;
   private static loaded = false;
   private static dirty = false;
+  private static ensuredFolders: string[] = [];
 
   /** Compute a SHA-256 hex digest of the given string content. */
   public static hashContent(content: string): string {
@@ -198,37 +202,9 @@ export class StateHelper {
       await writeFileAsync(tmpPath, json, { encoding: "utf-8" });
 
       // Ensure the target state folder exists
-      const folderUrl = FileHelpers.getRelUrl(webUrl, target.folderPath);
-      const normalizedAssetLibrary = assetLibrary.replace(/^\/+|\/+$/g, "");
-      const normalizedTargetFolder = target.folderPath.replace(/^\/+|\/+$/g, "");
-      const folderPart = normalizedTargetFolder.startsWith(
-        `${normalizedAssetLibrary}/`,
-      )
-        ? normalizedTargetFolder.slice(normalizedAssetLibrary.length + 1)
-        : normalizedTargetFolder === normalizedAssetLibrary
-          ? ""
-          : normalizedTargetFolder;
-      const nestedFolders = folderPart.split("/").filter(Boolean);
-      let currentPath = assetLibrary;
+      await StateHelper.ensureFolder(webUrl, assetLibrary, target.folderPath);
 
-      for (const folderName of nestedFolders) {
-        try {
-          await executeWithRetry(
-            "spo folder add",
-            {
-              webUrl,
-              parentFolderUrl: `/${currentPath}`,
-              name: folderName,
-            },
-            CliCommand.getRetry()
-          );
-        } catch (error) {
-          if (!isAlreadyExistsError(error)) {
-            throw error;
-          }
-        }
-        currentPath = `${currentPath}/${folderName}`;
-      }
+      const folderUrl = FileHelpers.getRelUrl(webUrl, target.folderPath);
 
       await executeWithRetry(
         "spo file add",
@@ -252,10 +228,58 @@ export class StateHelper {
     }
   }
 
+  /**
+   * Create the folder structure for the state file when it doesn't exist yet.
+   * The state gets saved after every page, so the folders are only checked once per run.
+   */
+  private static async ensureFolder(
+    webUrl: string,
+    assetLibrary: string,
+    folderPath: string,
+  ): Promise<void> {
+    if (StateHelper.ensuredFolders.indexOf(folderPath) !== -1) {
+      return;
+    }
+
+    const normalizedAssetLibrary = assetLibrary.replace(/^\/+|\/+$/g, "");
+    const normalizedTargetFolder = folderPath.replace(/^\/+|\/+$/g, "");
+    const folderPart = normalizedTargetFolder.startsWith(
+      `${normalizedAssetLibrary}/`,
+    )
+      ? normalizedTargetFolder.slice(normalizedAssetLibrary.length + 1)
+      : normalizedTargetFolder === normalizedAssetLibrary
+        ? ""
+        : normalizedTargetFolder;
+    const nestedFolders = folderPart.split("/").filter(Boolean);
+    let currentPath = assetLibrary;
+
+    for (const folderName of nestedFolders) {
+      try {
+        await executeWithRetry(
+          "spo folder add",
+          {
+            webUrl,
+            parentFolderUrl: `/${currentPath}`,
+            name: folderName,
+          },
+          CliCommand.getRetry()
+        );
+      } catch (error) {
+        if (!isAlreadyExistsError(error)) {
+          throw error;
+        }
+      }
+      currentPath = `${currentPath}/${folderName}`;
+    }
+
+    StateHelper.ensuredFolders.push(folderPath);
+  }
+
   /** Reset singleton state (useful for testing or a fresh publish). */
   public static reset(): void {
     StateHelper.state = null;
     StateHelper.loaded = false;
     StateHelper.dirty = false;
+    StateHelper.ensuredFolders = [];
   }
 }

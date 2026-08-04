@@ -1,7 +1,7 @@
 ---
 title: Commands
 date: 2021-02-22T10:06:07.167Z
-lastmod: 2021-03-04T09:21:32.386Z
+lastmod: 2026-08-04T00:00:00.000Z
 weight: 4
 draft: false
 keywords:
@@ -57,6 +57,31 @@ If you want to manually pass your arguments, you can do this as follows:
 ```sh
 doctor publish --url https://<tenant>.sharepoint.com/sites/<documentation>
 ```
+
+### Status
+
+The `doctor status` command is a read-only command which compares your local markdown files against the publish state stored in SharePoint. It tells you what the next `doctor publish` run will do, without making any changes to your site.
+
+```sh
+doctor status
+```
+
+> **Important**: The command requires the `--url` option (either passed as an argument, or defined in the `doctor.json` file), as it needs to download the state file from your site.
+
+The output groups your pages in the following categories:
+
+- **New**: files which are not yet tracked in the state, and will be created.
+- **Modified**: files whose content changed since the last publish, and will be updated.
+- **Deleted**: pages which are tracked in the state, but no longer exist locally.
+- **Unchanged**: files which are up to date. These are only listed when you pass the `--verbose` flag.
+
+At the end, you get a summary telling you how many pages will be published on the next run:
+
+```
+ ⚡ 4 pages will be published on next run
+```
+
+> **Info**: When state persistence is disabled with `--disableStatePersistence`, no state gets loaded and all pages are reported as **New**.
 
 ### Setup
 

@@ -71,3 +71,38 @@ test("OptionsHelper.parseArguments maps raw CLI arguments", () => {
   assert.equal(parsed.applyTheme, true);
   assert.equal(parsed.auth, "deviceCode");
 });
+
+test("OptionsHelper.parseArguments takes the options from the doctor.json config", () => {
+  const config = {
+    url: "https://contoso.sharepoint.com/sites/docs",
+    folder: "./docs",
+    library: "Documents",
+    stateFile: "publish/state.json",
+    disableStatePersistence: true,
+    forceAll: true,
+    skipPrecheck: true,
+    applyTheme: true,
+    verbose: true,
+    timingDetails: true,
+  };
+
+  const parsed = OptionsHelper.parseArguments(config, ["node", "doctor", "publish"]);
+
+  assert.equal(parsed.webUrl, config.url);
+  assert.equal(parsed.assetLibrary, "Documents");
+  assert.equal(parsed.stateFile, "publish/state.json");
+  assert.equal(parsed.disableStatePersistence, true);
+  assert.equal(parsed.forceAll, true);
+  assert.equal(parsed.skipPrecheck, true);
+  assert.equal(parsed.applyTheme, true);
+  assert.equal(parsed.verbose, true);
+  assert.equal(parsed.timingDetails, true);
+});
+
+test("OptionsHelper.parseArguments falls back to the default state file", () => {
+  const parsed = OptionsHelper.parseArguments({}, ["node", "doctor", "publish"]);
+
+  assert.equal(parsed.stateFile, ".doctor/state.json");
+  assert.equal(parsed.disableStatePersistence, false);
+  assert.equal(parsed.applyTheme, false);
+});

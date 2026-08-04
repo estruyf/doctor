@@ -1,7 +1,7 @@
 ---
 title: Options
 date: 2021-02-22T10:06:07.167Z
-lastmod: 2021-03-10T14:24:35.121Z
+lastmod: 2026-08-04T00:00:00.000Z
 weight: 4
 draft: false
 keywords:
@@ -37,6 +37,9 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 
 > **Important**: This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
 
+`--verbose`
+: Provides extended logging output. When enabled, the task list is rendered with the verbose renderer, so every task and its output stays visible instead of being collapsed. For the `doctor status` command, this flag also lists the unchanged files.
+
 `--continueOnError`
 : Continue when an error occurs during the publishing process.
 
@@ -66,7 +69,21 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 : Override the command used to execute `CLI for Microsoft 365`. By default, `doctor` executes commands through the bundled `@pnp/cli-microsoft365` API directly. Use this option only when you explicitly want to run a different command binary.
 
 `--skipExistingPages`
-: Will not overwrite pages if they already existed on the site.
+: Will not overwrite pages if they already existed on the site. The shorter `--skipExisting` alias can be used as well.
+
+`--forceAll`
+: Reprocess all pages, ignoring the saved publish state. By default `doctor` only publishes pages which are new or whose content changed since the last run. Check the [change detection](#change-detection--publish-state) section for more information.
+
+`--skipPrecheck`
+: Skips the pre-process validation which runs before any SharePoint calls are made. Check the [pre-process checks](#pre-process-checks) section for more information.
+
+`--timingDetails`
+: Shows additional per-page timing statistics (average, fastest and slowest page) after the publishing run. The total publishing time is always shown, also without this flag.
+
+`--applyTheme`
+: Applies the theme defined in the `siteDesign.theme` property of your `doctor.json` file.
+
+> **Important**: Since v2.0.0 the theme is no longer applied automatically. SharePoint returns an error when the theme name is not known on the tenant, which would fail the whole publishing run. When you defined a theme but did not pass this flag, `doctor` logs that it skipped applying it. All other `siteDesign` settings (logo and chrome) are still applied without this flag.
 
 `--retryWhenFailed`
 : Specifying this flag will retry the command if it failed. In some cases it can be that SharePoint failes to process your request, and this allows you to try again without running the whole flow from scratch.
@@ -100,6 +117,50 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 
 > **Important**: You can override this by specifying the `comments` option on page level.
 
+`--disableStatePersistence`
+: Disables loading and saving of the publish state file. When you use this flag, `doctor` cannot detect changes, so all pages are processed on every run.
+
+`--stateFile <stateFile>`
+: The path of the state file within the library defined by `--library`. Default value is: `.doctor/state.json`, which results in `Shared Documents/.doctor/state.json` when the default library is used.
+
+### Change detection / publish state
+
+`doctor` keeps track of what it published in a state file which is stored on your SharePoint site. For every page it stores a hash of the source markdown file, together with the timestamp of when it got published.
+
+On the next run, `doctor` compares the hash of each local file with the one in the state file:
+
+- Pages which are **new** or **modified** get published.
+- Pages which are **unchanged** get skipped.
+
+> **Important**: This is a behavior change since v2.0.0. Previously all pages were processed on every run. If you want the old behavior, use the `--forceAll` flag.
+
+The state is saved after each page, so when a publishing run fails halfway, the already published pages do not need to be processed again on the next run.
+
+The following options influence this behavior:
+
+- `--forceAll`: reprocess everything, ignoring the state.
+- `--disableStatePersistence`: do not load or save the state at all.
+- `--stateFile`: store the state on another location.
+- `--library`: the library in which the state file is stored.
+
+Use the [`doctor status`](../commands/#status) command to see which pages will be published on the next run.
+
+> **Info**: The state gets skipped when you use the `--skipPages` flag, as no pages are processed in that case.
+
+### Pre-process checks
+
+Before any call to SharePoint is made, `doctor` validates your markdown files and stops the publishing run when it finds issues. This prevents a run from failing halfway through. The following checks are performed:
+
+- Files which cannot be read.
+- Front matter which cannot be parsed.
+- Pages without a `title` in their front matter.
+- Duplicate slugs, as these pages would overwrite each other on the site.
+- Localization references in the front matter pointing to a file which does not exist on disk.
+
+When one or more issues are found, the run stops and all issues are listed at once (up to a maximum of 20, followed by the number of remaining issues). Pages of the `translation` type are skipped during this validation.
+
+Use the `--skipPrecheck` flag when you want to skip this validation.
+
 ### `doctor.json`
 
 You can provide the same flags and values like in the parameters. Parameters can override what is defined in the `doctor.json`. Be sure to use the whole argument names, and not the shortcodes.
@@ -111,6 +172,26 @@ You can provide the same flags and values like in the parameters. Parameters can
   ...
 }
 ```
+
+The options which got introduced in v2.0.0 can be defined in the `doctor.json` file as well, so you do not need to repeat them on every run:
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/estruyf/doctor/dev/schema/2.0.0.json",
+  "url": "https://<tenant>.sharepoint.com/sites/<documentation>",
+  "folder": "./src",
+  "library": "Shared Documents",
+  "stateFile": ".doctor/state.json",
+  "disableStatePersistence": false,
+  "forceAll": false,
+  "skipPrecheck": false,
+  "applyTheme": false,
+  "verbose": false,
+  "timingDetails": false
+}
+```
+
+> **Important**: The flags which are marked with *"This flag can only be added to the command execution"* are the exception. These are ignored when you define them in the `doctor.json` file.
 
 #### Multilingual
 

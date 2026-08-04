@@ -36,22 +36,26 @@ export class Init {
     }
 
     if (!(await existsAsync(configFile))) {
-      const jsonContents = JSON.stringify(
-        {
-          $schema:
-            "https://raw.githubusercontent.com/estruyf/doctor/dev/schema/1.2.0.json",
-          auth: options.auth,
-          username: options.username,
-          password: options.password,
-          url: options.webUrl,
-          folder: options.startFolder.replace(process.cwd(), "."),
-          overwriteImages: options.overwriteImages,
-          library: options.assetLibrary,
-          webPartTitle: options.webPartTitle,
-        },
-        null,
-        2
-      );
+      const config: Record<string, unknown> = {
+        $schema:
+          "https://raw.githubusercontent.com/estruyf/doctor/dev/schema/2.0.0.json",
+        auth: options.auth,
+        url: options.webUrl,
+        folder: options.startFolder.replace(process.cwd(), "."),
+        overwriteImages: options.overwriteImages,
+        library: options.assetLibrary,
+        webPartTitle: options.webPartTitle,
+      };
+
+      if (options.username) {
+        config.username = options.username;
+      }
+
+      if (options.password) {
+        config.password = options.password;
+      }
+
+      const jsonContents = JSON.stringify(config, null, 2);
       await writeFileAsync(configFile, jsonContents, { encoding: "utf-8" });
     }
   }

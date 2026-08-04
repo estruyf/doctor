@@ -98,12 +98,11 @@ export class SiteHelpers {
             );
           }
         }
-        if (siteDesign.theme && !applyTheme) {
-          Logger.debug(
-            `Skipping site theme "${siteDesign.theme}" because --applyTheme is not enabled.`,
-          );
-        }
       }
+    } else if (siteDesign.theme) {
+      Logger.debug(
+        `Skipping site theme "${siteDesign.theme}" because the "applyTheme" option is not enabled.`
+      );
     }
 
     if (siteDesign.chrome) {
