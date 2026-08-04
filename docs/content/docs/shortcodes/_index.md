@@ -18,6 +18,7 @@ At the moment, `doctor` has the following built-in shortcodes:
 
 - [Callout](./callout/)
 - [Icon](./icon/)
+- [Mermaid](./mermaid/)
 - [Table of contents](./toc/)
 
 ## Provide your own shortcodes

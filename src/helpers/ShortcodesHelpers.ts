@@ -5,6 +5,7 @@ import * as cheerio from "cheerio";
 import {
   IconRenderer,
   CalloutRenderer,
+  MermaidRenderer,
   TableOfContentsRenderer,
 } from "../shortcodes/index.js";
 import { Shortcode, TocPosition } from "@models";
@@ -14,6 +15,7 @@ import { existsAsync } from "@utils";
 const defaultShortcodes: Shortcode = {
   icon: IconRenderer,
   callout: CalloutRenderer,
+  mermaid: MermaidRenderer,
   toc: TableOfContentsRenderer,
 };
 

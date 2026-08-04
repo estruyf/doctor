@@ -40,7 +40,7 @@
         "title": "**Breaking**: the `certificateBase64Encoded` option is renamed to `certificate`, which accepts the path to your certificate file (`.pfx`, `.p12`, or `.pem`) as well as its base64 encoded contents."
       },
       {
-        "id": null,
+        "id": 171,
         "title": "**Breaking**: certificate authentication is now the only supported authentication type. The `deviceCode` type is removed, as it signs you in as a user which does not work for all the APIs Doctor calls, and the `password` type is removed as it is no longer supported by the CLI for Microsoft 365. The `--appId`, `--tenant`, and `--certificate` options are now required."
       },
       {
@@ -68,7 +68,11 @@
         "title": "Page processing messages now show a `[x/total]` progress counter, the total publishing time is always shown, and link processing errors now include the full file path."
       },
       {
-        "id": null,
+        "id": 104,
+        "title": "New `mermaid` shortcode to render [Mermaid](https://mermaid.js.org/) diagrams on your pages."
+      },
+      {
+        "id": 192,
         "title": "Fix: the site logo is now resolved relative to the configured folder instead of the current working directory."
       },
       {

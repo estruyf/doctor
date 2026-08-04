@@ -25,6 +25,7 @@ type: docs-main
 - Page processing messages now show a `[x/total]` progress counter, the total publishing time is always shown, and link processing errors now include the full file path.
 - Fix: the site logo is now resolved relative to the configured folder instead of the current working directory.
 - Fix: navigation and link processing no longer fail on pages without a `title` or `slug` in their front matter.
+- [#104](https://github.com/estruyf/doctor/issues/104): New `mermaid` shortcode to render [Mermaid](https://mermaid.js.org/) diagrams on your pages.
 
 ## [1.12.1]
 
