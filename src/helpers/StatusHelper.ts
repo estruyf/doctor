@@ -11,6 +11,7 @@ export class StatusHelper {
     public imagesSkipped = 0,
     public retries = 0,
     public pageDurations: { filePath: string; durationMs: number }[] = [],
+    public failedFiles: string[] = [],
   ) {}
 
   public static getInstance() {
@@ -55,8 +56,14 @@ export class StatusHelper {
     StatusHelper.getInstance().pagesSkipped += count;
   }
 
-  public static addError() {
+  public static addError(filePath?: string) {
     ++StatusHelper.getInstance().errors;
+
+    // Keep track of which files failed, so the summary can list them when
+    // running with --continueOnError.
+    if (filePath) {
+      StatusHelper.getInstance().failedFiles.push(filePath);
+    }
   }
 
   /** @deprecated Use addPageCreated / addPageUpdated instead. */
@@ -97,6 +104,10 @@ export class StatusHelper {
 
   public static getErrors() {
     return StatusHelper.getInstance().errors;
+  }
+
+  public static getFailedFiles() {
+    return StatusHelper.getInstance().failedFiles;
   }
 
   public static addPageDuration(filePath: string, durationMs: number) {

@@ -15,7 +15,7 @@ import {
   StatusHelper,
 } from "@helpers";
 import { CommandArguments, PublishContext, PublishOutput } from "@models";
-import { existsAsync } from "@utils";
+import { existsAsync, relativePath } from "@utils";
 
 export class Publish {
   /**
@@ -190,18 +190,25 @@ export class Publish {
         console.info(kleur.white(` Avg/page: ${this.formatDuration(timingStats.averageMs)}`));
         console.info(
           kleur.white(
-            ` Fastest: ${this.formatDuration(timingStats.fastest.durationMs)} (${timingStats.fastest.filePath})`,
+            ` Fastest: ${this.formatDuration(timingStats.fastest.durationMs)} (${relativePath(timingStats.fastest.filePath)})`,
           ),
         );
         console.info(
           kleur.white(
-            ` Slowest: ${this.formatDuration(timingStats.slowest.durationMs)} (${timingStats.slowest.filePath})`,
+            ` Slowest: ${this.formatDuration(timingStats.slowest.durationMs)} (${relativePath(timingStats.slowest.filePath)})`,
           ),
         );
       }
     }
     if (errors > 0) {
       console.info(kleur.bold().red(` Errors:  ${errors}`));
+
+      // List the failing files, otherwise a --continueOnError run only reports
+      // a count and gives no way to find the offending pages.
+      const failedFiles = StatusHelper.getFailedFiles();
+      for (const failedFile of failedFiles) {
+        console.info(kleur.red(`   - ${relativePath(failedFile)}`));
+      }
     }
   }
 

@@ -65,7 +65,7 @@
       },
       {
         "id": null,
-        "title": "Page processing messages now show a `[x/total]` progress counter, the total publishing time is always shown, and link processing errors now include the full file path."
+        "title": "Page processing messages now show a `[x/total]` progress counter and the total publishing time is always shown."
       },
       {
         "id": 104,
@@ -78,6 +78,10 @@
       {
         "id": null,
         "title": "Fix: navigation and link processing no longer fail on pages without a `title` or `slug` in their front matter."
+      },
+      {
+        "id": 112,
+        "title": "Progress, log, and error messages now show the file path relative to the current folder instead of only the file name, so pages that share a name (like `index.md`) can be told apart. Failed pages are also listed by path in the publishing summary."
       }
     ]
   },

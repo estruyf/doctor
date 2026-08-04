@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { join } from "node:path";
 
 import { FrontMatterHelper } from "../dist/helpers/FrontMatterHelper.js";
 import { NavigationHelper } from "../dist/helpers/NavigationHelper.js";
@@ -8,6 +9,7 @@ import {
   CliCommand,
   DEFAULT_COMMAND_TIMEOUT,
 } from "../dist/helpers/CliCommand.js";
+import { relativePath } from "../dist/utils/relativePath.js";
 
 test("FrontMatterHelper.getSlug generates slug from title and folder path", () => {
   const slug = FrontMatterHelper.getSlug(
@@ -173,4 +175,20 @@ test("CliCommand.reset restores the default command timeout", () => {
   CliCommand.reset();
 
   assert.equal(CliCommand.getTimeout(), DEFAULT_COMMAND_TIMEOUT);
+});
+
+test("relativePath makes paths relative to the working directory", () => {
+  const filePath = join(process.cwd(), "src", "docs", "guides", "index.md");
+
+  assert.equal(relativePath(filePath), "src/docs/guides/index.md");
+});
+
+test("relativePath keeps paths outside the working directory absolute", () => {
+  const filePath = join(process.cwd(), "..", "elsewhere", "index.md");
+
+  assert.equal(relativePath(filePath), filePath);
+});
+
+test("relativePath returns falsy values untouched", () => {
+  assert.equal(relativePath(""), "");
 });

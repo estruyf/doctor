@@ -23,7 +23,13 @@ import {
   StatusHelper,
 } from "@helpers";
 import { basename, join, dirname } from "path";
-import { existsAsync, mkdirAsync, readFileAsync, writeFileAsync } from "@utils";
+import {
+  existsAsync,
+  mkdirAsync,
+  readFileAsync,
+  relativePath,
+  writeFileAsync,
+} from "@utils";
 
 const getErrorMessage = (error: unknown): string => {
   if (typeof error === "string") {
@@ -77,16 +83,19 @@ export class DoctorTranspiler {
 
     for (let i = 0; i < filesToProcess.length; i++) {
       const file = filesToProcess[i];
+      const relPath = relativePath(file);
       const pageStart = Date.now();
-      task.output = `[${i + 1}/${total}] Processing ${file}`;
+      task.output = `[${i + 1}/${total}] Processing ${relPath}`;
 
-      Logger.debug(`Processing file: ${file}`);
+      Logger.debug(`Processing file: ${relPath}`);
 
       try {
         await this.processFile(file, task, options, output, null, i + 1, total);
       } catch (e) {
-        StatusHelper.addError();
-        const errorMessage = getErrorMessage(e);
+        StatusHelper.addError(file);
+        // Prefix with the file so the failure is traceable when many pages
+        // share the same file name (e.g. index.md in every folder).
+        const errorMessage = `${relPath}: ${getErrorMessage(e)}`;
         Logger.debug(errorMessage);
 
         if (!options.continueOnError) {
@@ -177,7 +186,7 @@ export class DoctorTranspiler {
     };
 
     if (file.endsWith(".md")) {
-      const filename = basename(file);
+      const relPath = relativePath(file);
 
       let contents = await readFileAsync(file, { encoding: "utf-8" });
       if (contents) {
@@ -210,10 +219,10 @@ export class DoctorTranspiler {
 
         // Check if the required data for the article is present
         if (markup && !markup.data) {
-          throw new Error(`The "${filename}" has no front matter defined`);
+          throw new Error(`The "${relPath}" has no front matter defined`);
         } else if (markup && markup.data) {
           if (!markup.data.title) {
-            throw new Error(`The "${filename}" has no 'title' defined`);
+            throw new Error(`The "${relPath}" has no 'title' defined`);
           }
         }
 
@@ -230,8 +239,8 @@ export class DoctorTranspiler {
         // Change detection: skip unchanged files unless --forceAll is set
         if (!options.forceAll && !languagePageSlug) {
           if (!StateHelper.hasChanged(slug, contentHash)) {
-            setProgress(`Skipped (unchanged): ${file}`);
-            Logger.debug(`Skipping unchanged file: ${filename}`);
+            setProgress(`Skipped (unchanged): ${relPath}`);
+            Logger.debug(`Skipping unchanged file: ${relPath}`);
             StatusHelper.addPageSkipped();
             return;
           }
@@ -249,7 +258,7 @@ export class DoctorTranspiler {
         // Image processing
         if (imgElms && imgElms.length > 0) {
           setProgress(
-            `Uploading ${imgElms.length} image${imgElms.length === 1 ? "" : "s"} from ${file}`,
+            `Uploading ${imgElms.length} image${imgElms.length === 1 ? "" : "s"} from ${relPath}`,
           );
 
           markup.content = await this.processImages(
@@ -266,10 +275,10 @@ export class DoctorTranspiler {
         // Anchor processing
         if (anchorElms && anchorElms.length > 0) {
           setProgress(
-            `Processing ${anchorElms.length} link${anchorElms.length === 1 ? "" : "s"} in ${file}`,
+            `Processing ${anchorElms.length} link${anchorElms.length === 1 ? "" : "s"} in ${relPath}`,
           );
 
-          Logger.debug(`Number of links in ${file}: ${anchorElms.length}`);
+          Logger.debug(`Number of links in ${relPath}: ${anchorElms.length}`);
 
           try {
             markup.content = await this.processLinks(
@@ -282,7 +291,7 @@ export class DoctorTranspiler {
           } catch (e: any) {
             const message =
               typeof e === "string" ? e : e?.message || JSON.stringify(e);
-            throw new Error(`Failed while processing links in ${file}. ${message}`);
+            throw new Error(`Failed while processing links in ${relPath}. ${message}`);
           }
         }
 
@@ -366,7 +375,7 @@ export class DoctorTranspiler {
 
             // Check if metadata needs to be added to the page
             if (metadata) {
-              setProgress(`Setting metadata for ${file}`);
+              setProgress(`Setting metadata for ${relPath}`);
               await PagesHelper.setPageMetadata(webUrl, slug, metadata);
             }
 
@@ -378,7 +387,7 @@ export class DoctorTranspiler {
 
             // Set the page its description
             if (description) {
-              setProgress(`Setting page description for ${file}`);
+              setProgress(`Setting page description for ${relPath}`);
               await PagesHelper.setPageDescription(webUrl, slug, description);
             }
 
@@ -398,8 +407,8 @@ export class DoctorTranspiler {
               );
             }
           } else {
-            setProgress(`Skipped (already exists): ${file}`);
-            Logger.debug(`Skipping "${filename}" as it already exists`);
+            setProgress(`Skipped (already exists): ${relPath}`);
+            Logger.debug(`Skipping "${relPath}" as it already exists`);
             StatusHelper.addPageSkipped();
           }
         }
