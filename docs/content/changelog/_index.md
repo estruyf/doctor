@@ -16,16 +16,16 @@ type: docs-main
 - **Breaking**: unchanged pages are skipped by default. Use `--forceAll` to reprocess all pages like in previous versions.
 - **Breaking**: the `siteDesign.theme` is no longer applied automatically. Use the new `--applyTheme` flag to apply it.
 - **Breaking**: the `certificateBase64Encoded` option is renamed to `certificate`, which accepts the path to your certificate file (`.pfx`, `.p12`, or `.pem`) as well as its base64 encoded contents.
-- **Breaking**: certificate authentication is now the only supported authentication type. The `deviceCode` type is removed, as it signs you in as a user which does not work for all the APIs Doctor calls, and the `password` type is removed as it is no longer supported by the CLI for Microsoft 365. The `--appId`, `--tenant`, and `--certificate` options are now required.
 - New pre-process validation which checks the markdown files for duplicate slugs, missing titles, broken localization references, and front matter parse errors before any SharePoint call is made. Can be skipped with `--skipPrecheck`.
 - New `--verbose` flag for extended logging output, and `--timingDetails` to show per-page timing statistics after a publishing run.
 - New `--disableStatePersistence` and `--stateFile` options to disable or relocate the state file.
 - New `--skipExisting` alias for the `--skipExistingPages` option.
 - New `--commandTimeout` option to configure the timeout of each command execution, which defaults to 2 minutes.
 - Page processing messages now show a `[x/total]` progress counter, the total publishing time is always shown, and link processing errors now include the full file path.
-- Fix: the site logo is now resolved relative to the configured folder instead of the current working directory.
 - Fix: navigation and link processing no longer fail on pages without a `title` or `slug` in their front matter.
 - [#104](https://github.com/estruyf/doctor/issues/104): New `mermaid` shortcode to render [Mermaid](https://mermaid.js.org/) diagrams on your pages.
+- [#171](https://github.com/estruyf/doctor/issues/171): **Breaking**: certificate authentication is now the only supported authentication type. The `deviceCode` type is removed, as it signs you in as a user which does not work for all the APIs Doctor calls, and the `password` type is removed as it is no longer supported by the CLI for Microsoft 365. The `--appId`, `--tenant`, and `--certificate` options are now required.
+- [#192](https://github.com/estruyf/doctor/issues/192): Fix: the site logo is now resolved relative to the configured folder instead of the current working directory.
 
 ## [1.12.1]
 
