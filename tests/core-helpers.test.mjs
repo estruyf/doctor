@@ -4,6 +4,10 @@ import assert from "node:assert/strict";
 import { FrontMatterHelper } from "../dist/helpers/FrontMatterHelper.js";
 import { NavigationHelper } from "../dist/helpers/NavigationHelper.js";
 import { OptionsHelper } from "../dist/helpers/OptionsHelper.js";
+import {
+  CliCommand,
+  DEFAULT_COMMAND_TIMEOUT,
+} from "../dist/helpers/CliCommand.js";
 
 test("FrontMatterHelper.getSlug generates slug from title and folder path", () => {
   const slug = FrontMatterHelper.getSlug(
@@ -105,4 +109,56 @@ test("OptionsHelper.parseArguments falls back to the default state file", () => 
   assert.equal(parsed.stateFile, ".doctor/state.json");
   assert.equal(parsed.disableStatePersistence, false);
   assert.equal(parsed.applyTheme, false);
+});
+
+test("OptionsHelper.parseArguments takes the commandTimeout from the arguments and config", () => {
+  const fromArgs = OptionsHelper.parseArguments({ commandTimeout: 60000 }, [
+    "node",
+    "doctor",
+    "publish",
+    "--commandTimeout",
+    "300000",
+  ]);
+  assert.equal(fromArgs.commandTimeout, 300000);
+
+  const fromConfig = OptionsHelper.parseArguments({ commandTimeout: 60000 }, [
+    "node",
+    "doctor",
+    "publish",
+  ]);
+  assert.equal(fromConfig.commandTimeout, 60000);
+
+  const notProvided = OptionsHelper.parseArguments({}, ["node", "doctor", "publish"]);
+  assert.equal(notProvided.commandTimeout, null);
+});
+
+test("CliCommand.getTimeout uses the configured command timeout", (t) => {
+  t.after(() => CliCommand.reset());
+
+  CliCommand.init({ commandTimeout: 300000 });
+  assert.equal(CliCommand.getTimeout(), 300000);
+
+  // The value can come from doctor.json, so it can be a string as well
+  CliCommand.init({ commandTimeout: "45000" });
+  assert.equal(CliCommand.getTimeout(), 45000);
+});
+
+test("CliCommand.getTimeout falls back to the default for missing or invalid values", (t) => {
+  t.after(() => CliCommand.reset());
+
+  for (const value of [undefined, null, "", 0, -1000, "abc", 12.5, Infinity]) {
+    CliCommand.init({ commandTimeout: value });
+    assert.equal(
+      CliCommand.getTimeout(),
+      DEFAULT_COMMAND_TIMEOUT,
+      `Expected the default timeout for value "${value}"`
+    );
+  }
+});
+
+test("CliCommand.reset restores the default command timeout", () => {
+  CliCommand.init({ commandTimeout: 300000 });
+  CliCommand.reset();
+
+  assert.equal(CliCommand.getTimeout(), DEFAULT_COMMAND_TIMEOUT);
 });

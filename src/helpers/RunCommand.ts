@@ -5,8 +5,6 @@ import { access, readFile } from "node:fs/promises";
 import { Logger } from "./Logger.js";
 import { StatusHelper } from "./StatusHelper.js";
 
-const EXECUTE_COMMAND_TIMEOUT_MS = 120000;
-
 const toErrorMessage = (error: any): string => {
   if (!error) {
     return "Unknown error";
@@ -117,6 +115,8 @@ const executeThroughCliWithTimeout = async (
       .join(" ")}`
   );
 
+  const timeoutMs = CliCommand.getTimeout();
+
   return await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
     const child = spawn(invocation.command, invocation.args, {
       env: {
@@ -133,10 +133,8 @@ const executeThroughCliWithTimeout = async (
     const timeout = setTimeout(() => {
       isSettled = true;
       child.kill("SIGTERM");
-      reject(
-        new Error(`Command timed out after ${EXECUTE_COMMAND_TIMEOUT_MS}ms`)
-      );
-    }, EXECUTE_COMMAND_TIMEOUT_MS);
+      reject(new Error(`Command timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
 
     child.stdout?.on("data", (data) => {
       stdout += `${data}`;
@@ -217,11 +215,12 @@ const executeM365WithTimeout = async (
   };
 
   let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+  const timeoutMs = CliCommand.getTimeout();
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeoutHandle = setTimeout(() => {
-      reject(new Error(`Command timed out after ${EXECUTE_COMMAND_TIMEOUT_MS}ms`));
-    }, EXECUTE_COMMAND_TIMEOUT_MS);
+      reject(new Error(`Command timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
     // unref so the timer does not keep the Node event loop alive if everything else finishes
     timeoutHandle.unref?.();
   });

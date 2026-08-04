@@ -8,6 +8,7 @@ import {
 export interface RuntimeOptions {
   task: string | null;
   commandName?: string;
+  commandTimeout?: number | null;
   debug: boolean;
   verbose: boolean;
   timingDetails: boolean;

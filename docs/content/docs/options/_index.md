@@ -13,9 +13,26 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 ## For all commands
 
 `-a, --auth <auth>`
-: Specify the authentication type to use. Values can be `deviceCode` (default) or `certificate`.
+: Specify the authentication type to use. Values can be `deviceCode` (default), `certificate`, or `password`.
 
 > **Info**: Check out the [Certificate Authentication](../certificate-authentication) section for more information about using the `certificate` approach.
+
+`--username <username>`
+: The username to use when authenticating with `--auth password`. When it is not provided, `doctor` prompts for it.
+
+> **Important**: Username/password authentication does not work for accounts with multi-factor authentication enabled. Use `deviceCode` or `certificate` in that case.
+
+`--password <password>`
+: The password to use when authenticating with `--auth password`, or the password of the PFX certificate when using `--auth certificate`. When it is not provided for the `password` authentication type, `doctor` prompts for it.
+
+`--tenant <tenant>`
+: The tenant ID to use when authenticating with `--auth certificate`.
+
+`--appId <appId>`
+: The ID of the Azure AD application to use when authenticating with `--auth certificate`.
+
+`--certificateBase64Encoded <certificateBase64Encoded>`
+: The base64 encoded PFX certificate to use when authenticating with `--auth certificate`.
 
 `-u, --url <url>`
 : The URL of the site collection to use.
@@ -33,17 +50,31 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 : Specifies if you allow `doctor` to overwrite the images in the SharePoint library that are referenced in the markdown files.
 
 `--debug`
-: Provides more information of what is happening during command execution.
+: Provides more information of what is happening during command execution. You can also enable this by setting the `DEBUG=true` environment variable, which is useful in CI/CD pipelines.
 
 > **Important**: This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
 
 `--verbose`
 : Provides extended logging output. When enabled, the task list is rendered with the verbose renderer, so every task and its output stays visible instead of being collapsed. For the `doctor status` command, this flag also lists the unchanged files.
 
-`--continueOnError`
-: Continue when an error occurs during the publishing process.
+`--commandName <commandName>`
+: Override the command used to execute `CLI for Microsoft 365`. By default, `doctor` executes commands through the bundled `@pnp/cli-microsoft365` API directly. The `m365` (default) and `localm365` values both use this in-process API. Any other value is executed as a binary on your `PATH`. Use this option only when you explicitly want to run a different command binary.
+
+`--commandTimeout <commandTimeout>`
+: The timeout in **milliseconds** for each `CLI for Microsoft 365` command which `doctor` executes. Default value is: `120000` (2 minutes). Increase this value when you run into `Command timed out after 120000ms` errors, which can happen on large sites or slow connections.
+
+```json
+{
+  "commandTimeout": 300000
+}
+```
+
+> **Important**: The value must be a whole number greater than `0`. When an invalid value is provided, `doctor` shows a warning and continues with the default of `120000`.
 
 ## Publish command specific options
+
+`--continueOnError`
+: Continue when an error occurs during the publishing process.
 
 `--outputFolder <outputFolder>`
 : When providing this option, the processed markdown files will be generated in this folder.
@@ -64,9 +95,6 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 : Don't prompt for confirming removing the files when you specified to clean up pages and assets before publishing.
 
 > **Important**: This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
-
-`--commandName <commandName>`
-: Override the command used to execute `CLI for Microsoft 365`. By default, `doctor` executes commands through the bundled `@pnp/cli-microsoft365` API directly. Use this option only when you explicitly want to run a different command binary.
 
 `--skipExistingPages`
 : Will not overwrite pages if they already existed on the site. The shorter `--skipExisting` alias can be used as well.
@@ -181,6 +209,7 @@ The options which got introduced in v2.0.0 can be defined in the `doctor.json` f
   "url": "https://<tenant>.sharepoint.com/sites/<documentation>",
   "folder": "./src",
   "library": "Shared Documents",
+  "commandTimeout": 120000,
   "stateFile": ".doctor/state.json",
   "disableStatePersistence": false,
   "forceAll": false,
@@ -213,7 +242,7 @@ Manual translation example:
       1043
     ],
     "overwriteTranslationsOnChange": true,
-    "translator:" null
+    "translator": null
   }
 }
 ```
@@ -228,7 +257,7 @@ Machine translation example:
       1043
     ],
     "overwriteTranslationsOnChange": true,
-    "translator:" {
+    "translator": {
       "key": "<subscription key>",
       "endpoint": "https://api.cognitive.microsofttranslator.com/",
       "region": "<region name, example: westeurope>"
@@ -242,7 +271,7 @@ Machine translation example:
 If you want, you can define the site its look and feel. This needs to be done on global level in the `doctor.json` file.
 
 - **siteDesign**: `SiteDesign` - Allows you to set the theme and header/footer chrome
-  - **logo**: `string` - The path to your logo you want to use for the site. If the value is empty `""` it will be used to unset the site its logo.
+  - **logo**: `string` - The path to your logo you want to use for the site, relative to the folder defined with `-f, --folder` (`./src` by default). The logo gets uploaded to a `site` folder in the library defined with `--library`. If the value is empty `""` it will be used to unset the site its logo.
   - **theme**: `string` - The name of the theme to set
   - **chrome**: `Chrome` - Settings for the header/footer chrome
     - **headerLayout**: `string` - Specifies the header layout to set on the site. Options: `Standard|Compact|Minimal|Extended`.
@@ -259,13 +288,13 @@ Example:
 ```json
 {
   "siteDesign": {
-    "logo: "./assets/doctor.png",
+    "logo": "./assets/doctor.png",
     "theme": "Red",
     "chrome": {
       "headerLayout": "Compact",
       "headerEmphasis": "Darkest",
       "disableMegaMenu": false,
-      "footerEnabled": true
+      "disableFooter": false
     }
   }
 }

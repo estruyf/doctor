@@ -61,15 +61,22 @@
       "$id": "#/properties/auth",
       "type": "string",
       "title": "auth",
-      "description": "Specify the authentication type to use. Values can be `deviceCode` (default) or `certificate`.",
+      "description": "Specify the authentication type to use. Values can be `deviceCode` (default), `certificate`, or `password`.",
       "default": "deviceCode",
-      "enum": ["deviceCode", "certificate"]
+      "enum": ["deviceCode", "certificate", "password"]
+    },
+    "username": {
+      "$id": "#/properties/username",
+      "type": "string",
+      "title": "username",
+      "description": "The username to use when using `password` authentication.",
+      "default": ""
     },
     "password": {
       "$id": "#/properties/password",
       "type": "string",
       "title": "password",
-      "description": "When using `certificate` authentication, you can optionally pass the password for the PFX certificate file.",
+      "description": "The password to use when using `password` authentication. When using `certificate` authentication, you can optionally pass the password for the PFX certificate file.",
       "default": ""
     },
     "appId": {
@@ -99,6 +106,15 @@
       "title": "commandName",
       "description": "Override the command used to execute the CLI for Microsoft 365. By default, `doctor` executes the commands through the bundled CLI for Microsoft 365 API.",
       "default": "m365"
+    },
+    "commandTimeout": {
+      "$id": "#/properties/commandTimeout",
+      "type": "integer",
+      "title": "commandTimeout",
+      "description": "The timeout in milliseconds for each CLI for Microsoft 365 command which `doctor` executes. Increase this value when commands time out on large sites or slow connections.",
+      "default": 120000,
+      "minimum": 1,
+      "examples": [120000, 300000]
     },
     "overwriteImages": {
       "$id": "#/properties/overwriteImages",
@@ -253,11 +269,11 @@
             }
           }
         },
-        "TopNavigation": {
-          "$id": "#/properties/menu/properties/TopNavigation",
+        "TopNavigationBar": {
+          "$id": "#/properties/menu/properties/TopNavigationBar",
           "type": "object",
-          "title": "TopNavigation",
-          "description": "TopNavigation navigation element.",
+          "title": "TopNavigationBar",
+          "description": "TopNavigationBar navigation element.",
           "required": ["items"],
           "properties": {
             "items": {

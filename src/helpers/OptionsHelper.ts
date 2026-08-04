@@ -41,6 +41,8 @@ export class OptionsHelper {
       "--outputFolder": String,
       "--pageTemplate": String,
 
+      "--commandTimeout": Number,
+
       "--overwriteImages": Boolean,
 
       "--cleanStart": Boolean,
@@ -108,6 +110,8 @@ export class OptionsHelper {
         null,
       commandName:
         args["--commandName"] || options["commandName"] || "m365",
+      commandTimeout:
+        args["--commandTimeout"] ?? options["commandTimeout"] ?? null,
       webUrl: args["--url"] || options["url"] || null,
       startFolder: args["--folder"] || options["folder"] || "./src",
       startFolderRel: args["--folder"] || options["folder"] || "./src",

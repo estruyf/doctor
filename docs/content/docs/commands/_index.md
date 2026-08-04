@@ -8,6 +8,16 @@ keywords:
   - ""
 ---
 
+### Help
+
+Running `doctor` with the `--help` argument shows the version you are running and the list of supported commands.
+
+```sh
+doctor --help
+```
+
+> **Info**: When you run `doctor` without any command, it asks you which command you want to execute.
+
 ### Cleanup
 
 The `doctor cleanup` command is there to uninstall the autocomplete functionality from `doctor`.
@@ -39,6 +49,16 @@ Initialize a project using certificate authentication:
 ```sh
 doctor init --auth certificate --certificateBase64Encoded <certificateBase64Encoded> --appId <appId> --tenant <tenant>
 ```
+
+The command creates the following in the current folder:
+
+- The source folder (`./src` by default, or the one you passed with `-f, --folder`).
+- An `index.md` starter page in that folder, when it does not exist yet.
+- A `doctor.json` file, when it does not exist yet, containing the `$schema`, `auth`, `url`, `folder`, `overwriteImages`, `library`, and `webPartTitle` values.
+
+> **Important**: `doctor init` does not store the `appId`, `tenant`, and `certificateBase64Encoded` values in the `doctor.json` file, as these are best kept out of source control. Pass them on each command execution, or add them yourself to the `doctor.json` file. Check the [certificate authentication](../certificate-authentication) section for more information.
+
+> **Info**: Existing files are never overwritten, so it is safe to run `doctor init` again in an existing project.
 
 ### Publish
 
@@ -82,6 +102,10 @@ At the end, you get a summary telling you how many pages will be published on th
 ```
 
 > **Info**: When state persistence is disabled with `--disableStatePersistence`, no state gets loaded and all pages are reported as **New**.
+
+> **Info**: The `status` command always reports the real difference with the state. The `forceAll` option is ignored here, as it only influences what `doctor publish` reprocesses.
+
+Pages of the `translation` type, and pages without a `title` in their front matter, are not included in the comparison.
 
 ### Setup
 

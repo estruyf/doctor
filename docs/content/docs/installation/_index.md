@@ -10,6 +10,14 @@ keywords:
 
 Thank you for your interest in the `doctor`. The following information will help you install `doctor`.
 
+## Prerequisites
+
+`doctor` requires **Node.js 22.13.0 or higher**.
+
+> **Important**: Since v2.0.0, `doctor` no longer runs on older Node.js versions. If you are using `doctor` in a CI/CD pipeline, make sure the pipeline uses a supported Node.js version.
+
+## Install
+
 Start by installing `doctor` as follows via npm:
 
 {{< main >}}
