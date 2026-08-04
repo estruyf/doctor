@@ -1,7 +1,6 @@
 export * from './Chrome.js';
 export * from './CommandArguments.js';
 export * from './Control.js';
-export * from './Deferred.js';
 export * from './File.js';
 export * from './Folder.js';
 export * from './HeaderOptions.js';
@@ -16,6 +15,7 @@ export * from './PageLocalization.js';
 export * from './PageLocalizationCreation.js';
 export * from './PageTemplate.js';
 export * from './PageTranslations.js';
+export * from './PublishContext.js';
 export * from './PublishOutput.js';
 export * from './Shortcode.js';
 export * from './SiteDesign.js';

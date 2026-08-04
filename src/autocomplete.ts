@@ -2,14 +2,17 @@ import omelette from "omelette";
 import { Command } from "@commands";
 import { OptionsHelper } from "@helpers";
 
+// Commands which do not accept any of the doctor arguments.
+const COMMANDS_WITHOUT_ARGS: string[] = [
+  Command.version,
+  Command.setup,
+  Command.cleanup,
+];
+
 export class Autocomplete {
-  private complete: omelette.Instance = null;
-  private commands: string[] = [
-    Command.cleanup,
-    Command.init,
-    Command.publish,
-    Command.version,
-  ];
+  private complete: omelette.Instance | null = null;
+  // Derived from the Command enum so newly added commands are suggested automatically.
+  private commands: string[] = Object.values(Command).sort();
 
   constructor() {
     this.complete = omelette(`doctor`);
@@ -22,15 +25,11 @@ export class Autocomplete {
    * @returns Nothing.
    */
   public setup() {
-    this.complete.setupShellInitFile();
+    this.complete?.setupShellInitFile();
   }
 
-  /**
-   * Removes shell initialization that was added for Doctor autocompletion.
-   * @returns Nothing.
-   */
   public cleanup() {
-    this.complete.cleanupShellInitFile();
+    this.complete?.cleanupShellInitFile();
   }
 
   /**
@@ -52,7 +51,7 @@ export class Autocomplete {
     } else {
       allWords = data.line.split(/\s+/).slice(1, -1);
 
-      if (allWords[0] !== Command.version && allWords[0] !== Command.cleanup) {
+      if (!COMMANDS_WITHOUT_ARGS.includes(allWords[0])) {
         const args = OptionsHelper.getArgs();
         const keys = Object.keys(args);
         replies = keys.filter(

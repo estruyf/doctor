@@ -8,3 +8,4 @@ mochawesome-report
 
 *.pem
 *.pfx
+docs/.hugo_build.lock

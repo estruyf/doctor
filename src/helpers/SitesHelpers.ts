@@ -1,5 +1,5 @@
 import { join } from "path";
-import { CommandArguments } from "@models";
+import { CommandArguments, TaskOutput } from "@models";
 import {
   CliCommand,
   executeWithRetry,
@@ -37,11 +37,12 @@ const isAuthOrPermissionError = (message: string): boolean => {
 export class SiteHelpers {
   /**
    * Change the look of the site
-   * @param ctx
+   * @param task
    * @param options
    */
-  public static async changeLook(ctx: any, options: CommandArguments) {
-    const { siteDesign, webUrl, assetLibrary, overwriteImages } = options;
+  public static async changeLook(task: TaskOutput, options: CommandArguments) {
+    const { siteDesign, webUrl, assetLibrary, overwriteImages, applyTheme } =
+      options;
     if (!siteDesign || Object.keys(siteDesign).length === 0) {
       return;
     }
@@ -51,7 +52,7 @@ export class SiteHelpers {
     );
     Logger.debug(JSON.stringify(siteDesign, null, 2));
 
-    if (siteDesign.theme) {
+    if (siteDesign.theme && applyTheme) {
       try {
         // Try to enable a custom theme
         await executeWithRetry(
@@ -98,6 +99,10 @@ export class SiteHelpers {
           }
         }
       }
+    } else if (siteDesign.theme) {
+      Logger.debug(
+        `Skipping site theme "${siteDesign.theme}" because the "applyTheme" option is not enabled.`
+      );
     }
 
     if (siteDesign.chrome) {
@@ -159,7 +164,7 @@ export class SiteHelpers {
         let imgUrl = siteDesign.logo;
 
         if (imgUrl) {
-          const imgPath = join(process.cwd(), siteDesign.logo);
+          const imgPath = join(options.startFolder, siteDesign.logo);
 
           Logger.debug(
             `Setting site logo with the following path: "${imgPath}"`

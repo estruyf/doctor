@@ -1,8 +1,8 @@
 ---
 title: Options
 date: 2021-02-22T10:06:07.167Z
-lastmod: 2021-03-10T14:24:35.121Z
-weight: 4
+lastmod: 2026-08-04T00:00:00.000Z
+weight: 6
 draft: false
 keywords:
   - ""
@@ -10,12 +10,49 @@ keywords:
 
 Options are specified via command arguments, or within a `doctor.json` file (automatically gets created on initialization `doctor init`).
 
-## For all commands
+## Authentication
+
+`doctor` authenticates with the certificate of your own Entra app registration. The `--appId`, `--tenant`, and `--certificate` options are **required** for every command which talks to SharePoint, and can be defined in the `doctor.json` file so you do not need to repeat them.
+
+> **Info**: Check out the [Certificate Authentication](../getting-started/certificate-authentication) section for the full setup of the app registration and the certificate.
 
 `-a, --auth <auth>`
-: Specify the authentication type to use. Values can be `deviceCode` (default) or `certificate`.
+: The authentication type to use. `certificate` is the only supported value, and it is the default.
 
-> **Info**: Check out the [Certificate Authentication](../certificate-authentication) section for more information about using the `certificate` approach.
+> **Important**: Since v2.0.0 the `deviceCode` and `password` authentication types are removed. Check the [authentication changes](#authentication-changes-in-v200) section below.
+
+`--appId <appId>`
+: The ID of the Entra app registration to authenticate with. **Required**.
+
+`--tenant <tenant>`
+: The ID of the tenant to authenticate to. **Required**.
+
+`--certificate <certificate>`
+: The certificate to authenticate with. **Required**. This can be the path to your certificate file (`.pfx`, `.p12`, or `.pem`), relative to the folder from where you run `doctor`, or the base64 encoded contents of that file.
+
+```bash
+# Path to the certificate file
+doctor publish --certificate ./cert.pfx --appId <appId> --tenant <tenant> --url <url>
+
+# Base64 encoded certificate
+doctor publish --certificate <base64String> --appId <appId> --tenant <tenant> --url <url>
+```
+
+> **Info**: The base64 encoded value is the easiest option to use in a CI/CD pipeline, as you can store it as a secret. Use the `--password` option when your certificate is password protected.
+
+`--password <password>`
+: The password of your certificate file, when you protected it with one.
+
+### Authentication changes in v2.0.0
+
+Before v2.0.0, `doctor` could also authenticate with the `deviceCode` and `password` authentication types. Both are removed:
+
+- The `password` type is no longer supported by the CLI for Microsoft 365.
+- The `deviceCode` type signs you in as a user, which does not work for all the APIs `doctor` calls during a publishing run.
+
+Certificate authentication uses application permissions, which work for every API `doctor` needs, and it is the only type which works unattended in a CI/CD pipeline. If you used one of the removed types, follow the [certificate authentication](../getting-started/certificate-authentication) guide to set up an app registration.
+
+## For all commands
 
 `-u, --url <url>`
 : The URL of the site collection to use.
@@ -33,14 +70,31 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 : Specifies if you allow `doctor` to overwrite the images in the SharePoint library that are referenced in the markdown files.
 
 `--debug`
-: Provides more information of what is happening during command execution.
+: Provides more information of what is happening during command execution. You can also enable this by setting the `DEBUG=true` environment variable, which is useful in CI/CD pipelines.
 
 > **Important**: This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
 
-`--continueOnError`
-: Continue when an error occurs during the publishing process.
+`--verbose`
+: Provides extended logging output. When enabled, the task list is rendered with the verbose renderer, so every task and its output stays visible instead of being collapsed. For the `doctor status` command, this flag also lists the unchanged files.
+
+`--commandName <commandName>`
+: Override the command used to execute `CLI for Microsoft 365`. By default, `doctor` executes commands through the bundled `@pnp/cli-microsoft365` API directly. The `m365` (default) and `localm365` values both use this in-process API. Any other value is executed as a binary on your `PATH`. Use this option only when you explicitly want to run a different command binary.
+
+`--commandTimeout <commandTimeout>`
+: The timeout in **milliseconds** for each `CLI for Microsoft 365` command which `doctor` executes. Default value is: `120000` (2 minutes). Increase this value when you run into `Command timed out after 120000ms` errors, which can happen on large sites or slow connections.
+
+```json
+{
+  "commandTimeout": 300000
+}
+```
+
+> **Important**: The value must be a whole number greater than `0`. When an invalid value is provided, `doctor` shows a warning and continues with the default of `120000`.
 
 ## Publish command specific options
+
+`--continueOnError`
+: Continue when an error occurs during the publishing process.
 
 `--outputFolder <outputFolder>`
 : When providing this option, the processed markdown files will be generated in this folder.
@@ -62,11 +116,22 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 
 > **Important**: This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
 
-`--commandName <commandName>`
-: Override the command used to execute `CLI for Microsoft 365`. By default, `doctor` executes commands through the bundled `@pnp/cli-microsoft365` API directly. Use this option only when you explicitly want to run a different command binary.
-
 `--skipExistingPages`
-: Will not overwrite pages if they already existed on the site.
+: Will not overwrite pages if they already existed on the site. The shorter `--skipExisting` alias can be used as well.
+
+`--forceAll`
+: Reprocess all pages, ignoring the saved publish state. By default `doctor` only publishes pages which are new or whose content changed since the last run. Check the [change detection](#change-detection--publish-state) section for more information.
+
+`--skipPrecheck`
+: Skips the pre-process validation which runs before any SharePoint calls are made. Check the [pre-process checks](#pre-process-checks) section for more information.
+
+`--timingDetails`
+: Shows additional per-page timing statistics (average, fastest and slowest page) after the publishing run. The total publishing time is always shown, also without this flag.
+
+`--applyTheme`
+: Applies the theme defined in the `siteDesign.theme` property of your `doctor.json` file.
+
+> **Important**: Since v2.0.0 the theme is no longer applied automatically. SharePoint returns an error when the theme name is not known on the tenant, which would fail the whole publishing run. When you defined a theme but did not pass this flag, `doctor` logs that it skipped applying it. All other `siteDesign` settings (logo and chrome) are still applied without this flag.
 
 `--retryWhenFailed`
 : Specifying this flag will retry the command if it failed. In some cases it can be that SharePoint failes to process your request, and this allows you to try again without running the whole flow from scratch.
@@ -100,6 +165,50 @@ Options are specified via command arguments, or within a `doctor.json` file (aut
 
 > **Important**: You can override this by specifying the `comments` option on page level.
 
+`--disableStatePersistence`
+: Disables loading and saving of the publish state file. When you use this flag, `doctor` cannot detect changes, so all pages are processed on every run.
+
+`--stateFile <stateFile>`
+: The path of the state file within the library defined by `--library`. Default value is: `.doctor/state.json`, which results in `Shared Documents/.doctor/state.json` when the default library is used.
+
+### Change detection / publish state
+
+`doctor` keeps track of what it published in a state file which is stored on your SharePoint site. For every page it stores a hash of the source markdown file, together with the timestamp of when it got published.
+
+On the next run, `doctor` compares the hash of each local file with the one in the state file:
+
+- Pages which are **new** or **modified** get published.
+- Pages which are **unchanged** get skipped.
+
+> **Important**: This is a behavior change since v2.0.0. Previously all pages were processed on every run. If you want the old behavior, use the `--forceAll` flag.
+
+The state is saved after each page, so when a publishing run fails halfway, the already published pages do not need to be processed again on the next run.
+
+The following options influence this behavior:
+
+- `--forceAll`: reprocess everything, ignoring the state.
+- `--disableStatePersistence`: do not load or save the state at all.
+- `--stateFile`: store the state on another location.
+- `--library`: the library in which the state file is stored.
+
+Use the [`doctor status`](../commands/#status) command to see which pages will be published on the next run.
+
+> **Info**: The state gets skipped when you use the `--skipPages` flag, as no pages are processed in that case.
+
+### Pre-process checks
+
+Before any call to SharePoint is made, `doctor` validates your markdown files and stops the publishing run when it finds issues. This prevents a run from failing halfway through. The following checks are performed:
+
+- Files which cannot be read.
+- Front matter which cannot be parsed.
+- Pages without a `title` in their front matter.
+- Duplicate slugs, as these pages would overwrite each other on the site.
+- Localization references in the front matter pointing to a file which does not exist on disk.
+
+When one or more issues are found, the run stops and all issues are listed at once (up to a maximum of 20, followed by the number of remaining issues). Pages of the `translation` type are skipped during this validation.
+
+Use the `--skipPrecheck` flag when you want to skip this validation.
+
 ### `doctor.json`
 
 You can provide the same flags and values like in the parameters. Parameters can override what is defined in the `doctor.json`. Be sure to use the whole argument names, and not the shortcodes.
@@ -111,6 +220,30 @@ You can provide the same flags and values like in the parameters. Parameters can
   ...
 }
 ```
+
+The options which got introduced in v2.0.0 can be defined in the `doctor.json` file as well, so you do not need to repeat them on every run:
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/estruyf/doctor/dev/schema/2.0.0.json",
+  "url": "https://<tenant>.sharepoint.com/sites/<documentation>",
+  "appId": "<appId>",
+  "tenant": "<tenant>",
+  "certificate": "./cert.pfx",
+  "folder": "./src",
+  "library": "Shared Documents",
+  "commandTimeout": 120000,
+  "stateFile": ".doctor/state.json",
+  "disableStatePersistence": false,
+  "forceAll": false,
+  "skipPrecheck": false,
+  "applyTheme": false,
+  "verbose": false,
+  "timingDetails": false
+}
+```
+
+> **Important**: The flags which are marked with *"This flag can only be added to the command execution"* are the exception. These are ignored when you define them in the `doctor.json` file.
 
 #### Multilingual
 
@@ -132,7 +265,7 @@ Manual translation example:
       1043
     ],
     "overwriteTranslationsOnChange": true,
-    "translator:" null
+    "translator": null
   }
 }
 ```
@@ -147,7 +280,7 @@ Machine translation example:
       1043
     ],
     "overwriteTranslationsOnChange": true,
-    "translator:" {
+    "translator": {
       "key": "<subscription key>",
       "endpoint": "https://api.cognitive.microsofttranslator.com/",
       "region": "<region name, example: westeurope>"
@@ -161,7 +294,7 @@ Machine translation example:
 If you want, you can define the site its look and feel. This needs to be done on global level in the `doctor.json` file.
 
 - **siteDesign**: `SiteDesign` - Allows you to set the theme and header/footer chrome
-  - **logo**: `string` - The path to your logo you want to use for the site. If the value is empty `""` it will be used to unset the site its logo.
+  - **logo**: `string` - The path to your logo you want to use for the site, relative to the folder defined with `-f, --folder` (`./src` by default). The logo gets uploaded to a `site` folder in the library defined with `--library`. If the value is empty `""` it will be used to unset the site its logo.
   - **theme**: `string` - The name of the theme to set
   - **chrome**: `Chrome` - Settings for the header/footer chrome
     - **headerLayout**: `string` - Specifies the header layout to set on the site. Options: `Standard|Compact|Minimal|Extended`.
@@ -178,13 +311,13 @@ Example:
 ```json
 {
   "siteDesign": {
-    "logo: "./assets/doctor.png",
+    "logo": "./assets/doctor.png",
     "theme": "Red",
     "chrome": {
       "headerLayout": "Compact",
       "headerEmphasis": "Darkest",
       "disableMegaMenu": false,
-      "footerEnabled": true
+      "disableFooter": false
     }
   }
 }
@@ -237,7 +370,9 @@ You can also define a static navigation structure in the `doctor.json` file. Exa
 }
 ```
 
-The menu property can contain a `QuickLaunch` and/or `TopNavigationBar` elment with their corresponding static navigation links under the `items` property. More information about navigation items can be found in the [menu section](../pages/#Menu).
+The menu property can contain a `QuickLaunch` and/or `TopNavigationBar` elment with their corresponding static navigation links under the `items` property. More information about navigation items can be found in the [menu section](../pages/#Menu) and on the [navigation](../navigation) page.
+
+> **Important**: The `menu` property is what enables the navigation. When it is not defined in the `doctor.json` file, the page level `menu` front matter is ignored.
 
 > **Important**: If you specify arguments during command execution, they will be used instead of the values defined in the `doctor.json` file.
 

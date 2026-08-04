@@ -1,10 +1,10 @@
-import { Observable } from "rxjs";
 import {
   Page,
   PageTemplate,
   File,
   MarkdownSettings,
   CommandArguments,
+  TaskOutput,
 } from "@models";
 import {
   CliCommand,
@@ -22,6 +22,12 @@ export class PagesHelper {
   private static pages: File[] = [];
   private static processedPages: { [slug: string]: number } = {};
   private static listFieldMap: { [listId: string]: Map<string, string> } = {};
+
+  public static reset() {
+    PagesHelper.pages = [];
+    PagesHelper.processedPages = {};
+    PagesHelper.listFieldMap = {};
+  }
 
   /**
    * Retrieve all the pages from the current site
@@ -41,46 +47,43 @@ export class PagesHelper {
    */
   public static async clean(
     webUrl: string,
+    task: TaskOutput,
     options: CommandArguments
-  ): Promise<Observable<string>> {
-    return new Observable((observer) => {
-      (async () => {
-        const untouched = this.getUntouchedPages().filter(
-          (slug) =>
-            !slug.toLowerCase().startsWith("templates") &&
-            slug.endsWith(".aspx")
-        );
-        Logger.debug(`Removing the following files`);
-        Logger.debug(untouched);
-        for (const slug of untouched) {
-          try {
-            if (slug) {
-              Logger.debug(`Cleaning up page: ${slug}`);
-              observer.next(`Cleaning up page: ${slug}`);
-              const filePath = `sitepages/${slug}`;
-              const relUrl = FileHelpers.getRelUrl(webUrl, filePath);
-              await executeWithRetry(
-                "spo file remove",
-                {
-                  webUrl,
-                  url: relUrl,
-                  force: true,
-                },
-                CliCommand.getRetry()
-              );
-            }
-          } catch (e) {
-            observer.error(e);
-            Logger.debug(e.message);
-
-            if (!options.continueOnError) {
-              throw e.message;
-            }
-          }
+  ): Promise<void> {
+    const untouched = this.getUntouchedPages().filter(
+      (slug) =>
+        !slug.toLowerCase().startsWith("templates") &&
+        slug.endsWith(".aspx")
+    );
+    Logger.debug(`Removing the following files`);
+    Logger.debug(untouched);
+    for (const slug of untouched) {
+      try {
+        if (slug) {
+          Logger.debug(`Cleaning up page: ${slug}`);
+          task.output = `Cleaning up page: ${slug}`;
+          const filePath = `sitepages/${slug}`;
+          const relUrl = FileHelpers.getRelUrl(webUrl, filePath);
+          await executeWithRetry(
+            "spo file remove",
+            {
+              webUrl,
+              url: relUrl,
+              force: true,
+            },
+            CliCommand.getRetry()
+          );
         }
-        observer.complete();
-      })();
-    });
+      } catch (e) {
+        const errorMessage =
+          typeof e === "string" ? e : e instanceof Error ? e.message : JSON.stringify(e);
+        Logger.debug(errorMessage);
+
+        if (!options.continueOnError) {
+          throw new Error(errorMessage);
+        }
+      }
+    }
   }
 
   /**
@@ -106,7 +109,7 @@ export class PagesHelper {
         if (PagesHelper.pages && PagesHelper.pages.length > 0) {
           const page = PagesHelper.pages.find(
             (page: File) =>
-              page.FileRef.toLowerCase() === relativeUrl.toLowerCase()
+              page.FileRef?.toLowerCase() === relativeUrl.toLowerCase()
           );
           if (page) {
             // Page already existed
@@ -119,13 +122,12 @@ export class PagesHelper {
         }
       }
 
-      const { stdout: pageDataOutput } = await executeCommand("spo page get", {
-        webUrl,
-        name: slug,
-        metadataOnly: true,
-        output: "json",
-      });
-      let pageData: Page = JSON.parse(pageDataOutput);
+      const { stdout: pageDataOutput } = await executeWithRetry(
+        "spo page get",
+        { webUrl, name: slug, metadataOnly: true, output: "json" },
+        CliCommand.getRetry()
+      );
+      let pageData: Page = JSON.parse(pageDataOutput || "{}");
 
       PagesHelper.processedPages[slug] = (
         pageData as Page
@@ -378,7 +380,7 @@ export class PagesHelper {
     slug: string,
     webUrl: string,
     options: CommandArguments,
-    wpId: string = null,
+    wpId: string | null | undefined = null,
     mdOptions: MarkdownSettings | null,
     wasAlreadyParsed: boolean = false
   ) {
@@ -473,7 +475,7 @@ export class PagesHelper {
   public static async setPageMetadata(
     webUrl: string,
     slug: string,
-    metadata: { [fieldName: string]: any } = null
+    metadata: { [fieldName: string]: any } | null = null
   ) {
     const pageId = await this.getPageId(webUrl, slug);
     const pageList = await ListHelpers.getSitePagesList(webUrl);
@@ -659,6 +661,7 @@ export class PagesHelper {
     let untouched: string[] = [];
     for (const page of PagesHelper.pages) {
       const { FileRef: url } = page;
+      if (!url) continue;
       const slug = url.toLowerCase().split("/sitepages/")[1];
       if (!PagesHelper.processedPages[slug]) {
         untouched.push(slug);

@@ -19,14 +19,6 @@ export async function cli(args: string[]) {
   options = OptionsHelper.parseArguments(options, args);
   options = await OptionsHelper.promptForMissingArgs(options);
 
-  // console.log("Testing", {
-  //   ...options,
-  //   password: options.password ? "******" : undefined,
-  //   certificateBase64Encoded: options.certificateBase64Encoded
-  //     ? "******"
-  //     : undefined,
-  // })
-
   try {
     if (options.task === "help") {
       console.log("");
@@ -66,18 +58,17 @@ export async function cli(args: string[]) {
   } catch (e: any | Error) {
     await TempDataHelper.clear();
 
-    console.log("ERROR:", e);
-    // if (typeof e === "string") {
-    //   console.log(
-    //     kleur.bgRed().bold().white(` ERROR: `),
-    //     kleur.bold().red(e)
-    //   );
-    // } else {
-    //   console.log(
-    //     kleur.bgRed().bold().white(` ERROR: `),
-    //     kleur.bold().red(e.message?.toString() || JSON.stringify(e))
-    //   );
-    // }
+    if (typeof e === "string") {
+      console.log(
+        kleur.bgRed().bold().white(` ERROR: `),
+        kleur.bold().red(e)
+      );
+    } else {
+      console.log(
+        kleur.bgRed().bold().white(` ERROR: `),
+        kleur.bold().red(e.message?.toString() || JSON.stringify(e))
+      );
+    }
     process.exit(1);
   }
 }
