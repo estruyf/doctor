@@ -2,7 +2,7 @@
 title: Shortcodes
 date: 2021-02-22T10:06:07.167Z
 lastmod: 2021-02-22T10:06:07.167Z
-weight: 5
+weight: 7
 draft: false
 keywords:
   - ""
@@ -16,8 +16,9 @@ Shortcodes are HTML snippets inside your content files calling built-in or custo
 
 At the moment, `doctor` has the following built-in shortcodes:
 
-- [Callouts](./callouts/)
+- [Callout](./callout/)
 - [Icon](./icon/)
+- [Mermaid](./mermaid/)
 - [Table of contents](./toc/)
 
 ## Provide your own shortcodes

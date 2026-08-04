@@ -17,7 +17,7 @@ export class TempDataHelper {
       await mkdirAsync(tempPath, { recursive: true });
     }
 
-    const tempFilePath = join(tempPath, "./wpData.json");
+    const tempFilePath = join(tempPath, `./${crypto.randomUUID()}.json`);
     await writeFileAsync(tempFilePath, JSON.stringify(data, null, 2), {
       encoding: "utf-8",
     });
@@ -52,7 +52,7 @@ export class TempDataHelper {
    * Clear the temp folder
    */
   public static async clear() {
-    if (!CliCommand.options.debug) {
+    if (!CliCommand.options?.debug) {
       const crntFolder = process.cwd();
       const tempPath = join(crntFolder, "./temp");
       if (await existsAsync(tempPath)) {

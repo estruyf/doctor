@@ -1,10 +1,23 @@
-import { dirname, join } from "path";
-import { fileURLToPath } from "url";
+import { join } from "path";
+import { createRequire } from "module";
 import { ShortcodeRender } from "@models";
 import { Logger } from "@helpers";
 import { existsAsync, readFileAsync } from "@utils";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
+
+function resolveFluentIconPath(iconName: string): string {
+  try {
+    const pkgRoot = join(
+      require.resolve("@fluentui/svg-icons/package.json"),
+      "..",
+    );
+    return join(pkgRoot, "icons", iconName);
+  } catch {
+    // Fallback for environments where the package isn't resolvable
+    return join("node_modules", "@fluentui", "svg-icons", "icons", iconName);
+  }
+}
 
 export const IconRenderer: ShortcodeRender = {
   render: async function (
@@ -18,10 +31,7 @@ export const IconRenderer: ShortcodeRender = {
     const iconName = `${attrs.name
       .toLowerCase()
       .replace("ic_fluent_", "")}.svg`;
-    const iconPath = join(
-      __dirname,
-      `../../node_modules/@fluentui/svg-icons/icons/${iconName}`
-    );
+    const iconPath = resolveFluentIconPath(iconName);
     Logger.debug(`Fetching icon: ${iconPath}`);
     try {
       if (await existsAsync(iconPath)) {

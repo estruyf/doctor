@@ -2,7 +2,11 @@ import { CliCommand, executeWithRetry, Logger } from "@helpers";
 import { ListData } from "@models";
 
 export class ListHelpers {
-  private static pageList: ListData = null;
+  private static pageList: ListData | null = null;
+
+  public static reset() {
+    ListHelpers.pageList = null;
+  }
 
   /**
    * Retrieve the site pages library
@@ -42,7 +46,7 @@ export class ListHelpers {
           listUrl.includes("site pages") ||
           listUrl.endsWith("sitepages")
         );
-      });
+      }) ?? null;
 
       if (!this.pageList) {
         throw new Error("Unable to locate the Site Pages library from the SharePoint list response.");

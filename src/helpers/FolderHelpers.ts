@@ -4,6 +4,10 @@ import { executeCommand } from "@pnp/cli-microsoft365";
 export class FolderHelpers {
   private static checkedFolders: string[] = [];
 
+  public static reset() {
+    FolderHelpers.checkedFolders = [];
+  }
+
   /**
    * Create new folders
    * @param crntFolder

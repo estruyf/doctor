@@ -13,7 +13,7 @@
     "skipLibCheck": true,
     "outDir": "dist",
     "inlineSources": false,
-    "strictNullChecks": false,
+    "strictNullChecks": true,
     "noUnusedLocals": true,
     "lib": [
       "DOM",

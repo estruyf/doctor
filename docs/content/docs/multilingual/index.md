@@ -2,7 +2,7 @@
 title: Multilingual
 date: 2021-03-10T14:33:47.481Z
 lastmod: 2021-03-10T14:33:47.852Z
-weight: 3
+weight: 4
 draft: false
 keywords:
   - ""
@@ -30,7 +30,7 @@ Example setup:
       1043
     ],
     "overwriteTranslationsOnChange": true,
-    "translator:" null
+    "translator": null
   }
 }
 ```
@@ -78,7 +78,7 @@ If you want to make use of the Azure Translator service which is part of the [Az
       1043
     ],
     "overwriteTranslationsOnChange": true,
-    "translator:" {
+    "translator": {
       "key": "<subscription key>",
       "endpoint": "https://api.cognitive.microsofttranslator.com/",
       "region": "<region name, example: westeurope>"

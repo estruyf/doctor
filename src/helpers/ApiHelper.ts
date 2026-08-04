@@ -1,5 +1,15 @@
 import { Logger } from "./index.js";
 
+const toErrorMessage = (error: unknown): string => {
+  if (typeof error === "string") {
+    return error;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return JSON.stringify(error);
+};
+
 export class ApiHelper {
   /**
    * Do an API GET request
@@ -32,8 +42,9 @@ export class ApiHelper {
 
       return null;
     } catch (err) {
-      Logger.debug(err.message);
-      throw err.message;
+      const errorMessage = toErrorMessage(err);
+      Logger.debug(errorMessage);
+      throw new Error(errorMessage);
     }
   }
 
@@ -71,8 +82,9 @@ export class ApiHelper {
 
       return null;
     } catch (err) {
-      Logger.debug(err.message);
-      throw err.message;
+      const errorMessage = toErrorMessage(err);
+      Logger.debug(errorMessage);
+      throw new Error(errorMessage);
     }
   }
 
@@ -112,8 +124,9 @@ export class ApiHelper {
 
       return false;
     } catch (err) {
-      Logger.debug(err.message);
-      throw err.message;
+      const errorMessage = toErrorMessage(err);
+      Logger.debug(errorMessage);
+      throw new Error(errorMessage);
     }
   }
 }

@@ -5,24 +5,33 @@ import * as cheerio from "cheerio";
 import {
   IconRenderer,
   CalloutRenderer,
+  MermaidRenderer,
   TableOfContentsRenderer,
 } from "../shortcodes/index.js";
 import { Shortcode, TocPosition } from "@models";
 import { Logger } from "@helpers";
 import { existsAsync } from "@utils";
 
+const defaultShortcodes: Shortcode = {
+  icon: IconRenderer,
+  callout: CalloutRenderer,
+  mermaid: MermaidRenderer,
+  toc: TableOfContentsRenderer,
+};
+
+const CODE_PLACEHOLDER_PREFIX = `%%DOCTOR_CODE_`;
+const CODE_PLACEHOLDER_SUFFIX = `%%`;
+const CODE_PLACEHOLDER_REGEX = /%%DOCTOR_CODE_(\d+)%%/g;
+
 export class ShortcodesHelpers {
-  private static shortcodes: Shortcode = {
-    icon: IconRenderer,
-    callout: CalloutRenderer,
-    toc: TableOfContentsRenderer,
-  };
+  private static shortcodes: Shortcode = { ...defaultShortcodes };
 
   /**
    * Initialize the shortcodes
    * @param shortcodes
    */
   public static async init(shortcodes: string = "./shortcodes") {
+    ShortcodesHelpers.reset();
     // console.log(`Initializing shortcodes from folder: ${shortcodes}`);
 
     let files: string[] = [];
@@ -46,6 +55,10 @@ export class ShortcodesHelpers {
         }
       }
     }
+  }
+
+  public static reset() {
+    ShortcodesHelpers.shortcodes = { ...defaultShortcodes };
   }
 
   /**
@@ -90,7 +103,15 @@ export class ShortcodesHelpers {
 
     Logger.debug(`Doctor uses ${tags.length} shortcodes for HTML parsing.`);
 
-    const $ = cheerio.load(htmlMarkup, {
+    // Shortcodes used as code samples should be shown as-is. Once markdown has
+    // been processed, the code blocks are escaped, so they only need to be
+    // masked while parsing the raw markdown.
+    const codeSnippets: string[] = [];
+    const content = beforeMarkdown
+      ? ShortcodesHelpers.maskCode(htmlMarkup, codeSnippets)
+      : htmlMarkup;
+
+    const $ = cheerio.load(content, {
       xml: {
         xmlMode: true,
         decodeEntities: false,
@@ -123,7 +144,10 @@ export class ShortcodesHelpers {
               tocPostProcessing = attributes.position;
             }
 
-            const scHtml = await shortcode.render(attributes, $elm.html());
+            const scHtml = await shortcode.render(
+              attributes,
+              $elm.html() ?? "",
+            );
             $elm.replaceWith(scHtml);
 
             Logger.debug(`Shortcode "${tag}" its HTML:`);
@@ -151,7 +175,83 @@ export class ShortcodesHelpers {
     Logger.debug($.html());
     Logger.debug(``);
 
-    return $.html();
+    return ShortcodesHelpers.unmaskCode($.html(), codeSnippets);
+  }
+
+  /**
+   * Replace the fenced and inline code blocks by placeholders, so that the
+   * shortcodes which are used as code samples are not rendered
+   * @param markdown
+   * @param snippets
+   */
+  private static maskCode(markdown: string, snippets: string[]): string {
+    const toPlaceholder = (snippet: string) => {
+      snippets.push(snippet);
+      return `${CODE_PLACEHOLDER_PREFIX}${
+        snippets.length - 1
+      }${CODE_PLACEHOLDER_SUFFIX}`;
+    };
+
+    const lines = markdown.split("\n");
+    const output: string[] = [];
+    let fence: string | null = null;
+    let block: string[] = [];
+
+    for (const line of lines) {
+      const fenceMatch = /^\s*(`{3,}|~{3,})\s*(\S*)/.exec(line);
+
+      if (fence === null) {
+        if (fenceMatch) {
+          fence = fenceMatch[1];
+          block = [line];
+        } else {
+          output.push(line);
+        }
+        continue;
+      }
+
+      block.push(line);
+
+      // The closing fence uses the same character, is at least as long as the
+      // opening one, and doesn't contain an info string
+      if (
+        fenceMatch &&
+        fenceMatch[1][0] === fence[0] &&
+        fenceMatch[1].length >= fence.length &&
+        !fenceMatch[2]
+      ) {
+        output.push(toPlaceholder(block.join("\n")));
+        fence = null;
+        block = [];
+      }
+    }
+
+    // An unclosed fence is code until the end of the document
+    if (fence !== null) {
+      output.push(toPlaceholder(block.join("\n")));
+    }
+
+    return output
+      .join("\n")
+      .replace(/(?<!`)(`+)(?!`)([\s\S]*?)(?<!`)\1(?!`)/g, (match) =>
+        toPlaceholder(match),
+      );
+  }
+
+  /**
+   * Put the original code blocks back in place
+   * @param htmlMarkup
+   * @param snippets
+   */
+  private static unmaskCode(htmlMarkup: string, snippets: string[]): string {
+    if (snippets.length === 0) {
+      return htmlMarkup;
+    }
+
+    return htmlMarkup.replace(CODE_PLACEHOLDER_REGEX, (match, index) => {
+      const snippet = snippets[Number(index)];
+      return snippet === undefined ? match : snippet;
+    });
   }
 
   /**

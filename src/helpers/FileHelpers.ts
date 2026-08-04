@@ -12,6 +12,11 @@ export class FileHelpers {
   private static allPages: File[] = [];
   private static checkedFiles: string[] = [];
 
+  public static reset() {
+    FileHelpers.allPages = [];
+    FileHelpers.checkedFiles = [];
+  }
+
   /**
    * Retrieve the relative path for the file
    * @param webUrl
@@ -19,7 +24,7 @@ export class FileHelpers {
    * @param filePath
    */
   public static getRelUrl(webUrl: string, filePath: string) {
-    const relWebUrl = webUrl.split("sharepoint.com").pop();
+    const relWebUrl = webUrl.split("sharepoint.com").pop() || "";
     return `${relWebUrl.startsWith("/") ? "" : "/"}${relWebUrl}${
       relWebUrl.endsWith("/") ? "" : "/"
     }${filePath}`;
@@ -146,7 +151,9 @@ export class FileHelpers {
           }
         }
       } catch (e) {
-        throw e.message;
+        const errorMessage =
+          typeof e === "string" ? e : e instanceof Error ? e.message : JSON.stringify(e);
+        throw new Error(errorMessage);
       }
     }
   }
@@ -209,6 +216,9 @@ export class FileHelpers {
         webUrl,
         folder: crntFolder,
         path: imgPath,
+        // Set explicitly to avoid the CLI deprecation warning. Whether an
+        // existing file may be replaced is already decided in `create`.
+        overwrite: true,
       },
       CliCommand.getRetry()
     );

@@ -45,6 +45,8 @@ More information about how you can use `doctor` can be found in our documentatio
 
 Thank you for your interest in the `doctor`. The following information will help you install `doctor`.
 
+`doctor` requires **Node.js 22.13.0 or higher**.
+
 Start by installing `doctor` as follows via npm:
 
 ```bash
