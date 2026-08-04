@@ -25,9 +25,7 @@
       }
     }
   ],
-  "required": [
-    "url"
-  ],
+  "required": ["url"],
   "definitions": {
     "items": {
       "title": "items",
@@ -36,7 +34,7 @@
       "items": {
         "type": "object",
         "properties": {
-          "id": { 
+          "id": {
             "type": "string"
           },
           "name": {
@@ -61,11 +59,7 @@
         "title": "auth",
         "description": "Specify the authentication type to use. Values can be `deviceCode` (default) or `password`.",
         "default": "deviceCode",
-        "enum": [
-          "deviceCode",
-          "password",
-          "certificate"
-        ]
+        "enum": ["deviceCode", "password", "certificate"]
       },
       "password": {
         "$id": "#/properties/password",
@@ -150,9 +144,7 @@
             "type": "object",
             "title": "QuickLaunch",
             "description": "QuickLaunch navigation element.",
-            "required": [
-              "items"
-            ],
+            "required": ["items"],
             "properties": {
               "items": { "$ref": "#/definitions/items" }
             }
@@ -162,9 +154,7 @@
             "type": "object",
             "title": "TopNavigation",
             "description": "TopNavigation navigation element.",
-            "required": [
-              "items"
-            ],
+            "required": ["items"],
             "properties": {
               "items": { "$ref": "#/definitions/items" }
             }

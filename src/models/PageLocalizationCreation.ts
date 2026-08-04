@@ -1,3 +1,3 @@
-import { Translations } from "./PageTranslations";
+import { Translations } from "./PageTranslations.js";
 
 export interface PageLocalizationCreation extends Translations {}

@@ -7,8 +7,8 @@ on:
   release:
     types:
       - published
-  schedule:
-    - cron: "0 0 */7 * *"
+  # schedule:
+  #   - cron: "0 0 */7 * *"
   workflow_dispatch:
 
 jobs:
@@ -23,22 +23,21 @@ jobs:
     strategy:
       matrix:
         include:
-          - node: 18
+          - node: 22
             os: macos-latest
             siteUrl: SITEURL_MACOS
-          - node: 18
+          - node: 22
             os: ubuntu-latest
             siteUrl: SITEURL_LINUX
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
-          registry-url: https://registry.npmjs.org/
 
       - name: Cache node modules
-        uses: actions/cache@v2
+        uses: actions/cache@v5
         with:
           # npm cache files are stored in `~/.npm` on Linux/macOS
           path: ~/.npm
@@ -76,7 +75,7 @@ jobs:
             skipPages="--skipExistingPages"
           fi
 
-          doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets[matrix.siteUrl] }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd --confirm $startClean $skipPages
+          doctor publish --auth certificate --certificateBase64Encoded "${{ secrets.CERTIFICATEBASE64ENCODED }}" --password "${{ secrets.PASSWORD }}" --appId "${{ secrets.APPID }}" --tenant "${{ secrets.TENANT }}" -u "${{ secrets[matrix.siteUrl] }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd --confirm $startClean $skipPages
         env:
           DEBUG: ${{ secrets.DEBUG }}
           TRANSLATOR_KEY: ${{ secrets.TRANSLATOR_KEY }}
@@ -90,18 +89,17 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '#docs') }}
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: 18
-          registry-url: https://registry.npmjs.org/
+          node-version: 22
 
       - name: Get npm cache directory
         id: npm-cache
         run: |
           echo "::set-output name=dir::$(npm config get cache)"
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v5
         with:
           path: ${{ steps.npm-cache.outputs.dir }}
           key: ${{ runner.os }}-release-${{ hashFiles('**/package-lock.json') }}
@@ -139,7 +137,7 @@ jobs:
             $skipPages="--skipExistingPages"
           }
 
-          doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd --confirm $startClean $skipPages
+          doctor publish --auth certificate --certificateBase64Encoded "${{ secrets.CERTIFICATEBASE64ENCODED }}" --password "${{ secrets.PASSWORD }}" --appId "${{ secrets.APPID }}" --tenant "${{ secrets.TENANT }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd --confirm $startClean $skipPages
         shell: powershell
         env:
           DEBUG: ${{ secrets.DEBUG }}
@@ -154,18 +152,17 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '#docs') }}
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: 18
-          registry-url: https://registry.npmjs.org/
+          node-version: 22
 
       - name: Get npm cache directory
         id: npm-cache
         run: |
           echo "::set-output name=dir::$(npm config get cache)"
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v5
         with:
           path: ${{ steps.npm-cache.outputs.dir }}
           key: ${{ runner.os }}-release-${{ hashFiles('**/package-lock.json') }}
@@ -194,171 +191,11 @@ jobs:
 
           IF "%GITHUB_EVENT_NAME%"=="schedule" (SET skipPages="--skipExistingPages")
 
-          doctor publish -a password --username "${{ secrets.USERNAME }}" --password "${{ secrets.PASSWORD }}" -u "${{ secrets.SITEURL_WINDOWS }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd  --confirm %startClean% %skipPages%
+          doctor publish --auth certificate --certificateBase64Encoded "${{ secrets.CERTIFICATEBASE64ENCODED }}" --password "${{ secrets.PASSWORD }}" --appId "${{ secrets.APPID }}" --tenant "${{ secrets.TENANT }}" -u "${{ secrets.SITEURL_WINDOWS }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd  --confirm %startClean% %skipPages%
         shell: cmd
         env:
           DEBUG: ${{ secrets.DEBUG }}
           TRANSLATOR_KEY: ${{ secrets.TRANSLATOR_KEY }}
-
-  ##################################
-  ### Run when a schedule failed ###
-  ##################################
-  restart_when_failed:
-    name: Restarts the scheduled run when it failed
-    runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' && failure()
-    needs: [build, build_pwsh, build_cmd]
-    steps:
-      - name: Retry the workflow
-        run: |
-          curl -i \
-          -X POST \
-          -H "Accept: application/vnd.github.v3+json" \
-          -H "Authorization: token ${{ secrets.ACTIONS_PAT }}" \
-          https://api.github.com/repos/estruyf/doctor/actions/workflows/6155745/dispatches \
-          -d '{"ref": "${{ github.ref }}" }'
-
-  ##############################
-  ### Start E2E with Cypress ###
-  ##############################
-  e2e_testing:
-    name: Cypress E2E Testing for ${{ matrix.testTitle }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    needs: [build, build_pwsh, build_cmd]
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - node: 14
-            testTitle: macOS
-            siteUrl: SITEURL_MACOS
-            browser: chrome
-          - node: 14
-            testTitle: Linux
-            siteUrl: SITEURL_LINUX
-            browser: firefox
-          - node: 14
-            testTitle: Windows PowerShell
-            siteUrl: SITEURL_WINDOWS_POWERSHELL
-            browser: chrome
-          - node: 14
-            testTitle: Windows
-            siteUrl: SITEURL_WINDOWS
-            browser: firefox
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 18
-          registry-url: https://registry.npmjs.org/
-
-      - uses: actions/cache@v2
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-release-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-release-
-
-      - run: |
-          npm i
-
-      - name: Preparing the Cypress config
-        run: |
-          node ./scripts/prepare-e2e.js
-        env:
-          USERNAME: ${{ secrets.USERNAME }}
-          PASSWORD: ${{ secrets.PASSWORD }}
-          SITEURL: ${{ secrets[matrix.siteUrl] }}
-          ENVIRONMENT: ${{ matrix.siteUrl }}
-
-      - name: Cypress E2E testing
-        run: |
-          ./node_modules/.bin/cypress verify
-          ./node_modules/.bin/cypress run --browser ${{ matrix.browser }}
-
-      - name: Upload screenshots
-        uses: actions/upload-artifact@v2
-        if: ${{ always() }} # To make sure we can see what went wrong
-        with:
-          name: screenshots-${{ matrix.testTitle }}
-          path: ./**/screenshots/**/*.png
-
-      - name: Upload videos
-        uses: actions/upload-artifact@v2
-        if: ${{ always() }} # To make sure we can see what went wrong
-        with:
-          name: videos-${{ matrix.testTitle }}
-          path: ./**/cypress/videos/**/*.mp4
-
-      - name: Prepare and generate reports
-        if: ${{ always() }}
-        run: |
-          envType="${ENVTYPE,,}"
-          envType="${envType/siteurl_/}"
-
-          mv ./cypress/screenshots ./mochawesome-report
-          ./node_modules/.bin/mochawesome-merge --reportDir mochawesome-report > mochawesome-report/$envType.json
-          ./node_modules/.bin/marge ./mochawesome-report/$envType.json --charts -t "Doctor $envType" -p "Doctor $envType E2E Results"
-          find ./mochawesome-report/.  -name "*.json" -type f -delete
-        env:
-          ENVTYPE: ${{ matrix.siteUrl }}
-
-      - name: Upload reports
-        uses: actions/upload-artifact@v2
-        if: ${{ always() }} # To make sure we can see what went wrong
-        with:
-          name: reports-${{ matrix.testTitle }}
-          path: ./mochawesome-report/**/*
-
-  ####################################
-  ### Push the results to gh pages ###
-  ####################################
-  publish_results:
-    name: Publish the results
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    if: always() && ${{ !contains(github.event.head_commit.message, '#docs') }}
-    needs: [e2e_testing]
-
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Download Linux report
-        uses: actions/download-artifact@v2
-        with:
-          name: reports-Linux
-          path: reports
-
-      - name: Download Windows report
-        uses: actions/download-artifact@v2
-        with:
-          name: reports-Windows
-          path: reports
-
-      - name: Download Windows PowerShell report
-        uses: actions/download-artifact@v2
-        with:
-          name: "reports-Windows PowerShell"
-          path: reports
-
-      - name: Download macOS report
-        uses: actions/download-artifact@v2
-        with:
-          name: reports-macOS
-          path: reports
-
-      - name: Check directory
-        run: |
-          ls ./reports -R
-
-      - name: Publish reports
-        uses: JamesIves/github-pages-deploy-action@4.1.0
-        with:
-          branch: gh-pages
-          folder: reports
 
   ###############################
   ### Release the new version ###
@@ -367,16 +204,15 @@ jobs:
     name: Release the new version
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [publish_results]
-    if: github.event_name != 'schedule' && success() && ${{ !contains(github.event.head_commit.message, '#docs') }}
+    needs: [build]
+    if: ${{ github.event_name != 'schedule' && success() && !contains(github.event.head_commit.message, '#docs') }}
 
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: 18
-          registry-url: https://registry.npmjs.org/
+          node-version: 22
 
       - run: npm i
 

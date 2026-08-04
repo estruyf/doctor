@@ -5,7 +5,7 @@ lastmod: 2021-02-22T10:06:07.167Z
 weight: 1
 draft: false
 keywords:
-  - ''
+  - ""
 ---
 
 The `callout` allow you to highlight certain parts of your documentation.
@@ -32,7 +32,7 @@ Example:
 
 The following HTML attributes are supported for the `callout`:
 
-- **type**: 
+- **type**:
   - note
   - tip
   - info

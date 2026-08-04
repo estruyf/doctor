@@ -1,9 +1,12 @@
-import { CheerioAPI, load, Element } from "cheerio";
-import * as matter from "gray-matter";
-import * as MarkdownIt from "markdown-it";
+import { CheerioAPI, load } from "cheerio";
+import { Element } from "domhandler";
+import matter from "gray-matter";
+import MarkdownIt from "markdown-it";
 import {
   CommandArguments,
+  PublishContext,
   PublishOutput,
+  TaskOutput,
   Control,
   PageFrontMatter,
 } from "@models";
@@ -16,11 +19,27 @@ import {
   MultilingualHelper,
   NavigationHelper,
   PagesHelper,
+  StateHelper,
   StatusHelper,
 } from "@helpers";
-import { Observable, Subscriber } from "rxjs";
 import { basename, join, dirname } from "path";
-import { existsAsync, mkdirAsync, readFileAsync, writeFileAsync } from "@utils";
+import {
+  existsAsync,
+  mkdirAsync,
+  readFileAsync,
+  relativePath,
+  writeFileAsync,
+} from "@utils";
+
+const getErrorMessage = (error: unknown): string => {
+  if (typeof error === "string") {
+    return error;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return JSON.stringify(error);
+};
 
 export class DoctorTranspiler {
   private static converter = new MarkdownIt({ html: true, breaks: true });
@@ -28,41 +47,122 @@ export class DoctorTranspiler {
   /**
    * Process the retrieved Markdown files
    * @param ctx
+   * @param task
+   * @param options
+   * @param output
    */
   public static async processMDFiles(
-    ctx: any,
+    ctx: PublishContext,
+    task: TaskOutput,
     options: CommandArguments,
-    output: PublishOutput
-  ): Promise<Observable<string>> {
+    output: PublishOutput,
+  ): Promise<void> {
     const { webUrl } = options;
 
-    return new Observable((observer) => {
-      (async () => {
-        const { files } = ctx;
+    Logger.debug("Starting processing the markdown files...");
+    Logger.debug(`Web URL: ${webUrl}`);
 
-        await PagesHelper.getAllPages(webUrl);
+    const { files } = ctx;
+    Logger.debug(`Number of markdown files found: ${files.length}`);
 
-        for (const file of files) {
-          try {
-            await this.processFile(file, observer, options, output);
-          } catch (e) {
-            observer.error(e);
-            Logger.debug(e.message);
+    await PagesHelper.getAllPages(webUrl);
 
-            if (!options.continueOnError) {
-              throw e.message;
-            }
-          }
+    let filesToProcess = files;
+    if (!options.forceAll) {
+      const plan = await this.buildProcessingPlan(files, options);
+      filesToProcess = plan.filesToProcess;
+      StatusHelper.addPagesSkipped(plan.skippedUnchanged);
+      task.output = `Processing ${filesToProcess.length} changed/new page${filesToProcess.length === 1 ? "" : "s"} (${plan.skippedUnchanged} unchanged skipped)`;
+    }
+
+    const total = filesToProcess.length;
+    if (total === 0) {
+      task.output = "No changed/new pages to process";
+      return;
+    }
+
+    for (let i = 0; i < filesToProcess.length; i++) {
+      const file = filesToProcess[i];
+      const relPath = relativePath(file);
+      const pageStart = Date.now();
+      task.output = `[${i + 1}/${total}] Processing ${relPath}`;
+
+      Logger.debug(`Processing file: ${relPath}`);
+
+      try {
+        await this.processFile(file, task, options, output, null, i + 1, total);
+      } catch (e) {
+        StatusHelper.addError(file);
+        // Prefix with the file so the failure is traceable when many pages
+        // share the same file name (e.g. index.md in every folder).
+        const errorMessage = `${relPath}: ${getErrorMessage(e)}`;
+        Logger.debug(errorMessage);
+
+        if (!options.continueOnError) {
+          throw new Error(errorMessage);
         }
-        observer.complete();
-      })();
-    });
+      } finally {
+        StatusHelper.addPageDuration(file, Date.now() - pageStart);
+      }
+    }
+  }
+
+  private static async buildProcessingPlan(
+    files: string[],
+    options: CommandArguments,
+  ): Promise<{ filesToProcess: string[]; skippedUnchanged: number }> {
+    const filesToProcess: string[] = [];
+    let skippedUnchanged = 0;
+
+    for (const file of files) {
+      if (!file.endsWith(".md")) {
+        continue;
+      }
+
+      const contents = await readFileAsync(file, { encoding: "utf-8" });
+      if (!contents) {
+        filesToProcess.push(file);
+        continue;
+      }
+
+      try {
+        const markup = matter(contents);
+
+        // Translation pages are handled from source pages when multilingual linking runs.
+        if (markup.data && markup.data.type === "translation") {
+          continue;
+        }
+
+        if (!markup.data || !markup.data.title) {
+          filesToProcess.push(file);
+          continue;
+        }
+
+        const slug = FrontMatterHelper.getSlug(
+          markup.data as PageFrontMatter,
+          options.startFolder,
+          file,
+        );
+        const contentHash = StateHelper.hashContent(contents);
+
+        if (StateHelper.hasChanged(slug, contentHash)) {
+          filesToProcess.push(file);
+        } else {
+          skippedUnchanged++;
+        }
+      } catch {
+        // Keep error handling behavior in processFile by letting it process this file normally.
+        filesToProcess.push(file);
+      }
+    }
+
+    return { filesToProcess, skippedUnchanged };
   }
 
   /**
    * Process page
    * @param file
-   * @param observer
+   * @param task
    * @param converter
    * @param options
    * @param output
@@ -70,20 +170,29 @@ export class DoctorTranspiler {
    */
   public static async processFile(
     file: string,
-    observer: Subscriber<string>,
+    task: TaskOutput,
     options: CommandArguments,
     output: PublishOutput,
-    languagePageSlug: string = null
+    languagePageSlug: string | null = null,
+    currentIndex: number = 0,
+    totalFiles: number = 0,
   ) {
     const { webUrl, webPartTitle, skipExistingPages, disableComments } =
       options;
+    const progressPrefix =
+      currentIndex > 0 && totalFiles > 0 ? `[${currentIndex}/${totalFiles}] ` : "";
+    const setProgress = (message: string) => {
+      task.output = `${progressPrefix}${message}`;
+    };
 
     if (file.endsWith(".md")) {
-      const filename = basename(file);
-      observer.next(`Started processing: ${filename}`);
+      const relPath = relativePath(file);
 
       let contents = await readFileAsync(file, { encoding: "utf-8" });
       if (contents) {
+        // Compute hash once — used for change detection and state recording
+        const contentHash = StateHelper.hashContent(contents);
+
         const markup: matter.GrayMatterFile<string> = matter(contents);
 
         // Don't process language files, these will be processed later in the process
@@ -100,18 +209,20 @@ export class DoctorTranspiler {
           : this.converter.render(contents);
 
         const $ = load(htmlMarkup, {
-          xmlMode: true,
-          decodeEntities: false,
+          xml: {
+            xmlMode: true,
+            decodeEntities: false,
+          },
         });
         const imgElms = $(`img`).toArray();
         const anchorElms = $(`a`).toArray();
 
         // Check if the required data for the article is present
         if (markup && !markup.data) {
-          throw new Error(`The "${filename}" has no front matter defined`);
+          throw new Error(`The "${relPath}" has no front matter defined`);
         } else if (markup && markup.data) {
           if (!markup.data.title) {
-            throw new Error(`The "${filename}" has no 'title' defined`);
+            throw new Error(`The "${relPath}" has no 'title' defined`);
           }
         }
 
@@ -122,8 +233,18 @@ export class DoctorTranspiler {
           FrontMatterHelper.getSlug(
             markup.data as PageFrontMatter,
             options.startFolder,
-            file
+            file,
           );
+
+        // Change detection: skip unchanged files unless --forceAll is set
+        if (!options.forceAll && !languagePageSlug) {
+          if (!StateHelper.hasChanged(slug, contentHash)) {
+            setProgress(`Skipped (unchanged): ${relPath}`);
+            Logger.debug(`Skipping unchanged file: ${relPath}`);
+            StatusHelper.addPageSkipped();
+            return;
+          }
+        }
 
         // Check if comments are disabled on global level, or overwrite it from page level
         const disablePageComments =
@@ -131,12 +252,14 @@ export class DoctorTranspiler {
             ? !markup.data.comments
             : disableComments;
         Logger.debug(
-          `Page comments ${disablePageComments ? "disabled" : "enabled"}`
+          `Page comments ${disablePageComments ? "disabled" : "enabled"}`,
         );
 
         // Image processing
         if (imgElms && imgElms.length > 0) {
-          observer.next(`Uploading images referenced in ${filename}`);
+          setProgress(
+            `Uploading ${imgElms.length} image${imgElms.length === 1 ? "" : "s"} from ${relPath}`,
+          );
 
           markup.content = await this.processImages(
             $,
@@ -144,15 +267,18 @@ export class DoctorTranspiler {
             file,
             markup.content,
             options,
-            output
+            output,
+            task,
           );
         }
 
         // Anchor processing
         if (anchorElms && anchorElms.length > 0) {
-          observer.next(`Processing links in ${filename}`);
+          setProgress(
+            `Processing ${anchorElms.length} link${anchorElms.length === 1 ? "" : "s"} in ${relPath}`,
+          );
 
-          Logger.debug(`Number of links in ${filename}: ${anchorElms.length}`);
+          Logger.debug(`Number of links in ${relPath}: ${anchorElms.length}`);
 
           try {
             markup.content = await this.processLinks(
@@ -160,10 +286,12 @@ export class DoctorTranspiler {
               anchorElms,
               file,
               markup.content,
-              options
+              options,
             );
-          } catch (e) {
-            throw e.message;
+          } catch (e: any) {
+            const message =
+              typeof e === "string" ? e : e?.message || JSON.stringify(e);
+            throw new Error(`Failed while processing links in ${relPath}. ${message}`);
           }
         }
 
@@ -172,7 +300,7 @@ export class DoctorTranspiler {
           const { outputFolder, startFolder } = options;
           const processedFilePath = file.replace(
             startFolder,
-            join(process.cwd(), outputFolder)
+            join(process.cwd(), outputFolder),
           );
           const dirPath = dirname(processedFilePath);
           await mkdirAsync(dirPath, { recursive: true });
@@ -182,9 +310,7 @@ export class DoctorTranspiler {
         }
 
         if (markup && markup.content) {
-          observer.next(
-            `Creating or updating the page in SharePoint for ${filename}`
-          );
+          setProgress(`Checking if page exists: ${slug}`);
 
           // Check if the page already exists
           const existed = await PagesHelper.createPageIfNotExists(
@@ -195,11 +321,11 @@ export class DoctorTranspiler {
             disablePageComments,
             description,
             template || options.pageTemplate,
-            skipExistingPages && !languagePageSlug
+            skipExistingPages && !languagePageSlug,
           );
 
           Logger.debug(
-            `Page existed: ${existed} - Skipping existing pages: ${skipExistingPages}`
+            `Page existed: ${existed} - Skipping existing pages: ${skipExistingPages}`,
           );
 
           if (
@@ -207,26 +333,22 @@ export class DoctorTranspiler {
             (existed && !skipExistingPages) ||
             (existed && languagePageSlug)
           ) {
-            // Check if the header of the page needs to be changed
-            await HeaderHelper.set(
-              file,
-              webUrl,
-              slug,
-              header,
-              options,
-              !!(template || options.pageTemplate)
+            setProgress(
+              existed
+              ? `Updating existing page: ${title}`
+              : `Creating new page: ${title}`,
             );
 
             // Retrieving all the controls from the page, so that we can start replacing the
             const controlData: string = await PagesHelper.getPageControls(
               webUrl,
-              slug
+              slug,
             );
             if (controlData) {
               const webparts: Control[] = JSON.parse(controlData);
-              const markdownWp: Control = webparts.find(
+              const markdownWp: Control | undefined = webparts.find(
                 (c: Control) =>
-                  c.webPartData && c.webPartData.title === webPartTitle
+                  c.webPartData && c.webPartData.title === webPartTitle,
               );
               await PagesHelper.insertOrCreateControl(
                 webPartTitle,
@@ -234,32 +356,60 @@ export class DoctorTranspiler {
                 slug,
                 webUrl,
                 options,
-                markdownWp ? markdownWp.id : null,
-                options.markdown,
-                file.endsWith(`.machinetranslated.md`)
+                markdownWp ? markdownWp.id : undefined,
+                options.markdown ?? null,
+                file.endsWith(`.machinetranslated.md`),
               );
             }
 
+            // Apply the page header after the page has content, because the CLI header command
+            // fails on pages with uninitialized CanvasContent1/LayoutWebpartsContent.
+            await HeaderHelper.set(
+              file,
+              webUrl,
+              slug,
+              header,
+              options,
+              !!(template || options.pageTemplate),
+            );
+
             // Check if metadata needs to be added to the page
             if (metadata) {
+              setProgress(`Setting metadata for ${relPath}`);
               await PagesHelper.setPageMetadata(webUrl, slug, metadata);
             }
 
             // Check if page needs to be published
             if (typeof draft === "undefined" || !draft) {
-              observer.next(`Publishing ${filename}`);
+              setProgress(`Publishing page: ${title}`);
               await PagesHelper.publishPageIfNeeded(webUrl, slug);
             }
 
             // Set the page its description
             if (description) {
-              observer.next(`Setting page description for ${filename}`);
+              setProgress(`Setting page description for ${relPath}`);
               await PagesHelper.setPageDescription(webUrl, slug, description);
             }
 
-            StatusHelper.addPage();
+            if (existed) {
+              StatusHelper.addPageUpdated();
+            } else {
+              StatusHelper.addPageCreated();
+            }
+
+            // Record hash so future runs can skip unchanged files and resume reliably
+            if (!options.disableStatePersistence) {
+              StateHelper.markPublished(slug, contentHash);
+              await StateHelper.save(
+                webUrl,
+                options.assetLibrary,
+                options.stateFile,
+              );
+            }
           } else {
-            Logger.debug(`Skipping "${filename}" as it already exists`);
+            setProgress(`Skipped (already exists): ${relPath}`);
+            Logger.debug(`Skipping "${relPath}" as it already exists`);
+            StatusHelper.addPageSkipped();
           }
         }
 
@@ -273,8 +423,8 @@ export class DoctorTranspiler {
         ) {
           Logger.debug(
             `Adding item to the navigation: ${slug} - ${title} - ${JSON.stringify(
-              markup.data.menu
-            )} `
+              markup.data.menu,
+            )} `,
           );
 
           output.navigation = NavigationHelper.hierarchy(
@@ -282,7 +432,7 @@ export class DoctorTranspiler {
             output.navigation,
             markup.data.menu,
             slug,
-            title
+            title,
           );
         }
 
@@ -300,8 +450,8 @@ export class DoctorTranspiler {
             file,
             slug,
             options,
-            observer,
-            output
+            task,
+            output,
           );
         }
       }
@@ -316,6 +466,7 @@ export class DoctorTranspiler {
    * @param contents
    * @param options
    * @param output
+   * @param task
    */
   private static async processImages(
     $: CheerioAPI,
@@ -323,17 +474,22 @@ export class DoctorTranspiler {
     filePath: string,
     contents: string,
     options: CommandArguments,
-    output: PublishOutput
+    output: PublishOutput,
+    task: TaskOutput,
   ) {
     const { startFolder, assetLibrary, webUrl, overwriteImages } = options;
 
     const imgSources = imgElms
-      .filter((i) => !$(i).attr("src").startsWith(`http`))
-      .map((img) => $(img).attr("src"));
+      .filter((i) => !!$(i).attr("src") && !$(i).attr("src")!.startsWith(`http`))
+      .map((img) => $(img).attr("src")!);
     const uImgSources = [...new Set(imgSources)];
+    const total = uImgSources.length;
 
-    for (const imgSource of uImgSources) {
+    for (let idx = 0; idx < uImgSources.length; idx++) {
+      const imgSource = uImgSources[idx];
       Logger.debug(`Adding image: ${imgSource} - ${imgSources.length}`);
+
+      task.output = `Uploading image [${idx + 1}/${total}]: ${imgSource}`;
 
       const imgDirectory = join(dirname(filePath), dirname(imgSource));
       const imgPath = join(dirname(filePath), imgSource);
@@ -353,15 +509,17 @@ export class DoctorTranspiler {
           crntFolder,
           imgPath,
           webUrl,
-          overwriteImages
+          overwriteImages,
         );
-        contents = contents.replace(new RegExp(imgSource, "g"), imgUrl);
+        const escapedImgSource = imgSource.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        contents = contents.replace(new RegExp(escapedImgSource, "g"), imgUrl);
         StatusHelper.addImage();
       } catch (e) {
+        const errorMessage = getErrorMessage(e);
         return Promise.reject(
           new Error(
-            `Something failed while uploading the image asset. ${e.message}`
-          )
+            `Something failed while uploading the image asset. ${errorMessage}`,
+          ),
         );
       }
     }
@@ -382,28 +540,29 @@ export class DoctorTranspiler {
     linkElms: Element[],
     filePath: string,
     content: string,
-    options: CommandArguments
+    options: CommandArguments,
   ): Promise<string> {
     const { webUrl, startFolder } = options;
 
     const fLinks = linkElms.filter(
-      (i) => !$(i).attr("href").startsWith(`http`)
+      (i) => !!$(i).attr("href") && !$(i).attr("href")!.startsWith(`http`),
     );
     const uLinks = [...new Set(fLinks)];
 
     for (const link of uLinks) {
       const $link = $(link);
       const fileLink = $link.attr("href");
+      if (!fileLink) continue;
       let mdFile = "";
 
       Logger.debug(`Processing link: ${fileLink} for ${filePath}`);
 
       if (fileLink.endsWith(`.md`)) {
-        mdFile = $link.attr("href");
+        mdFile = fileLink;
       } else if (fileLink === ".") {
         mdFile = basename(filePath);
       } else {
-        mdFile = `${$link.attr("href")}.md`;
+        mdFile = `${fileLink}.md`;
       }
 
       const mdFilePath = join(dirname(filePath), mdFile);
@@ -416,19 +575,26 @@ export class DoctorTranspiler {
           encoding: "utf-8",
         });
         if (!mdContents) {
-          return;
+          continue;
         }
 
         // Get the slug
         const mdData = matter(mdContents);
         if (!mdData || !mdData.data) {
-          return;
+          continue;
+        }
+
+        if (!mdData.data.slug && !mdData.data.title) {
+          Logger.debug(
+            `Skipping link target without title/slug front matter: ${mdFilePath}`,
+          );
+          continue;
         }
 
         const slug = FrontMatterHelper.getSlug(
           mdData.data as PageFrontMatter,
           startFolder,
-          mdFilePath
+          mdFilePath,
         );
         const spUrl = `${webUrl}${
           webUrl.endsWith("/") ? "" : "/"

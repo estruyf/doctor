@@ -1,6 +1,10 @@
-const fs = require('fs');
-const path = require('path');
-const packageJson = require('../package.json');
-packageJson.version += `-beta.${process.argv[process.argv.length-1].substr(0, 7)}`;
+import fs from "node:fs";
+import path from "node:path";
+
+const packageJsonPath = path.join(path.resolve("."), "package.json");
+const packageJson = JSON.parse(
+  fs.readFileSync(packageJsonPath, { encoding: "utf-8" }),
+);
+packageJson.version += `-beta.${process.argv[process.argv.length - 1].substr(0, 7)}`;
 console.log(packageJson.version);
-fs.writeFileSync(path.join(path.resolve('.'), 'package.json'), JSON.stringify(packageJson, null, 2));
+fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));

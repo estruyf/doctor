@@ -1,7 +1,12 @@
-import { CliCommand, ArgumentsHelper, execScript, Logger } from "@helpers";
+import { CliCommand, executeWithRetry, Logger } from "@helpers";
+import { executeCommand } from "@pnp/cli-microsoft365";
 
 export class FolderHelpers {
   private static checkedFolders: string[] = [];
+
+  public static reset() {
+    FolderHelpers.checkedFolders = [];
+  }
 
   /**
    * Create new folders
@@ -22,12 +27,12 @@ export class FolderHelpers {
 
         if (this.checkedFolders.indexOf(folderToProcess) === -1) {
           try {
-            let scriptData: any = await execScript(
-              ArgumentsHelper.parse(
-                `spo folder get --webUrl "${webUrl}" --folderUrl "${folderToProcess}" -o json`
-              ),
-              false
-            );
+            const { stdout } = await executeCommand("spo folder get", {
+              webUrl,
+              url: folderToProcess,
+              output: "json",
+            });
+            let scriptData: any = stdout;
 
             if (scriptData && typeof scriptData === "string") {
               scriptData = JSON.parse(scriptData);
@@ -37,10 +42,13 @@ export class FolderHelpers {
               throw "Folder doesn't seem to exist yet";
             }
           } catch (e) {
-            await execScript(
-              ArgumentsHelper.parse(
-                `spo folder add --webUrl "${webUrl}" --parentFolderUrl "/${crntFolder}" --name "${folder}"`
-              ),
+            await executeWithRetry(
+              "spo folder add",
+              {
+                webUrl,
+                parentFolderUrl: `/${crntFolder}`,
+                name: folder,
+              },
               CliCommand.getRetry()
             );
           }

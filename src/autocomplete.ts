@@ -1,15 +1,18 @@
-import * as omelette from "omelette";
+import omelette from "omelette";
 import { Command } from "@commands";
 import { OptionsHelper } from "@helpers";
 
+// Commands which do not accept any of the doctor arguments.
+const COMMANDS_WITHOUT_ARGS: string[] = [
+  Command.version,
+  Command.setup,
+  Command.cleanup,
+];
+
 export class Autocomplete {
-  private complete: omelette.Instance = null;
-  private commands: string[] = [
-    Command.cleanup,
-    Command.init,
-    Command.publish,
-    Command.version,
-  ];
+  private complete: omelette.Instance | null = null;
+  // Derived from the Command enum so newly added commands are suggested automatically.
+  private commands: string[] = Object.values(Command).sort();
 
   constructor() {
     this.complete = omelette(`doctor`);
@@ -18,23 +21,23 @@ export class Autocomplete {
   }
 
   /**
-   * Install the autocomplete functionality
+   * Installs shell initialization required for Doctor command autocompletion.
+   * @returns Nothing.
    */
   public setup() {
-    this.complete.setupShellInitFile();
+    this.complete?.setupShellInitFile();
   }
 
-  /**
-   * Cleanup the autocomplete functionality
-   */
   public cleanup() {
-    this.complete.cleanupShellInitFile();
+    this.complete?.cleanupShellInitFile();
   }
 
   /**
-   * Handles the autocomplete per command
-   * @param fragment
-   * @param data
+   * Resolves autocomplete suggestions based on the current command line context.
+   * Returns command names for the first argument and available flags for subsequent arguments.
+   * @param fragment The current token fragment being completed.
+   * @param data Omelette callback payload containing line context and response handler.
+   * @returns Nothing. Suggestions are returned through data.reply(...).
    */
   private handleAutocomplete = (
     fragment: string,
@@ -48,7 +51,7 @@ export class Autocomplete {
     } else {
       allWords = data.line.split(/\s+/).slice(1, -1);
 
-      if (allWords[0] !== Command.version && allWords[0] !== Command.cleanup) {
+      if (!COMMANDS_WITHOUT_ARGS.includes(allWords[0])) {
         const args = OptionsHelper.getArgs();
         const keys = Object.keys(args);
         replies = keys.filter(

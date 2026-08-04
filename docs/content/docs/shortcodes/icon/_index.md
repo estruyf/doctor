@@ -5,7 +5,7 @@ lastmod: 2021-02-22T10:06:07.167Z
 weight: 2
 draft: false
 keywords:
-  - ''
+  - ""
 ---
 
 The `icon` shortcode allows you to include icons from [Fluent UI](https://github.com/microsoft/fluentui-system-icons/blob/master/icons.md).

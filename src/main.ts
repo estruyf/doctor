@@ -1,19 +1,26 @@
-import * as kleur from "kleur";
-import { Command, Init, Publish, Version } from "@commands";
+import kleur from "kleur";
+import { Command, Init, Publish, Status, Version, Workflow } from "@commands";
 import { CommandArguments } from "@models";
 import {
   CliCommand,
+  FileHelpers,
+  FolderHelpers,
+  ListHelpers,
   Logger,
+  NavigationHelper,
+  PagesHelper,
+  StateHelper,
   ShortcodesHelpers,
   StatusHelper,
-  TelemetryHelper,
 } from "@helpers";
-import { autocomplete } from "./autocomplete";
+import { autocomplete } from "./autocomplete.js";
 
 export class Commands {
   /**
-   * Starts the command processing
-   * @param options
+  * Dispatches the selected command and handles shared runtime initialization,
+  * logging, shortcode setup, and execution timing output.
+  * @param options Parsed command options used to determine which command to run.
+  * @returns A promise that resolves when the selected command flow completes.
    */
   public static async start(options: CommandArguments) {
     if (options) {
@@ -22,10 +29,9 @@ export class Commands {
       // Disable the CLI update check to speed up the process
       process.env["CLIMICROSOFT365_NOUPDATE"] = "1";
 
+      Commands.resetRuntimeState();
       Logger.init(options.debug);
       CliCommand.init(options);
-      TelemetryHelper.trackTask(options);
-      StatusHelper.getInstance();
 
       console.log("");
       console.log(
@@ -48,8 +54,12 @@ export class Commands {
         await Publish.start(options);
       } else if (options.task === Command.init) {
         await Init.start(options);
+      } else if (options.task === Command.workflow) {
+        await Workflow.start(options);
       } else if (options.task === Command.version) {
         Version.start();
+      } else if (options.task === Command.status) {
+        await Status.start(options);
       } else if (options.task === Command.setup) {
         autocomplete.setup();
       } else if (options.task === Command.cleanup) {
@@ -68,5 +78,18 @@ export class Commands {
       );
       console.log("");
     }
+  }
+
+  private static resetRuntimeState() {
+    Logger.reset();
+    CliCommand.reset();
+    StatusHelper.reset();
+    ShortcodesHelpers.reset();
+    StateHelper.reset();
+    NavigationHelper.reset();
+    FileHelpers.reset();
+    PagesHelper.reset();
+    ListHelpers.reset();
+    FolderHelpers.reset();
   }
 }

@@ -1,4 +1,5 @@
-import { ArgumentsHelper, execScript, Logger } from ".";
+import { Logger } from "./index.js";
+import { executeCommand } from "@pnp/cli-microsoft365";
 
 
 export class AccessToken {
@@ -9,8 +10,15 @@ export class AccessToken {
    * @returns access token
    */
   public static async get(webUrl: string) {
-    await execScript(ArgumentsHelper.parse(`spo set --url "${webUrl}"`), false);
-    const token: string = await execScript(ArgumentsHelper.parse(`util accesstoken get --resource "${`https://${new URL(webUrl).hostname}`}"`), false);
+    // `spo set` stores the URL of the *root* site collection. Passing the site URL
+    // here corrupts it, as commands which talk to the admin site derive their URL
+    // from it and would end up calling `https://<tenant>-admin.sharepoint.com/sites/<site>`.
+    const { origin } = new URL(webUrl);
+
+    await executeCommand("spo set", { url: origin });
+    const { stdout: token } = await executeCommand("util accesstoken get", {
+      resource: origin,
+    });
     if (!token) {
       Logger.debug(`Failed to retrieve an access token.`)
       throw `Failed to retrieve an access token.`;
