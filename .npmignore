@@ -4,7 +4,6 @@
 .husky
 
 assets
-cypress
 docs
 mochawesome-report
 node_modules
@@ -17,6 +16,4 @@ src
 .gitmodules
 
 changelog.json
-cypress.json
-cypress.sample.json
 tsconfig.json

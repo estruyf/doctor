@@ -2,12 +2,11 @@
 title: Multilingual
 date: 2021-03-10T14:33:47.481Z
 lastmod: 2021-03-10T14:33:47.852Z
-weight: 3
+weight: 4
 draft: false
 keywords:
-  - ''
+  - ""
 ---
-
 
 If you need to build yourself a multilingual knowledge base, documentation site, or intranet. `doctor` is here to help you out with that.
 
@@ -31,8 +30,8 @@ Example setup:
       1043
     ],
     "overwriteTranslationsOnChange": true,
-    "translator:" null
-  } 
+    "translator": null
+  }
 }
 ```
 
@@ -47,7 +46,7 @@ When creating multilingual pages, you will need to link each of the language pag
 On your source page, you add the `localization` property to its front matter. You can do this as follows:
 
 ```yaml
-localization: 
+localization:
   "nl-nl": ./home.nl.lang.md
 ```
 
@@ -79,12 +78,12 @@ If you want to make use of the Azure Translator service which is part of the [Az
       1043
     ],
     "overwriteTranslationsOnChange": true,
-    "translator:" {
+    "translator": {
       "key": "<subscription key>",
       "endpoint": "https://api.cognitive.microsofttranslator.com/",
       "region": "<region name, example: westeurope>"
     }
-  } 
+  }
 }
 ```
 
@@ -93,7 +92,7 @@ If you want to make use of the Azure Translator service which is part of the [Az
 When you want to make use of this APIs for page translations. All you need to do is specifying the `localization` property to its front matter of the page. In this case, you do not need to specify the path to the page. As the page will be translated on the fly.
 
 ```yaml
-localization: 
+localization:
   "nl-nl":
 ```
 

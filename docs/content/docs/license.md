@@ -4,7 +4,7 @@ date: 2021-03-01T19:27:27.537Z
 description: The license of Doctor
 ---
 
-Copyright (c) Elio Struyf. All rights reserved. 
+Copyright (c) Elio Struyf. All rights reserved.
 
 MIT License
 

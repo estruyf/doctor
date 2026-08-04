@@ -33,7 +33,7 @@ As we understand that it is not the best experience for developers to write docu
 
 Under the hood, it makes use of the [CLI for Microsoft 365](https://pnp.github.io/cli-microsoft365/).
 
-> Today `doctor` is maintained by `Elio Struyf`.
+> Today `doctor` is maintained by `Elio Struyf` and `Dmitriy Van der Elst`.
 
 ## Documentation
 
@@ -44,6 +44,8 @@ More information about how you can use `doctor` can be found in our documentatio
 ## Installation
 
 Thank you for your interest in the `doctor`. The following information will help you install `doctor`.
+
+`doctor` requires **Node.js 22.13.0 or higher**.
 
 Start by installing `doctor` as follows via npm:
 
@@ -75,7 +77,7 @@ Feedback can also be provided to the [discussion list](https://github.com/estruy
 
 ## Disclaimer
 
-**THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.**
+**THIS CODE IS PROVIDED _AS IS_ WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.**
 
 <p align="center">
   <a href="#">

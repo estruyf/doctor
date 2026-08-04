@@ -1,9 +1,15 @@
-import kleur = require("kleur");
+import kleur from "kleur";
 import { Command, Version } from "@commands";
 import { OptionsHelper, TempDataHelper } from "@helpers";
-import { Commands } from "./main";
+import { Commands } from "./main.js";
 import { CommandArguments } from "@models";
 
+/**
+ * Runs the CLI entry flow: resolves version/configuration, executes the selected
+ * command, and ensures temporary data is cleared on success or failure.
+ * @param args Raw CLI arguments passed to the process.
+ * @returns A promise that resolves when the command finishes. The process exits with code 0 or 1.
+ */
 export async function cli(args: string[]) {
   const version = await Version.getVersion();
   console.log("");
@@ -36,6 +42,14 @@ export async function cli(args: string[]) {
           )
       );
       console.log("");
+      console.log(
+        kleur
+          .blue()
+          .italic(
+            "Maintained by Dmitriy Van der Elst - https://www.linkedin.com/in/dmitriy-van-der-elst/ - @dmitriyvde"
+          )
+      );
+      console.log("");
     } else {
       await Commands.start(options);
       await TempDataHelper.clear();
@@ -44,10 +58,17 @@ export async function cli(args: string[]) {
   } catch (e: any | Error) {
     await TempDataHelper.clear();
 
-    console.log(
-      kleur.bgRed().bold().white(` ERROR: `),
-      kleur.bold().red(e.message.toString())
-    );
+    if (typeof e === "string") {
+      console.log(
+        kleur.bgRed().bold().white(` ERROR: `),
+        kleur.bold().red(e)
+      );
+    } else {
+      console.log(
+        kleur.bgRed().bold().white(` ERROR: `),
+        kleur.bold().red(e.message?.toString() || JSON.stringify(e))
+      );
+    }
     process.exit(1);
   }
 }

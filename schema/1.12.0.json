@@ -5,25 +5,27 @@
   "title": "Doctor configuration",
   "description": "The configuration schema for doctor.json.",
   "default": {},
-  "examples": [{
-    "url": "https://tenant.sharepoint.com/sites/documentation",
-    "auth": "deviceCode",
-    "overwriteImages": false,
-    "folder": "./src",
-    "library": "Shared Documents",
-    "menu": {
-      "QuickLaunch": {
-        "items": [{
-          "id": "documentation",
-          "name": "Documentation",
-          "url": ""
-        }]
+  "examples": [
+    {
+      "url": "https://tenant.sharepoint.com/sites/documentation",
+      "auth": "deviceCode",
+      "overwriteImages": false,
+      "folder": "./src",
+      "library": "Shared Documents",
+      "menu": {
+        "QuickLaunch": {
+          "items": [
+            {
+              "id": "documentation",
+              "name": "Documentation",
+              "url": ""
+            }
+          ]
+        }
       }
     }
-  }],
-  "required": [
-    "url"
   ],
+  "required": ["url"],
   "definitions": {
     "items": {
       "title": "items",
@@ -57,11 +59,7 @@
         "title": "auth",
         "description": "Specify the authentication type to use. Values can be `deviceCode` (default) or `password`.",
         "default": "deviceCode",
-        "enum": [
-          "deviceCode",
-          "password",
-          "certificate"
-        ]
+        "enum": ["deviceCode", "password", "certificate"]
       },
       "password": {
         "$id": "#/properties/password",
@@ -202,9 +200,7 @@
             "type": "object",
             "title": "QuickLaunch",
             "description": "QuickLaunch navigation element.",
-            "required": [
-              "items"
-            ],
+            "required": ["items"],
             "properties": {
               "items": {
                 "$ref": "#/definitions/items"
@@ -216,9 +212,7 @@
             "type": "object",
             "title": "TopNavigation",
             "description": "TopNavigation navigation element.",
-            "required": [
-              "items"
-            ],
+            "required": ["items"],
             "properties": {
               "items": {
                 "$ref": "#/definitions/items"

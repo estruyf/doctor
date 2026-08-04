@@ -1,12 +1,11 @@
 import { join, dirname, basename } from "path";
 import { CommandArguments, HeaderOptions } from "@models";
 import {
-  ArgumentsHelper,
   CliCommand,
+  executeWithRetry,
   FileHelpers,
   FolderHelpers,
   Logger,
-  execScript,
 } from "@helpers";
 
 export class HeaderHelper {
@@ -22,7 +21,7 @@ export class HeaderHelper {
     filePath: string,
     webUrl: string,
     slug: string,
-    header: HeaderOptions,
+    header: HeaderOptions | undefined,
     options: CommandArguments,
     isCopy: boolean = false
   ) {
@@ -30,12 +29,16 @@ export class HeaderHelper {
 
     Logger.debug(`Setting the page header for ${slug}`);
 
-    let setPageHeader = `spo page header set --webUrl "${webUrl}" --pageName "${slug}"`;
-    const headerLength = setPageHeader.length;
+    const headerOptions: any = {
+      webUrl,
+      pageName: slug,
+    };
+    let hasHeaderUpdates = false;
 
     if (header) {
       if (header.type) {
-        setPageHeader = `${setPageHeader} --type "${header.type}"`;
+        headerOptions.type = header.type;
+        hasHeaderUpdates = true;
       }
 
       if (header.image) {
@@ -57,55 +60,64 @@ export class HeaderHelper {
           webUrl,
           `${crntFolder}/${basename(header.image)}`
         );
-        setPageHeader = `${setPageHeader} --imageUrl "${imgUrl}"`;
+        headerOptions.imageUrl = imgUrl;
+        hasHeaderUpdates = true;
 
         if (header.altText) {
-          setPageHeader = `${setPageHeader} --altText "${header.altText}"`;
+          headerOptions.altText = header.altText;
+          hasHeaderUpdates = true;
         }
 
         if (typeof header.translateX !== "undefined") {
-          setPageHeader = `${setPageHeader} --translateX "${header.translateX}"`;
+          headerOptions.translateX = header.translateX;
+          hasHeaderUpdates = true;
         }
 
         if (typeof header.translateY !== "undefined") {
-          setPageHeader = `${setPageHeader} --translateY "${header.translateY}"`;
+          headerOptions.translateY = header.translateY;
+          hasHeaderUpdates = true;
         }
       }
 
       if (header.layout) {
-        setPageHeader = `${setPageHeader} --layout "${header.layout}"`;
+        headerOptions.layout = header.layout;
+        hasHeaderUpdates = true;
       }
 
       if (header.textAlignment) {
-        setPageHeader = `${setPageHeader} --textAlignment "${header.textAlignment}"`;
+        headerOptions.textAlignment = header.textAlignment;
+        hasHeaderUpdates = true;
       }
 
       if (header.showTopicHeader) {
-        setPageHeader = `${setPageHeader} --showTopicHeader`;
+        headerOptions.showTopicHeader = true;
+        hasHeaderUpdates = true;
       }
 
       if (header.topicHeader) {
-        setPageHeader = `${setPageHeader} --topicHeader "${header.topicHeader}"`;
+        headerOptions.topicHeader = header.topicHeader;
+        hasHeaderUpdates = true;
       }
 
       if (header.showPublishDate) {
-        setPageHeader = `${setPageHeader} --showPublishDate`;
+        headerOptions.showPublishDate = true;
+        hasHeaderUpdates = true;
       }
 
       if (header.authors) {
-        setPageHeader = `${setPageHeader} --authors "${header.authors.join(
-          ","
-        )}"`;
+        headerOptions.authors = header.authors.join(",");
+        hasHeaderUpdates = true;
       }
     }
 
     if (header || (!header && !isCopy)) {
       // Check if header is changed
-      if (headerLength === setPageHeader.length) {
+      if (!hasHeaderUpdates) {
         return;
       }
-      await execScript(
-        ArgumentsHelper.parse(`${setPageHeader}`),
+      await executeWithRetry(
+        "spo page header set",
+        headerOptions,
         CliCommand.getRetry()
       );
     }

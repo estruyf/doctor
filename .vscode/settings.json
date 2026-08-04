@@ -1,5 +1,7 @@
 {
   "exportall.config.folderListener": [
     "/src/utils"
-  ]
+  ],
+  "exportall.config.exportFileExtension": ".js",
+  "biome.enabled": false
 }

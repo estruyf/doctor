@@ -1,0 +1,73 @@
+name: Automated test run
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+jobs:
+  #####################################
+  ### Publishing on macOS and Linux ###
+  #####################################
+  build:
+    name: Build ${{ matrix.os }} - Bash
+    runs-on: ${{ matrix.os }}
+    if: ${{ !contains(github.event.head_commit.message, '#docs') }}
+
+    strategy:
+      matrix:
+        include:
+          - node: 22
+            os: ubuntu-latest
+            siteUrl: SITEURL_LINUX
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Cache node modules
+        uses: actions/cache@v5
+        with:
+          # npm cache files are stored in `~/.npm` on Linux/macOS
+          path: ~/.npm
+          key: ${{ matrix.os }}-release-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ matrix.os }}-release-
+
+      - run: npm i
+
+      - run: npm start
+
+      - run: npm link
+
+      - name: Publish via Doctor
+        run: |
+          if [[ ${GITHUB_REF} != "refs/heads/main" ]]
+          then
+            git clone -b dev https://github.com/estruyf/doctor-sample
+          else
+            git clone https://github.com/estruyf/doctor-sample
+          fi
+
+          node ./scripts/prepare-sample.js
+          cd doctor-sample
+
+          startClean=""
+          # Check on which branch it is running
+          if [[ ${GITHUB_REF} == "refs/heads/main" || ${GITHUB_EVENT_NAME} == 'workflow_dispatch' ]]; then
+            startClean="--cleanStart"
+          fi
+
+          skipPages=""
+          # Check on which branch it is running
+          if [[ ${GITHUB_EVENT_NAME} == "schedule" ]]; then
+            skipPages="--skipExistingPages"
+          fi
+
+          doctor publish --auth certificate --certificateBase64Encoded "${{ secrets.CERTIFICATEBASE64ENCODED }}" --password "${{ secrets.PASSWORD }}" --appId "${{ secrets.APPID }}" --tenant "${{ secrets.TENANT }}" --url "${{ secrets[matrix.siteUrl] }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd --confirm $startClean $skipPages
+        env:
+          DEBUG: ${{ secrets.DEBUG }}
+          TRANSLATOR_KEY: ${{ secrets.TRANSLATOR_KEY }}

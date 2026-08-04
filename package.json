@@ -1,29 +1,27 @@
 {
   "name": "@estruyf/doctor",
-  "version": "1.12.0",
+  "version": "2.0.0",
   "description": "Maintain your documentation on SharePoint without pain.",
   "main": "dist/main.js",
   "homepage": "https://github.com/estruyf/doctor",
   "bin": {
     "doctor": "bin/doctor",
-    "doctor_auto": "bin/autocomplete",
-    "localm365": "bin/localm365"
+    "doctor_auto": "bin/autocomplete"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.13.0"
   },
   "publishConfig": {
     "access": "public"
   },
+  "type": "module",
   "scripts": {
     "start": "npm run build",
     "build": "npm run clean && tsc && tsc-alias",
-    "watch": "node ./scripts/reset-debug.js && tsc -w",
-    "watch:debug": "node ./scripts/init-debug.js && tsc -w",
-    "clean": "rm -rf dist mochawesome-report ./cypress/screenshots ./cypress/videos",
-    "test": "cypress open",
-    "test:e2e": "cypress open",
-    "test:e2e:run": "cypress run --browser edge",
+    "test": "npm run build && node --test tests/**/*.test.mjs",
+    "clean": "rm -rf dist",
+    "watch": "node ./scripts/reset-debug.js && (tsc -w & tsc-alias -w)",
+    "watch:debug": "node ./scripts/init-debug.js && (tsc -w & tsc-alias -w)",
     "docs": "cd docs && hogo serve",
     "prepare": "husky install"
   },
@@ -41,17 +39,32 @@
     "type": "git",
     "url": "https://github.com/estruyf/doctor.git"
   },
-  "maintainers": [{
-    "name": "Elio Struyf",
-    "email": "elio@struyfconsulting.be",
-    "url": "https://www.eliostruyf.com"
-  }],
-  "contributors": [{
-    "name": "Elio Struyf",
-    "email": "elio@struyfconsulting.be",
-    "url": "https://www.eliostruyf.com"
-  }],
-  "funding": [{
+  "maintainers": [
+    {
+      "name": "Elio Struyf",
+      "email": "elio@struyfconsulting.be",
+      "url": "https://www.eliostruyf.com"
+    },
+    {
+      "name": "Dmitriy Van der Elst",
+      "email": "dmitriy.vde@proton.me",
+      "url": "https://www.linkedin.com/in/dmitriy-van-der-elst/"
+    }
+  ],
+  "contributors": [
+    {
+      "name": "Elio Struyf",
+      "email": "elio@struyfconsulting.be",
+      "url": "https://www.eliostruyf.com"
+    },
+    {
+      "name": "Dmitriy Van der Elst",
+      "email": "dmitriy.vde@proton.me",
+      "url": "https://www.linkedin.com/in/dmitriy-van-der-elst/"
+    }
+  ],
+  "funding": [
+    {
       "type": "github",
       "url": "https://github.com/sponsors/estruyf"
     },
@@ -61,49 +74,35 @@
     }
   ],
   "devDependencies": {
-    "@types/clean-css": "4.2.3",
-    "@types/cross-spawn": "6.0.2",
-    "@types/highlight.js": "10.1.0",
-    "@types/inquirer": "7.3.1",
-    "@types/listr": "0.14.2",
-    "@types/markdown-it": "12.0.1",
-    "@types/mime": "2.0.3",
-    "@types/omelette": "0.4.1",
-    "@types/uuid": "8.3.0",
-    "cypress": "6.7.1",
-    "husky": "5.1.2",
-    "mochawesome": "6.2.2",
-    "mochawesome-merge": "4.2.0",
-    "mochawesome-report-generator": "5.2.0",
-    "node-sp-auth": "3.0.3",
-    "tsc-alias": "^1.8.8",
-    "tslib": "2.0.3",
-    "typescript": "^5.3.3"
+    "@types/clean-css": "4.2.11",
+    "@types/inquirer": "9.0.9",
+    "@types/listr": "0.14.10",
+    "@types/markdown-it": "14.1.2",
+    "@types/mime-types": "3.0.1",
+    "@types/omelette": "0.4.5",
+    "husky": "9.1.7",
+    "tsc-alias": "1.8.16",
+    "tslib": "2.8.1",
+    "typescript": "5.9.3"
   },
   "dependencies": {
-    "@fluentui/svg-icons": "1.1.101",
-    "@pnp/cli-microsoft365": "3.7.0-beta.b01397d",
-    "applicationinsights": "1.8.10",
-    "arg": "4.1.3",
-    "cheerio": "^1.0.0-rc.12",
-    "clean-css": "5.1.0",
-    "cross-spawn": "7.0.3",
-    "esm": "3.2.25",
-    "fast-glob": "3.2.5",
-    "gray-matter": "^4.0.3",
-    "highlight.js": "10.6.0",
-    "html-entities": "2.1.0",
-    "inquirer": "7.3.3",
-    "kleur": "4.1.4",
-    "listr": "0.14.3",
-    "markdown-it": "^14.0.0",
-    "markdown-it-anchor": "^8.6.7",
+    "@fluentui/svg-icons": "1.1.321",
+    "@pnp/cli-microsoft365": "11.5.0",
+    "arg": "5.0.2",
+    "cheerio": "1.2.0",
+    "clean-css": "5.3.3",
+    "fast-glob": "3.3.3",
+    "gray-matter": "4.0.3",
+    "highlight.js": "11.11.1",
+    "html-entities": "2.6.0",
+    "inquirer": "13.3.2",
+    "kleur": "4.1.5",
+    "listr2": "11.0.0",
+    "markdown-it": "14.1.1",
+    "markdown-it-anchor": "9.2.0",
     "markdown-it-shortcode-tag": "1.1.0",
-    "markdown-it-table-of-contents": "^0.6.0",
-    "mime": "2.5.2",
-    "omelette": "0.4.15",
-    "react": "17.0.1",
-    "rxjs": "6.6.6",
-    "uuid": "^9.0.1"
+    "markdown-it-table-of-contents": "1.1.0",
+    "mime": "4.1.0",
+    "omelette": "0.4.17"
   }
 }

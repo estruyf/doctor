@@ -1,4 +1,4 @@
-import { PageLocalization, HeaderOptions, MenuType } from ".";
+import { PageLocalization, HeaderOptions, MenuType } from "./index.js";
 
 export interface PageFrontMatter {
   title: string;

@@ -28,10 +28,10 @@ images: []
 
 As we understand that it is not the best experience for developers to write documentation on SharePoint, we created this tool to simplify the process. `Doctor` allows developers to use tools/applications they are used to, like VSCode and Markdown, and still provide the information on your SharePoint environment.
 
-`Doctor` follows the concept of many Static Site Generators. These generators make it possible to write your articles/documentation in Markdown and convert them to HTML files. 
+`Doctor` follows the concept of many Static Site Generators. These generators make it possible to write your articles/documentation in Markdown and convert them to HTML files.
 
-`Doctor` is a bit different, as instead of creating HTML files, it makes SharePoint pages instead. 
+`Doctor` is a bit different, as instead of creating HTML files, it makes SharePoint pages instead.
 
 Under the hood, it makes use of the [CLI for Microsoft 365](https://pnp.github.io/cli-microsoft365/).
 
-> Today `doctor` is maintained by `Elio Struyf`. Feel free to join the project if you have interest in.
+> Today `doctor` is maintained by `Elio Struyf` and `Dmitriy Van der Elst`. Feel free to join the project if you have interest in.

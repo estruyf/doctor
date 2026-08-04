@@ -15,8 +15,10 @@ export class Init {
   Paragraph`;
 
   /**
-   * Starts the project creation process
-   * @param options
+   * Initializes a Doctor project in the current working context.
+   * Creates the start folder, default index page, and doctor config file when missing.
+   * @param options Command options used to derive file paths and initial config values.
+   * @returns A promise that resolves when initialization steps are complete.
    */
   public static async start(options: CommandArguments) {
     const { startFolder } = options;
@@ -34,22 +36,28 @@ export class Init {
     }
 
     if (!(await existsAsync(configFile))) {
-      const jsonContents = JSON.stringify(
-        {
-          $schema:
-            "https://raw.githubusercontent.com/estruyf/doctor/dev/schema/1.2.0.json",
-          auth: options.auth,
-          username: options.username,
-          password: options.password,
-          url: options.webUrl,
-          folder: options.startFolder.replace(process.cwd(), "."),
-          overwriteImages: options.overwriteImages,
-          library: options.assetLibrary,
-          webPartTitle: options.webPartTitle,
-        },
-        null,
-        2
-      );
+      const config: Record<string, unknown> = {
+        $schema:
+          "https://raw.githubusercontent.com/estruyf/doctor/dev/schema/2.0.0.json",
+        auth: options.auth,
+        url: options.webUrl,
+        folder: options.startFolder.replace(process.cwd(), "."),
+        overwriteImages: options.overwriteImages,
+        library: options.assetLibrary,
+        webPartTitle: options.webPartTitle,
+      };
+
+      // The app ID and tenant are identifiers, not secrets, so they are safe to
+      // store. The certificate and its password are deliberately left out.
+      if (options.appId) {
+        config.appId = options.appId;
+      }
+
+      if (options.tenant) {
+        config.tenant = options.tenant;
+      }
+
+      const jsonContents = JSON.stringify(config, null, 2);
       await writeFileAsync(configFile, jsonContents, { encoding: "utf-8" });
     }
   }

@@ -5,9 +5,8 @@ lastmod: 2021-02-22T10:06:07.167Z
 weight: 2
 draft: false
 keywords:
-  - ''
+  - ""
 ---
-
 
 You start by creating pages as Markdown files (`.md`) in the source folder (`./src` is the default, but you can change this). The markdown pages should contain the following front matter.
 
@@ -27,8 +26,8 @@ Optional Front Matter properties are:
 
 - **slug**: `string` - If a slug is not defined, the title and current folder struture will be used. You can add the slug with our without `.aspx` file extension. The tool will automatically add it.
 - **draft**: `boolean` - defines if you want to publish the article during the publishing phase. Default: if not defined, the page will always be published.
-- **description**: `string` - the page description to add. *Be aware*: description is limited to 255 characters.
-- **comments**: `boolean` - with this setting you can enable/disable page commenting. By default this is disabled.
+- **description**: `string` - the page description to add. _Be aware_: description is limited to 255 characters.
+- **comments**: `boolean` - with this setting you can enable/disable page commenting. By default comments are enabled, unless you disabled them for the whole site with the [`disableComments`](../options/#publish-command-specific-options) option. This page level setting always wins over the global one.
 - **layout**: `Article` | `Home` - defines which page layout you want to use. Default layout type is `Article`.
 - **template**: `string` - specify the title of the page template which you want to use for the current page.
 - **header**: `HeaderOptions` - defines how you want to render the header on the page.
@@ -42,6 +41,7 @@ Optional Front Matter properties are:
   - **showTopicHeader**: Specify if you want to show the topic header above the title. Default: `false`.
   - **topicHeader**: Topic header text to show.
   - **showPublishDate**: Show the publish date in the header. Default: `false`.
+  - **authors**: `string[]` - The UPNs (for example `john@contoso.com`) of the authors to show in the page header.
 - **menu**: `Menu`- Defines where the page gets added to the navigation structure. Check: [menu section](#Menu).
 - **metadata**: `Metadata` - With this object you can set extra metadata for your page. Check: [Metadata section](#Metadata).
 - **localization**: `{ [locale name]: relative path }[]` - Defines the localization pages linked to the current page. Find out more at [how to setup and use localization](../multilingual).
@@ -52,6 +52,8 @@ When you want to create page to page links, you can provide the relative path fr
 ### Menu
 
 The menu property allows you to create a navigation structure for you static content. The `Menu` object has the following properties:
+
+> **Info**: A complete explanation of how the navigation gets created can be found on the [navigation](../navigation) page.
 
 - menu
   - `QuickLaunch` OR `TopNavigationBar` - Default is `QuickLaunch`
@@ -66,7 +68,7 @@ The menu property allows you to create a navigation structure for you static con
 
 #### Example 1
 
-The following page will be added to the root of the `QuickLaunch` after the already defined links. 
+The following page will be added to the root of the `QuickLaunch` after the already defined links.
 
 ```markdown
 ---
