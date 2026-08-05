@@ -33,7 +33,7 @@ Everything you can configure for `doctor` lives in two places: the **arguments**
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/estruyf/doctor/dev/schema/2.0.0.json",
+  "$schema": "https://raw.githubusercontent.com/estruyf/doctor/dev/schema/2.1.0.json",
   "url": "https://<tenant>.sharepoint.com/sites/<documentation>",
   "appId": "<appId>",
   "tenant": "<tenant>",
