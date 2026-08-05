@@ -10,6 +10,7 @@ type: docs-main
 
 
 - Fix: the first block of a page is now parsed as markdown instead of being kept as HTML when `markdown.allowHtml` is enabled.
+- Fix: pages that were skipped as unchanged no longer disappear from the site navigation.
 - [#119](https://github.com/estruyf/doctor/issues/119): New `markdown.extended` setting to render emoji shortcodes, highlighted text, footnotes, definition lists and task lists. Enabled by default, and requires `markdown.allowHtml`.
 
 ## [2.0.0]

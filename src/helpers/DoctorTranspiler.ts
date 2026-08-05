@@ -69,7 +69,7 @@ export class DoctorTranspiler {
 
     let filesToProcess = files;
     if (!options.forceAll) {
-      const plan = await this.buildProcessingPlan(files, options);
+      const plan = await this.buildProcessingPlan(files, options, output);
       filesToProcess = plan.filesToProcess;
       StatusHelper.addPagesSkipped(plan.skippedUnchanged);
       task.output = `Processing ${filesToProcess.length} changed/new page${filesToProcess.length === 1 ? "" : "s"} (${plan.skippedUnchanged} unchanged skipped)`;
@@ -110,6 +110,7 @@ export class DoctorTranspiler {
   private static async buildProcessingPlan(
     files: string[],
     options: CommandArguments,
+    output: PublishOutput,
   ): Promise<{ filesToProcess: string[]; skippedUnchanged: number }> {
     const filesToProcess: string[] = [];
     let skippedUnchanged = 0;
@@ -149,6 +150,17 @@ export class DoctorTranspiler {
           filesToProcess.push(file);
         } else {
           skippedUnchanged++;
+
+          // The navigation is rebuilt from scratch on every publish, so unchanged
+          // pages still need to contribute their menu entry. Without this, skipped
+          // pages would silently disappear from the site navigation.
+          this.addToNavigation(
+            options.webUrl,
+            output,
+            markup.data as PageFrontMatter,
+            slug,
+            markup.data.title,
+          );
         }
       } catch {
         // Keep error handling behavior in processFile by letting it process this file normally.
@@ -157,6 +169,42 @@ export class DoctorTranspiler {
     }
 
     return { filesToProcess, skippedUnchanged };
+  }
+
+  /**
+   * Merges the page its menu definition into the navigation structure that gets
+   * applied after all pages have been processed. Draft pages are ignored, as
+   * they cannot be added to the site navigation.
+   * @param webUrl
+   * @param output
+   * @param data The front matter of the page
+   * @param slug
+   * @param title
+   */
+  private static addToNavigation(
+    webUrl: string,
+    output: PublishOutput,
+    data: PageFrontMatter | undefined,
+    slug: string,
+    title: string,
+  ) {
+    if (!output.navigation || !data || !data.menu || data.draft) {
+      return;
+    }
+
+    Logger.debug(
+      `Adding item to the navigation: ${slug} - ${title} - ${JSON.stringify(
+        data.menu,
+      )} `,
+    );
+
+    output.navigation = NavigationHelper.hierarchy(
+      webUrl,
+      output.navigation,
+      data.menu,
+      slug,
+      title,
+    );
   }
 
   /**
@@ -414,27 +462,13 @@ export class DoctorTranspiler {
         }
 
         // Check if the file contains a menu element to add too and if not in draft status (cannot add draft pages to navigation)
-        if (
-          output.navigation &&
-          markup &&
-          markup.data &&
-          markup.data.menu &&
-          !markup.data.draft
-        ) {
-          Logger.debug(
-            `Adding item to the navigation: ${slug} - ${title} - ${JSON.stringify(
-              markup.data.menu,
-            )} `,
-          );
-
-          output.navigation = NavigationHelper.hierarchy(
-            webUrl,
-            output.navigation,
-            markup.data.menu,
-            slug,
-            title,
-          );
-        }
+        this.addToNavigation(
+          webUrl,
+          output,
+          markup.data as PageFrontMatter,
+          slug,
+          title,
+        );
 
         // Verify if there are linked multilingual pages
         if (

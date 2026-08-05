@@ -18,6 +18,10 @@
       {
         "id": 119,
         "title": "New `markdown.extended` setting to render emoji shortcodes, highlighted text, footnotes, definition lists and task lists. Enabled by default, and requires `markdown.allowHtml`."
+      },
+      {
+        "id": null,
+        "title": "Fix: pages that were skipped as unchanged no longer disappear from the site navigation."
       }
     ]
   },
