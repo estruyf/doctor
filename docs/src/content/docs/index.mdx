@@ -1,0 +1,58 @@
+---
+title: Doctor
+description: Maintain your documentation on SharePoint without pain
+template: splash
+hero:
+  title: Maintain your documentation on SharePoint without pain
+  tagline: Write your documentation in Markdown with the tools you love, and let Doctor publish it as SharePoint pages.
+  image:
+    file: ../../assets/doctor_no-text.svg
+    alt: Doctor
+  actions:
+    - text: Get started
+      link: /docs/getting-started/installation/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/estruyf/doctor
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+`Doctor` follows the concept of many Static Site Generators. These generators
+make it possible to write your articles/documentation in Markdown and convert
+them to HTML files. `Doctor` is a bit different: instead of creating HTML files,
+it makes **SharePoint pages** instead. Under the hood, it uses the
+[CLI for Microsoft 365](https://pnp.github.io/cli-microsoft365/).
+
+<CardGrid stagger>
+  <Card title="Write in Markdown" icon="pencil">
+    Use the tools you already know, like VS Code and Markdown, and keep your
+    documentation in source control.
+  </Card>
+  <Card title="Publish to SharePoint" icon="rocket">
+    `doctor publish` turns your Markdown files into SharePoint pages, uploads
+    the images, and builds the navigation for you.
+  </Card>
+  <Card title="Automate it" icon="setting">
+    Run `doctor` on GitHub Actions or Azure DevOps so your documentation is
+    republished on every push.
+  </Card>
+  <Card title="Multilingual" icon="translate">
+    Link pages to their translations, manually or with machine translation via
+    the Azure Translator service.
+  </Card>
+</CardGrid>
+
+## Where to find what
+
+<CardGrid>
+  <LinkCard title="Getting started" href="/docs/getting-started/" description="Install doctor, set up the Entra app registration, and publish your first page." />
+  <LinkCard title="Content" href="/docs/content/" description="Front matter, navigation, markdown syntax, shortcodes, partials, and multilingual pages." />
+  <LinkCard title="CLI" href="/docs/cli/" description="The commands you can run: init, publish, status, workflow, and setup." />
+  <LinkCard title="Configuration" href="/docs/configuration/" description="Every command argument and every setting in the doctor.json file." />
+  <LinkCard title="CI/CD" href="/docs/ci-cd/" description="Run doctor on Azure DevOps or GitHub Actions to publish automatically." />
+  <LinkCard title="About" href="/docs/about/" description="Feedback, contributing, the disclaimer, and the license." />
+</CardGrid>
