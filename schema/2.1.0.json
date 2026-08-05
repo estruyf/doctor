@@ -470,9 +470,17 @@
           "$id": "#/properties/multilingual/properties/languages",
           "type": "array",
           "title": "languages",
-          "description": "Locale IDs (or LCIDs) to enable on the site.",
+          "description": "The languages to enable on the site. Use the same locale names as the `localization` front matter (for example \"nl-nl\"), or the LCIDs SharePoint uses (for example 1043).",
           "items": {
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})+$"
+              },
+              {
+                "type": "number"
+              }
+            ]
           }
         },
         "overwriteTranslationsOnChange": {

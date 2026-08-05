@@ -9,6 +9,7 @@ export * from './FolderHelpers.js';
 export * from './FrontMatterHelper.js';
 export * from './HeaderHelper.js';
 export * from './ListHelpers.js';
+export * from './LocaleHelper.js';
 export * from './MarkdownHelper.js';
 export * from './MultilingualHelper.js';
 export * from './NavigationHelper.js';

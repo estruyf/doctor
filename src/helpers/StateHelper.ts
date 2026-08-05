@@ -164,6 +164,33 @@ export class StateHelper {
   }
 
   /**
+   * The URL of a localized page is issued by SharePoint, so it is only known
+   * for certain once the page has been published. A tracked slug is therefore
+   * authoritative; without one, fall back to the locale prefixed source slug,
+   * which is the shape SharePoint uses for translations.
+   * @param sourceSlug The slug of the page the translation belongs to
+   * @param locale The locale of the translation, for instance `nl-nl`
+   */
+  public static getTranslationSlug(sourceSlug: string, locale: string): string {
+    const prefix = `${locale.toLowerCase()}/`;
+
+    if (StateHelper.state) {
+      for (const [slug, entry] of Object.entries(StateHelper.state.pages)) {
+        if (
+          entry &&
+          entry.translationOf &&
+          entry.translationOf.toLowerCase() === sourceSlug.toLowerCase() &&
+          slug.toLowerCase().startsWith(prefix)
+        ) {
+          return slug;
+        }
+      }
+    }
+
+    return `${locale}/${sourceSlug}`;
+  }
+
+  /**
    * Always returns true when state has not been loaded.
    */
   public static hasChanged(slug: string, contentHash: string): boolean {

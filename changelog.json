@@ -28,6 +28,30 @@
         "title": "New `partials` setting to reuse markdown snippets on your pages. Include them where you need them with `<include file=\"...\" />`, or let Doctor add them to every page with `partials.header` and `partials.footer`."
       },
       {
+        "id": 199,
+        "title": "Fix: multilingual pages are published again. Translations are now handled in their own phase which runs after the normal pages, so a translation is no longer skipped when its source page was unchanged. Language files are picked up by their `.lang.md` name, and a failing SharePoint or translator call reports why instead of passing silently."
+      },
+      {
+        "id": null,
+        "title": "Fix: the Azure Translator endpoint of your own resource (`<name>.cognitiveservices.azure.com`) is now called on the right path, and a trailing slash on the endpoint no longer breaks the request."
+      },
+      {
+        "id": null,
+        "title": "Fix: partials are injected into machine translated pages, so their header and footer end up on the translated page in the target language."
+      },
+      {
+        "id": null,
+        "title": "Fix: secrets are kept out of the `--debug` output by property name, which covers `multilingual.translator.key` and no longer mangles values which happen to contain a secret."
+      },
+      {
+        "id": null,
+        "title": "The `multilingual.languages` setting now takes the same locale names as the `localization` front matter, for example `[\"nl-nl\", \"fr-fr\"]`. LCIDs keep working and both styles can be mixed."
+      },
+      {
+        "id": null,
+        "title": "`doctor status` reports the localized pages, and the language files which no page refers to."
+      },
+      {
         "id": 59,
         "title": "The `workflow` command can now generate an Azure DevOps pipeline with the new `--provider azdo` argument. The default remains GitHub Actions."
       },

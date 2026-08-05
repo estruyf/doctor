@@ -10,7 +10,80 @@ const toErrorMessage = (error: unknown): string => {
   return JSON.stringify(error);
 };
 
+/**
+ * SharePoint puts the reason a call was refused in the response body. Returning
+ * null on failure hides that, which is why the calls that have to succeed use
+ * the *OrThrow variants below.
+ */
+const failureMessage = async (
+  method: string,
+  url: string,
+  response: Response
+): Promise<string> => {
+  let body = "";
+  try {
+    body = await response.text();
+  } catch {
+    // Nothing to add to the message
+  }
+
+  // The SharePoint error is nested, the plain message reads much better
+  try {
+    const parsed = JSON.parse(body);
+    const message =
+      parsed?.error?.message?.value ||
+      parsed?.["odata.error"]?.message?.value ||
+      parsed?.error_description;
+    if (message) {
+      body = message;
+    }
+  } catch {
+    // Not JSON, keep the raw body
+  }
+
+  return `${method} ${url} failed with status ${response.status}${
+    response.statusText ? ` (${response.statusText})` : ""
+  }.${body ? ` ${body}` : ""}`;
+};
+
 export class ApiHelper {
+  /**
+   * Do an API GET request which reports why it failed, instead of returning null
+   */
+  public static async getOrThrow(url: string, headers: any = {}) {
+    Logger.debug(`GET Request URL: ${url}`);
+
+    const response = await fetch(url, { method: "GET", headers });
+    if (!response.ok) {
+      throw new Error(await failureMessage("GET", url, response));
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Do an API POST request which reports why it failed, instead of returning null
+   */
+  public static async postOrThrow(
+    url: string,
+    headers: any = {},
+    body: any = {}
+  ) {
+    Logger.debug(`POST Request URL: ${url}`);
+    Logger.debug(`POST Request BODY: ${JSON.stringify(body)}`);
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      throw new Error(await failureMessage("POST", url, response));
+    }
+
+    return await response.json();
+  }
+
   /**
    * Do an API GET request
    * @param url
