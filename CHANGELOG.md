@@ -10,7 +10,6 @@
 - Fix: secrets are kept out of the `--debug` output by property name, which covers `multilingual.translator.key` and no longer mangles values which happen to contain a secret.
 - The `multilingual.languages` setting now takes the same locale names as the `localization` front matter, for example `["nl-nl", "fr-fr"]`. LCIDs keep working and both styles can be mixed.
 - `doctor status` reports the localized pages, and the language files which no page refers to.
-- Fix: `doctor status` no longer reports published language files as new on every run. The translations SharePoint publishes next to their source page, in a folder named after the language, are matched with their state entry again.
 - New `--removeDeleted` flag which recycles the pages whose markdown file got deleted from your sources. It uses the publish state to know which pages Doctor created, and needs to be confirmed with `--confirm`.
 - [#59](https://github.com/estruyf/doctor/issues/59): The `workflow` command can now generate an Azure DevOps pipeline with the new `--provider azdo` argument. The default remains GitHub Actions.
 - [#119](https://github.com/estruyf/doctor/issues/119): New `markdown.extended` setting to render emoji shortcodes, highlighted text, footnotes, definition lists and task lists. Enabled by default, and requires `markdown.allowHtml`.
