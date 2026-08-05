@@ -22,7 +22,8 @@
     "clean": "rm -rf dist",
     "watch": "node ./scripts/reset-debug.js && (tsc -w & tsc-alias -w)",
     "watch:debug": "node ./scripts/init-debug.js && (tsc -w & tsc-alias -w)",
-    "docs": "cd docs && hogo serve",
+    "docs": "cd docs && npm run dev",
+    "docs:build": "cd docs && npm install && npm run build",
     "prepare": "husky install"
   },
   "keywords": [

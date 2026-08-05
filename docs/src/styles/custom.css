@@ -1,0 +1,21 @@
+/* Doctor brand theming — teal accent (#24BAA4) */
+:root {
+  --sl-color-accent-low: #002019;
+  --sl-color-accent: #1f9d8b;
+  --sl-color-accent-high: #9fe0d4;
+
+  --sl-color-text-accent: #24baa4;
+}
+
+:root[data-theme="light"] {
+  --sl-color-accent-low: #cdeee6;
+  --sl-color-accent: #1a9384;
+  --sl-color-accent-high: #0d3b34;
+
+  --sl-color-text-accent: #158274;
+}
+
+/* Slightly larger, centred logo on the site title */
+.site-title img {
+  height: 2rem;
+}

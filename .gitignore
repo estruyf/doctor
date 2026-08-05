@@ -1,6 +1,5 @@
 node_modules
 dist
-docs/public
 todo.md
 .DS_Store
 screenshots
@@ -8,4 +7,7 @@ mochawesome-report
 
 *.pem
 *.pfx
-docs/.hugo_build.lock
+
+# Astro
+.astro
+docs/.astro
