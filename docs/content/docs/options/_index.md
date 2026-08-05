@@ -334,6 +334,7 @@ The `markdown` property allows you to define how you want to render the HTML in 
   - **theme**: `string` - Specify the theme to use for the code blocks. You can use `Dark` or `Light`. Default is `Dark`.
   - **shortcodesFolder**: `string` - Specifies where custom shortcodes can be retrieved. Check [shortcodes](../shortcodes) section to learn more about how shortcodes can be used. Default folder location `Doctor` expects is `./shortcodes`. If you want to change this, you can use the `shortcodesFolder` property and update it appropriate.
   - **tocLevels**: `number` - Specifies the number of levels to show in the table of contents. Default is `[1, 2, 3, 4]`.
+  - **extended**: `boolean` - Renders the extended markdown syntax: emoji shortcodes, highlighted text, footnotes, definition lists and task lists. Default is `true`. Set this to `false` to only render the basic markdown syntax. Check the [markdown syntax](../markdown-syntax) section to learn more.
 
 Example:
 
@@ -343,10 +344,13 @@ Example:
     "allowHtml": true,
     "theme": "light",
     "shortcodesFolder": "./shortcodes",
-    "tocLevels": [1, 2, 3, 4]
+    "tocLevels": [1, 2, 3, 4],
+    "extended": true
   }
 }
 ```
+
+> **Important**: The `extended` setting only applies when `allowHtml` is enabled. Without it, SharePoint renders your markdown, and its web part only supports the basic markdown syntax.
 
 > **Important**: When allowing `Doctor` to take over for rendering the HTML, be aware that the pages can best not be modified on SharePoint. Otherwise the web part will override the HTML completly.
 

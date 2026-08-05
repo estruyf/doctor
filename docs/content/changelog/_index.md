@@ -6,6 +6,12 @@ description: The changelog of Doctor
 type: docs-main
 ---
 
+## [2.1.0]
+
+
+- Fix: the first block of a page is now parsed as markdown instead of being kept as HTML when `markdown.allowHtml` is enabled.
+- [#119](https://github.com/estruyf/doctor/issues/119): New `markdown.extended` setting to render emoji shortcodes, highlighted text, footnotes, definition lists and task lists. Enabled by default, and requires `markdown.allowHtml`.
+
 ## [2.0.0]
 
 

@@ -45,7 +45,7 @@ ${markdown.join("\n")}`;
     const changelogDocs = `---
 title: Changelog
 date: 2021-02-22T10:10:32.941Z
-icon: ti-bolt
+icon: fa-bolt
 description: The changelog of Doctor
 type: docs-main
 ---

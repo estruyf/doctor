@@ -1,0 +1,479 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://raw.githubusercontent.com/estruyf/doctor/dev/schema/2.0.0.json",
+  "type": "object",
+  "title": "Doctor configuration",
+  "description": "The configuration schema for doctor.json.",
+  "default": {},
+  "examples": [
+    {
+      "url": "https://tenant.sharepoint.com/sites/documentation",
+      "auth": "certificate",
+      "appId": "00000000-0000-0000-0000-000000000000",
+      "tenant": "00000000-0000-0000-0000-000000000000",
+      "certificate": "./cert.pfx",
+      "overwriteImages": false,
+      "folder": "./src",
+      "library": "Shared Documents",
+      "menu": {
+        "QuickLaunch": {
+          "items": [
+            {
+              "id": "documentation",
+              "name": "Documentation",
+              "url": ""
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "required": ["url"],
+  "definitions": {
+    "items": {
+      "title": "items",
+      "description": "Static navigation items",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "parent": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "number"
+          }
+        }
+      }
+    }
+  },
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "auth": {
+      "$id": "#/properties/auth",
+      "type": "string",
+      "title": "auth",
+      "description": "The authentication type to use. `certificate` is the only supported value.",
+      "default": "certificate",
+      "enum": ["certificate"]
+    },
+    "password": {
+      "$id": "#/properties/password",
+      "type": "string",
+      "title": "password",
+      "description": "The password of your certificate file, when it is protected with one.",
+      "default": ""
+    },
+    "appId": {
+      "$id": "#/properties/appId",
+      "type": "string",
+      "title": "appId",
+      "description": "The ID of the Entra app registration to authenticate with. Required, unless you pass it with the `--appId` option.",
+      "default": ""
+    },
+    "tenant": {
+      "$id": "#/properties/tenant",
+      "type": "string",
+      "title": "tenant",
+      "description": "The ID of the tenant to authenticate to. Required, unless you pass it with the `--tenant` option.",
+      "default": ""
+    },
+    "certificate": {
+      "$id": "#/properties/certificate",
+      "type": "string",
+      "title": "certificate",
+      "description": "The certificate to authenticate with. This can be the path to your certificate file (`.pfx`, `.p12`, or `.pem`), or its base64 encoded contents. Required, unless you pass it with the `--certificate` option.",
+      "default": "",
+      "examples": ["./cert.pfx", "MIIJqQIBAzCCCW8GCSqGSIb..."]
+    },
+    "commandName": {
+      "$id": "#/properties/commandName",
+      "type": "string",
+      "title": "commandName",
+      "description": "Override the command used to execute the CLI for Microsoft 365. By default, `doctor` executes the commands through the bundled CLI for Microsoft 365 API.",
+      "default": "m365"
+    },
+    "commandTimeout": {
+      "$id": "#/properties/commandTimeout",
+      "type": "integer",
+      "title": "commandTimeout",
+      "description": "The timeout in milliseconds for each CLI for Microsoft 365 command which `doctor` executes. Increase this value when commands time out on large sites or slow connections.",
+      "default": 120000,
+      "minimum": 1,
+      "examples": [120000, 300000]
+    },
+    "overwriteImages": {
+      "$id": "#/properties/overwriteImages",
+      "type": "boolean",
+      "title": "overwriteImages",
+      "description": "Specifies if you allow `doctor` to overwrite the images in the SharePoint library that are referenced in the markdown files.",
+      "default": false
+    },
+    "url": {
+      "$id": "#/properties/url",
+      "type": "string",
+      "title": "url",
+      "description": "The URL of the site collection to use.",
+      "default": "",
+      "examples": ["https://tenant.sharepoint.com/sites/documentation"]
+    },
+    "folder": {
+      "$id": "#/properties/folder",
+      "type": "string",
+      "title": "folder",
+      "description": "The folder location in where you will create your markdown files.",
+      "default": "./src",
+      "examples": ["./src"]
+    },
+    "library": {
+      "$id": "#/properties/library",
+      "type": "string",
+      "title": "library",
+      "description": "Specified the library which you want to use in SharePoint to store your referenced images and the publish state file.",
+      "default": "Shared Documents"
+    },
+    "webPartTitle": {
+      "$id": "#/properties/webPartTitle",
+      "type": "string",
+      "title": "The webPartTitle schema",
+      "description": "This defined the title of the markdown web part to be created/updated on the page. Default value is: `doctor-placeholder.",
+      "default": "doctor-placeholder"
+    },
+    "pageTemplate": {
+      "$id": "#/properties/pageTemplate",
+      "type": "string",
+      "title": "pageTemplate",
+      "description": "The name of the default page template to use for all the pages.",
+      "default": "doctor-placeholder"
+    },
+    "continueOnError": {
+      "$id": "#/properties/continueOnError",
+      "type": "boolean",
+      "title": "continueOnError",
+      "description": "Continue when an error occurs during the publishing process.",
+      "default": false
+    },
+    "verbose": {
+      "$id": "#/properties/verbose",
+      "type": "boolean",
+      "title": "verbose",
+      "description": "Provides extended logging output. When enabled, the task list is rendered with the verbose renderer, so every task and its output stays visible instead of being collapsed.",
+      "default": false
+    },
+    "timingDetails": {
+      "$id": "#/properties/timingDetails",
+      "type": "boolean",
+      "title": "timingDetails",
+      "description": "Shows additional per-page timing statistics (average, fastest and slowest page) after the publishing run.",
+      "default": false
+    },
+    "skipExistingPages": {
+      "$id": "#/properties/skipExistingPages",
+      "type": "boolean",
+      "title": "skipExistingPages",
+      "description": "Will not overwrite pages if they already existed on the site.",
+      "default": false
+    },
+    "skipPrecheck": {
+      "$id": "#/properties/skipPrecheck",
+      "type": "boolean",
+      "title": "skipPrecheck",
+      "description": "Skips the pre-process validation which runs before any SharePoint calls are made.",
+      "default": false
+    },
+    "forceAll": {
+      "$id": "#/properties/forceAll",
+      "type": "boolean",
+      "title": "forceAll",
+      "description": "Reprocess all pages, ignoring the saved publish state. By default `doctor` only publishes pages which are new or whose content changed since the last run.",
+      "default": false
+    },
+    "disableStatePersistence": {
+      "$id": "#/properties/disableStatePersistence",
+      "type": "boolean",
+      "title": "disableStatePersistence",
+      "description": "Disables loading and saving of the publish state file. When enabled, `doctor` cannot detect changes, so all pages are processed on every run.",
+      "default": false
+    },
+    "stateFile": {
+      "$id": "#/properties/stateFile",
+      "type": "string",
+      "title": "stateFile",
+      "description": "The path of the publish state file within the library defined by the `library` option.",
+      "default": ".doctor/state.json"
+    },
+    "applyTheme": {
+      "$id": "#/properties/applyTheme",
+      "type": "boolean",
+      "title": "applyTheme",
+      "description": "Applies the theme defined in the `siteDesign.theme` property. Since v2.0.0 the theme is no longer applied automatically.",
+      "default": false
+    },
+    "retryWhenFailed": {
+      "$id": "#/properties/retryWhenFailed",
+      "type": "boolean",
+      "title": "retryWhenFailed",
+      "description": "Specifying this flag will retry the command if it failed. In some cases it can be that SharePoint failes to process your request, and this allows you to try again without running the whole flow from scratch.",
+      "default": false
+    },
+    "cleanQuickLaunch": {
+      "$id": "#/properties/cleanQuickLaunch",
+      "type": "boolean",
+      "title": "cleanQuickLaunch",
+      "description": "Allows you to specify if you want to remove all the navigation elements defined in the QuickLaunch navigation before adding the new navigation structure.",
+      "default": false
+    },
+    "cleanTopNavigation": {
+      "$id": "#/properties/cleanTopNavigation",
+      "type": "boolean",
+      "title": "cleanTopNavigation",
+      "description": "Allows you to specify if you want to remove all the navigation elements defined in the TopNavigation navigation before adding the new navigation structure.",
+      "default": false
+    },
+    "disableComments": {
+      "$id": "#/properties/disableComments",
+      "type": "boolean",
+      "title": "disableComments",
+      "description": "Disable comments on global level for all pages.",
+      "default": false
+    },
+    "menu": {
+      "$id": "#/properties/menu",
+      "type": "object",
+      "title": "menu",
+      "description": "Defines the static navigation stucture to get created.",
+      "properties": {
+        "QuickLaunch": {
+          "$id": "#/properties/menu/properties/QuickLaunch",
+          "type": "object",
+          "title": "QuickLaunch",
+          "description": "QuickLaunch navigation element.",
+          "required": ["items"],
+          "properties": {
+            "items": {
+              "$ref": "#/definitions/items"
+            }
+          }
+        },
+        "TopNavigationBar": {
+          "$id": "#/properties/menu/properties/TopNavigationBar",
+          "type": "object",
+          "title": "TopNavigationBar",
+          "description": "TopNavigationBar navigation element.",
+          "required": ["items"],
+          "properties": {
+            "items": {
+              "$ref": "#/definitions/items"
+            }
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "siteDesign": {
+      "$id": "#/properties/siteDesign",
+      "type": "object",
+      "title": "siteDesign",
+      "description": "Defines the design to apply to the site (theme, chrome header and footer).",
+      "properties": {
+        "logo": {
+          "$id": "#/properties/siteDesign/properties/logo",
+          "type": "string",
+          "title": "logo",
+          "description": "Set the logo for the site. The path is relative to the configured `folder` option.",
+          "default": ""
+        },
+        "theme": {
+          "$id": "#/properties/siteDesign/properties/theme",
+          "type": "string",
+          "title": "theme",
+          "description": "The name of the SharePoint theme. The theme is only applied when the `applyTheme` option is enabled.",
+          "default": ""
+        },
+        "chrome": {
+          "$id": "#/properties/siteDesign/properties/chrome",
+          "type": "object",
+          "title": "Chrome",
+          "description": "Site header and footer chrome settings.",
+          "properties": {
+            "headerLayout": {
+              "$id": "#/properties/siteDesign/properties/chrome/properties/headerLayout",
+              "type": "string",
+              "title": "headerLayout",
+              "description": "The layout of the chrome header.",
+              "default": "Standard",
+              "enum": ["Standard", "Compact", "Minimal", "Extended"]
+            },
+            "headerEmphasis": {
+              "$id": "#/properties/siteDesign/properties/chrome/properties/headerEmphasis",
+              "type": "string",
+              "title": "headerEmphasis",
+              "description": "The chrome header background.",
+              "default": "Lightest",
+              "enum": ["Lightest", "Light", "Dark", "Darkest"]
+            },
+            "logoAlignment": {
+              "$id": "#/properties/siteDesign/properties/chrome/properties/logoAlignment",
+              "type": "string",
+              "title": "logoAlignment",
+              "description": "Specify how to align the logo if `extended` header is used.",
+              "default": "Left",
+              "enum": ["Left", "Center", "Right"]
+            },
+            "footerLayout": {
+              "$id": "#/properties/siteDesign/properties/chrome/properties/footerLayout",
+              "type": "string",
+              "title": "footerLayout",
+              "description": "The layout of the chrome footer.",
+              "default": "Simple",
+              "enum": ["Simple", "Extended"]
+            },
+            "footerEmphasis": {
+              "$id": "#/properties/siteDesign/properties/chrome/properties/footerEmphasis",
+              "type": "string",
+              "title": "footerEmphasis",
+              "description": "The chrome footer background.",
+              "default": "Darkest",
+              "enum": ["Lightest", "Light", "Dark", "Darkest"]
+            },
+            "disableMegaMenu": {
+              "$id": "#/properties/siteDesign/properties/chrome/properties/disableMegaMenu",
+              "type": "boolean",
+              "title": "disableMegaMenu",
+              "description": "Specify to disable the mega menu. This results in using the cascading navigation (classic experience).",
+              "default": false
+            },
+            "hideTitleInHeader": {
+              "$id": "#/properties/siteDesign/properties/chrome/properties/hideTitleInHeader",
+              "type": "boolean",
+              "title": "hideTitleInHeader",
+              "description": "Specify to hide the site title in the header.",
+              "default": false
+            },
+            "disableFooter": {
+              "$id": "#/properties/siteDesign/properties/chrome/properties/disableFooter",
+              "type": "boolean",
+              "title": "disableFooter",
+              "description": "Specify to disable the footer on the site.",
+              "default": false
+            }
+          }
+        }
+      }
+    },
+    "markdown": {
+      "$id": "#/properties/markdown",
+      "type": "object",
+      "title": "markdown",
+      "description": "Special markdown settings of how you want to render you content in SharePoint.",
+      "properties": {
+        "allowHtml": {
+          "$id": "#/properties/markdown/properties/allowHtml",
+          "type": "boolean",
+          "title": "allowHtml",
+          "description": "By default SharePoint renders the HTML. If you set this to `true`, it will allow Doctor to generate the HTML and allows you to make use of all HTML capabilities the tool has to offer.",
+          "default": false
+        },
+        "theme": {
+          "$id": "#/properties/markdown/properties/theme",
+          "type": "string",
+          "title": "theme",
+          "description": "Specify the theme to use for the code blocks. Default is `Dark`.",
+          "default": "Dark",
+          "enum": ["Dark", "Light", "dark", "light"]
+        },
+        "shortcodesFolder": {
+          "$id": "#/properties/markdown/properties/shortcodesFolder",
+          "type": "string",
+          "title": "shortcodesFolder",
+          "description": "Specifies where the custom shortcodes can be retrieved.",
+          "default": "./shortcodes"
+        },
+        "tocLevels": {
+          "$id": "#/properties/markdown/properties/tocLevels",
+          "type": "array",
+          "title": "tocLevels",
+          "description": "Defines the heading levels to use in the table of contents.",
+          "default": [1, 2, 3, 4],
+          "items": {
+            "type": "number"
+          }
+        },
+        "extended": {
+          "$id": "#/properties/markdown/properties/extended",
+          "type": "boolean",
+          "title": "extended",
+          "description": "Renders the extended markdown syntax: emoji shortcodes, highlighted text, footnotes, definition lists and task lists. Requires `allowHtml` to be enabled.",
+          "default": true
+        }
+      }
+    },
+    "multilingual": {
+      "$id": "#/properties/multilingual",
+      "type": "object",
+      "title": "multilingual",
+      "description": "Setting to specify if multilingual is enabled on the site and which languages are supported.",
+      "properties": {
+        "enableTranslations": {
+          "$id": "#/properties/multilingual/properties/enableTranslations",
+          "type": "boolean",
+          "title": "enableTranslations",
+          "description": "Specifies if you want to enable or disable multilingual features on the site.",
+          "default": false
+        },
+        "languages": {
+          "$id": "#/properties/multilingual/properties/languages",
+          "type": "array",
+          "title": "languages",
+          "description": "Locale IDs (or LCIDs) to enable on the site.",
+          "items": {
+            "type": "number"
+          }
+        },
+        "overwriteTranslationsOnChange": {
+          "$id": "#/properties/multilingual/properties/overwriteTranslationsOnChange",
+          "type": "boolean",
+          "title": "overwriteTranslationsOnChange",
+          "description": "Specify whether the changes made to user-specified text in the default language should automatically overwrite the existing translations made in all alternate languages.",
+          "default": false
+        },
+        "translator": {
+          "$id": "#/properties/multilingual/properties/translator",
+          "type": ["object", "null"],
+          "title": "translator",
+          "description": "Allows you to specify the Azure Translator Cognitive Service to machine translate your pages.",
+          "properties": {
+            "key": {
+              "type": "string",
+              "title": "key",
+              "description": "The subscription key of the Azure Translator Cognitive Service."
+            },
+            "endpoint": {
+              "type": "string",
+              "title": "endpoint",
+              "description": "The endpoint of the Azure Translator Cognitive Service.",
+              "default": "https://api.cognitive.microsofttranslator.com/"
+            },
+            "region": {
+              "type": "string",
+              "title": "region",
+              "description": "The region of the Azure Translator Cognitive Service.",
+              "examples": ["westeurope"]
+            }
+          }
+        }
+      }
+    }
+  }
+}
