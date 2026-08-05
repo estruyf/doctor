@@ -1,0 +1,27 @@
+---
+// Custom footer: renders Starlight's default footer, then the visitor badge
+// on every page so page views keep being counted (as on the old Hugo site).
+import Default from "@astrojs/starlight/components/Footer.astro";
+---
+
+<Default><slot /></Default>
+
+<div class="visitor-badge">
+  <img
+    src="https://api.visitorbadge.io/api/VisitorHit?user=estruyf&repo=doctor&countColor=%2324BAA4"
+    alt="Visitors"
+    loading="lazy"
+    decoding="async"
+  />
+</div>
+
+<style>
+  .visitor-badge {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.5rem;
+  }
+  .visitor-badge img {
+    height: 20px;
+  }
+</style>

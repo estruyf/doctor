@@ -64,7 +64,9 @@ export const executeWithRetry = async (
 ) => {
   try {
     Logger.debug(
-      `Executing command: ${commandName} with options: ${JSON.stringify(options)}`
+      `Executing command: ${commandName} with options: ${JSON.stringify(
+        Logger.redact(options)
+      )}`
     );
 
     const result = await executeThroughCliWithTimeout(commandName, options);

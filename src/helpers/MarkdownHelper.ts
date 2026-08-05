@@ -1,8 +1,14 @@
 import CleanCSS from "clean-css";
 import fg from "fast-glob";
+import { MACHINE_TRANSLATED_SUFFIX } from "@utils";
 import MarkdownIt from "markdown-it";
 import markdownItAnchor from "markdown-it-anchor";
 import markdownItTableOfContents from "markdown-it-table-of-contents";
+import { full as markdownItEmoji } from "markdown-it-emoji";
+import markdownItMark from "markdown-it-mark";
+import markdownItFootnote from "markdown-it-footnote";
+import markdownItDeflist from "markdown-it-deflist";
+import markdownItTaskLists from "markdown-it-task-lists";
 import { CliCommand, ShortcodesHelpers, TempDataHelper } from "@helpers";
 import { CommandArguments, MarkdownSettings, PublishContext, TaskOutput } from "@models";
 import hljs from "highlight.js";
@@ -11,6 +17,7 @@ import { dirname, relative } from "path";
 import { hljsDarkCss } from "../styles/hljs-dark.js";
 import { hljsLightCss } from "../styles/hljs-light.js";
 import { shortcodesCss } from "../styles/shortcodes.js";
+import { extendedCss } from "../styles/extended.js";
 
 export class MarkdownHelper {
   /**
@@ -19,12 +26,22 @@ export class MarkdownHelper {
    * @param task
    * @param startFolder
    */
-  public static async fetchMDFiles(ctx: PublishContext, task: TaskOutput, startFolder: string) {
+  public static async fetchMDFiles(
+    ctx: PublishContext,
+    task: TaskOutput,
+    startFolder: string,
+    ignore: string[] = []
+  ) {
     const uniformalStartFolder = startFolder.replace(/\\/g, "/");
+    // Language files hold the content of the localized pages, so they are part
+    // of the scan. They do not get published on their own though: the URL of a
+    // translated page is issued by SharePoint, which is why they are published
+    // through the source page referencing them.
+    // Machine translated files are generated during a run, so they are skipped.
     const files = await fg(`${uniformalStartFolder}/**/*.md`, {
       ignore: [
-        `${uniformalStartFolder}/**/*.lang.md`,
-        `${uniformalStartFolder}/**/*.machinetranslated.md`,
+        `${uniformalStartFolder}/**/*${MACHINE_TRANSLATED_SUFFIX}`,
+        ...ignore,
       ],
     });
 
@@ -64,6 +81,11 @@ export class MarkdownHelper {
    * @returns
    */
   public static async getHtmlData(markdown: string, options: CommandArguments) {
+    const mdOptions = CliCommand.options?.markdown;
+    const theme =
+      mdOptions && mdOptions.theme ? mdOptions.theme.toLowerCase() : "dark";
+    const useExtended = mdOptions?.extended !== false;
+
     const converter = new MarkdownIt({
       html: true,
       breaks: true,
@@ -92,24 +114,37 @@ export class MarkdownHelper {
         includeLevel: options.tocLevels,
       });
 
-    const mdOptions = CliCommand.options?.markdown;
-    const theme =
-      mdOptions && mdOptions.theme ? mdOptions.theme.toLowerCase() : "dark";
+    if (useExtended) {
+      converter
+        .use(markdownItEmoji)
+        .use(markdownItMark)
+        .use(markdownItFootnote)
+        .use(markdownItDeflist)
+        .use(markdownItTaskLists, { label: true });
+    }
 
     const cleanCss = new CleanCSS({});
+    // The blank lines around the markdown are required. Without them markdown-it
+    // treats the opening `div` and the first block of the content as a single
+    // HTML block, which leaves that first block unparsed.
     let htmlMarkup = await ShortcodesHelpers.parseBefore(`
 <div class="doctor__container">
 <div class="doctor__container__markdown">
-  ${markdown}
+
+${markdown}
+
 </div>
 </div>`);
     htmlMarkup = converter.render(htmlMarkup);
     htmlMarkup = await ShortcodesHelpers.parseAfter(htmlMarkup);
 
     const editorCss = theme === "light" ? hljsLightCss : hljsDarkCss;
+    const additionalCss = useExtended
+      ? ` ${cleanCss.minify(extendedCss).styles}`
+      : ``;
     htmlMarkup = `${htmlMarkup}<style>${
       cleanCss.minify(editorCss).styles
-    } ${cleanCss.minify(shortcodesCss).styles}</style>`;
+    } ${cleanCss.minify(shortcodesCss).styles}${additionalCss}</style>`;
 
     return htmlMarkup;
   }

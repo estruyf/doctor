@@ -1,6 +1,6 @@
 {
   "name": "@estruyf/doctor",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Maintain your documentation on SharePoint without pain.",
   "main": "dist/main.js",
   "homepage": "https://github.com/estruyf/doctor",
@@ -22,7 +22,8 @@
     "clean": "rm -rf dist",
     "watch": "node ./scripts/reset-debug.js && (tsc -w & tsc-alias -w)",
     "watch:debug": "node ./scripts/init-debug.js && (tsc -w & tsc-alias -w)",
-    "docs": "cd docs && hogo serve",
+    "docs": "cd docs && npm run dev",
+    "docs:build": "cd docs && npm install && npm run build",
     "prepare": "husky install"
   },
   "keywords": [
@@ -78,6 +79,8 @@
     "@types/inquirer": "9.0.9",
     "@types/listr": "0.14.10",
     "@types/markdown-it": "14.1.2",
+    "@types/markdown-it-emoji": "3.0.1",
+    "@types/markdown-it-footnote": "3.0.4",
     "@types/mime-types": "3.0.1",
     "@types/omelette": "0.4.5",
     "husky": "9.1.7",
@@ -100,8 +103,13 @@
     "listr2": "11.0.0",
     "markdown-it": "14.1.1",
     "markdown-it-anchor": "9.2.0",
+    "markdown-it-deflist": "4.0.0",
+    "markdown-it-emoji": "3.1.0",
+    "markdown-it-footnote": "4.0.0",
+    "markdown-it-mark": "4.0.0",
     "markdown-it-shortcode-tag": "1.1.0",
     "markdown-it-table-of-contents": "1.1.0",
+    "markdown-it-task-lists": "2.1.1",
     "mime": "4.1.0",
     "omelette": "0.4.17"
   }

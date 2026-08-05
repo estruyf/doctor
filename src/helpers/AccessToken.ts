@@ -24,6 +24,27 @@ export class AccessToken {
       throw `Failed to retrieve an access token.`;
     }
 
-    return token;
+    return AccessToken.parse(token);
+  }
+
+  /**
+   * The CLI writes its output as JSON, so a plain string result comes back
+   * quoted. Those quotes are part of the value, which turns the header into
+   * `Bearer "eyJ..."` and makes SharePoint answer every call with a 401.
+   * @param token The raw stdout of the access token command
+   */
+  public static parse(token: string): string {
+    const raw = token.trim();
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed === "string" && parsed) {
+        return parsed.trim();
+      }
+    } catch {
+      // Not JSON encoded, the raw value is the token
+    }
+
+    return raw;
   }
 }

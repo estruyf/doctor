@@ -1,20 +1,32 @@
 import { readFile } from "fs/promises";
+import { dirname, join } from "path";
 import { Listr } from "listr2";
 import kleur from "kleur";
 import matter from "gray-matter";
-import { Authenticate } from "@commands";
+import { Authenticate, Version } from "@commands";
 import {
   FrontMatterHelper,
   MarkdownHelper,
+  OutputHelper,
+  PartialsHelper,
   StateHelper,
+  StatusHelper,
 } from "@helpers";
-import { CommandArguments, PageFrontMatter, PublishContext } from "@models";
-import { existsAsync } from "@utils";
+import {
+  CommandArguments,
+  PageFrontMatter,
+  PublishContext,
+  StatusResult,
+  StatusResultPage,
+} from "@models";
+import { existsAsync, isLanguageFile, relativePath } from "@utils";
 
 interface StatusEntry {
-  file: string;
-  slug: string;
-  state: "new" | "modified" | "unchanged" | "deleted";
+  /** `null` for a page which only exists in the publish state. */
+  file: string | null;
+  /** `null` for a language file which no page refers to. */
+  slug: string | null;
+  state: "new" | "modified" | "unchanged" | "deleted" | "orphaned";
 }
 
 export class Status {
@@ -58,7 +70,13 @@ export class Status {
         },
         {
           title: `Fetch all markdown files`,
-          task: async (c, task) => await MarkdownHelper.fetchMDFiles(c, task, startFolder),
+          task: async (c, task) =>
+            await MarkdownHelper.fetchMDFiles(
+              c,
+              task,
+              startFolder,
+              PartialsHelper.getIgnorePatterns(options)
+            ),
           rendererOptions: { persistentOutput: true },
         },
         {
@@ -67,6 +85,41 @@ export class Status {
             const total = c.files.length;
             localFilesChecked = c.files.filter((file) => file.endsWith(".md")).length;
             let processed = 0;
+
+            // Language files carry no slug of their own, they are published
+            // under the URL SharePoint issues for the localized page. Walking
+            // the source pages first tells which language file belongs to which
+            // page and locale, so they can be reported too.
+            const languageFiles = new Map<
+              string,
+              { locale: string; sourceSlug: string }
+            >();
+            for (const file of c.files) {
+              if (!file.endsWith(".md") || isLanguageFile(file)) continue;
+
+              try {
+                const markup = matter(await readFile(file, "utf-8"));
+                const data = markup.data as PageFrontMatter;
+                if (!data?.title || !data.localization) continue;
+
+                const sourceSlug = FrontMatterHelper.getSlug(
+                  data,
+                  startFolder,
+                  file,
+                );
+
+                for (const locale of Object.keys(data.localization)) {
+                  const localizedPath = data.localization[locale];
+                  if (!localizedPath) continue;
+                  languageFiles.set(join(dirname(file), localizedPath), {
+                    locale,
+                    sourceSlug,
+                  });
+                }
+              } catch {
+                continue;
+              }
+            }
 
             for (const file of c.files) {
               if (!file.endsWith(".md")) continue;
@@ -81,20 +134,40 @@ export class Status {
               }
 
               let slug: string;
-              try {
-                const markup = matter(contents);
-                if (markup.data?.type === "translation") continue;
-                if (!markup.data?.title) continue;
-                slug = FrontMatterHelper.getSlug(
-                  markup.data as PageFrontMatter,
-                  startFolder,
-                  file,
+              if (isLanguageFile(file)) {
+                const link = languageFiles.get(file);
+                // A language file nothing refers to never gets published
+                if (!link) {
+                  entries.push({ file, slug: null, state: "orphaned" });
+                  continue;
+                }
+                slug = StateHelper.getTranslationSlug(
+                  link.sourceSlug,
+                  link.locale,
                 );
-              } catch {
-                continue;
+              } else {
+                try {
+                  const markup = matter(contents);
+                  if (markup.data?.type === "translation") continue;
+                  if (!markup.data?.title) continue;
+                  slug = FrontMatterHelper.getSlug(
+                    markup.data as PageFrontMatter,
+                    startFolder,
+                    file,
+                  );
+                } catch {
+                  continue;
+                }
               }
 
-              const hash = StateHelper.hashContent(contents);
+              // Use the same hash as the publish flow, so a changed partial
+              // shows the pages using it as modified
+              let hash: string;
+              try {
+                ({ hash } = await PartialsHelper.process(file, contents, options));
+              } catch {
+                hash = StateHelper.hashContent(contents);
+              }
               const changed = StateHelper.hasChanged(slug, hash);
 
               if (statePageCount === 0) {
@@ -104,12 +177,16 @@ export class Status {
               }
             }
 
-            // Detect pages in state that no longer exist locally
-            const localSlugs = new Set(entries.map((e) => e.slug));
-            for (const slug of StateHelper.getTrackedSlugs()) {
-              if (!localSlugs.has(slug)) {
-                entries.push({ file: "(not found locally)", slug, state: "deleted" });
-              }
+            // Detect pages in state that no longer exist locally. Orphaned
+            // language files have no slug, so they are left out.
+            const localSlugs = entries
+              .filter((e): e is StatusEntry & { slug: string } => !!e.slug)
+              .map((e) => e.slug);
+            const deletedSlugs = StateHelper.getDeletedSlugs(localSlugs, {
+              multilingual: !!options.multilingual?.enableTranslations,
+            });
+            for (const slug of deletedSlugs) {
+              entries.push({ file: null, slug, state: "deleted" });
             }
           },
         },
@@ -118,6 +195,7 @@ export class Status {
         renderer: "default",
         fallbackRenderer: "verbose",
         fallbackRendererCondition: options.debug || options.verbose,
+        silentRendererCondition: OutputHelper.isJson(),
       }
     ).run(ctx);
 
@@ -127,6 +205,42 @@ export class Status {
     const modified = byState("modified");
     const unchanged = byState("unchanged");
     const deleted = byState("deleted");
+    const orphaned = byState("orphaned");
+    const totalChanged = newPages.length + modified.length;
+
+    if (OutputHelper.isJson()) {
+      const result: StatusResult = {
+        command: "status",
+        success: true,
+        version: await Version.getVersion(),
+        url: webUrl,
+        state: {
+          enabled: !options.disableStatePersistence,
+          tracked: statePageCount,
+          filesChecked: localFilesChecked,
+        },
+        summary: {
+          new: newPages.length,
+          modified: modified.length,
+          unchanged: unchanged.length,
+          deleted: deleted.length,
+          orphaned: orphaned.length,
+          changed: totalChanged,
+          upToDate: totalChanged === 0 && deleted.length === 0,
+        },
+        pages: {
+          new: this.toResultPages(newPages),
+          modified: this.toResultPages(modified),
+          unchanged: this.toResultPages(unchanged),
+          deleted: this.toResultPages(deleted),
+          orphaned: this.toResultPages(orphaned),
+        },
+        warnings: StatusHelper.getWarnings(),
+      };
+
+      OutputHelper.setResult(result);
+      return;
+    }
 
     console.log("");
     console.info(kleur.bold().bgYellow().black(` Status summary `));
@@ -137,6 +251,28 @@ export class Status {
     this.printGroup(kleur.green().bold(`  ✦ New (${newPages.length})`), newPages, "file");
     this.printGroup(kleur.yellow().bold(`  ✦ Modified (${modified.length})`), modified, "file");
     this.printGroup(kleur.red().bold(`  ✦ Deleted (${deleted.length})`), deleted, "slug");
+    if (deleted.length > 0) {
+      console.info(
+        kleur.dim(
+          `      Run 'doctor publish --removeDeleted --confirm' to recycle these pages.`
+        )
+      );
+      console.log("");
+    }
+
+    if (orphaned.length > 0) {
+      this.printGroup(
+        kleur.red().bold(`  ✦ Orphaned language files (${orphaned.length})`),
+        orphaned,
+        "file"
+      );
+      console.info(
+        kleur.dim(
+          `      No page refers to these through its 'localization' front matter, so they are never published.`
+        )
+      );
+      console.log("");
+    }
 
     const unchangedLabel = options.verbose
       ? kleur.dim(`  ✦ Unchanged (${unchanged.length})`)
@@ -150,7 +286,6 @@ export class Status {
 
     console.log("");
 
-    const totalChanged = newPages.length + modified.length;
     if (totalChanged === 0 && deleted.length === 0) {
       console.info(kleur.bold().bgGreen().black(` ✔ Everything up to date `));
     } else {
@@ -172,5 +307,17 @@ export class Status {
       }
     }
     console.log("");
+  }
+
+  /**
+   * Converts the reported entries to their machine readable form, with the file
+   * paths relative to the working directory so they can be linked from a PR
+   * comment.
+   */
+  private static toResultPages(entries: StatusEntry[]): StatusResultPage[] {
+    return entries.map((entry) => ({
+      file: entry.file ? relativePath(entry.file) : null,
+      slug: entry.slug,
+    }));
   }
 }

@@ -8,6 +8,13 @@ import { tmpdir } from "os";
 export interface DoctorStateEntry {
   sourceHash: string;
   publishedAt: string;
+  /**
+   * The slug of the source page when this entry is a SharePoint managed
+   * translation. Translated pages have no markdown file of their own on the
+   * location SharePoint publishes them to, so they can only be matched with
+   * their source page.
+   */
+  translationOf?: string;
 }
 
 export interface DoctorState {
@@ -157,6 +164,66 @@ export class StateHelper {
   }
 
   /**
+   * The URL of a localized page is issued by SharePoint, so it is only known
+   * for certain once the page has been published. A tracked slug is therefore
+   * authoritative; without one, fall back to the locale prefixed source slug,
+   * which is the shape SharePoint uses for translations.
+   * @param sourceSlug The slug of the page the translation belongs to
+   * @param locale The locale of the translation, for instance `nl-nl`
+   */
+  public static getTranslationSlug(sourceSlug: string, locale: string): string {
+    const normalizedSource = sourceSlug.toLowerCase();
+    const normalizedLocale = locale.trim().toLowerCase();
+
+    if (StateHelper.state) {
+      for (const [slug, entry] of Object.entries(StateHelper.state.pages)) {
+        if (
+          entry &&
+          entry.translationOf &&
+          entry.translationOf.toLowerCase() === normalizedSource &&
+          StateHelper.matchesLocale(slug, normalizedLocale)
+        ) {
+          return slug;
+        }
+      }
+    }
+
+    return StateHelper.toTranslationSlug(sourceSlug, locale);
+  }
+
+  /**
+   * SharePoint publishes a translation next to its source page, in a folder
+   * named after the language it issued: `home.aspx` becomes `nl/home.aspx` and
+   * `doctor/installation.aspx` becomes `doctor/nl/installation.aspx`. The
+   * language folder is therefore the segment right before the file name.
+   */
+  private static matchesLocale(slug: string, locale: string): boolean {
+    const segments = slug.toLowerCase().split("/");
+    if (segments.length < 2) {
+      return false;
+    }
+
+    const languageFolder = segments[segments.length - 2];
+
+    // The folder is either the locale itself, or only its language part, which
+    // is what SharePoint uses for the languages it has a single variant of
+    return (
+      languageFolder === locale || languageFolder === locale.split("-")[0]
+    );
+  }
+
+  /**
+   * The slug a translation is expected to get, used as long as SharePoint has
+   * not issued one yet. The language folder is the full locale here, as which
+   * of the two shapes SharePoint picks is only known once the page exists.
+   */
+  private static toTranslationSlug(sourceSlug: string, locale: string): string {
+    const segments = sourceSlug.split("/");
+    const fileName = segments.pop() as string;
+    return [...segments, locale, fileName].join("/");
+  }
+
+  /**
    * Always returns true when state has not been loaded.
    */
   public static hasChanged(slug: string, contentHash: string): boolean {
@@ -169,14 +236,93 @@ export class StateHelper {
 
   /**
    * Record a successfully published page in the in-memory state.
+   * @param translationOf The slug of the source page, when publishing a translation.
    */
-  public static markPublished(slug: string, contentHash: string): void {
+  public static markPublished(
+    slug: string,
+    contentHash: string,
+    translationOf: string | null = null,
+  ): void {
     if (!StateHelper.state) return;
     StateHelper.state.pages[slug] = {
       sourceHash: contentHash,
       publishedAt: new Date().toISOString(),
+      ...(translationOf ? { translationOf } : {}),
     };
     StateHelper.dirty = true;
+  }
+
+  /**
+   * Drop a page from the in-memory state, for instance after it got recycled.
+   * @returns `true` when the slug was tracked and got removed.
+   */
+  public static removeTracked(slug: string): boolean {
+    if (!StateHelper.state || !StateHelper.state.pages[slug]) {
+      return false;
+    }
+    delete StateHelper.state.pages[slug];
+    StateHelper.dirty = true;
+    return true;
+  }
+
+  /**
+   * Determine which tracked pages no longer have a local markdown file, which
+   * means they were deleted from the sources since the last publish.
+   * @param localSlugs The slugs of all pages which currently exist locally.
+   * @param options Set `multilingual` when translations are enabled on the site.
+   */
+  public static getDeletedSlugs(
+    localSlugs: Iterable<string>,
+    options: { multilingual?: boolean } = {},
+  ): string[] {
+    if (!StateHelper.loaded || !StateHelper.state) {
+      return [];
+    }
+
+    const known = new Set(
+      [...localSlugs].map((slug) => slug.toLowerCase()),
+    );
+    const deleted: string[] = [];
+
+    for (const [slug, entry] of Object.entries(StateHelper.state.pages)) {
+      if (known.has(slug.toLowerCase())) {
+        continue;
+      }
+
+      // Translations are published to a location SharePoint hands out, so they
+      // only count as deleted once their source page is gone as well.
+      if (entry && entry.translationOf) {
+        if (!known.has(entry.translationOf.toLowerCase())) {
+          deleted.push(slug);
+        }
+        continue;
+      }
+
+      // State written before translations got tracked has no reference to its
+      // source page. Stripping the locale prefix keeps those pages out of the
+      // deleted list as long as their source page still exists.
+      if (
+        options.multilingual &&
+        StateHelper.looksLikeTranslation(slug.toLowerCase(), known)
+      ) {
+        continue;
+      }
+
+      deleted.push(slug);
+    }
+
+    return deleted;
+  }
+
+  private static looksLikeTranslation(
+    slug: string,
+    localSlugs: Set<string>,
+  ): boolean {
+    const segments = slug.split("/");
+    if (segments.length < 2) {
+      return false;
+    }
+    return localSlugs.has(segments.slice(1).join("/"));
   }
 
   /** Returns true if state has been modified since the last load. */

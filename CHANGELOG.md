@@ -1,5 +1,23 @@
 # Changelog
     
+## [2.1.0]
+
+
+- Fix: the first block of a page is now parsed as markdown instead of being kept as HTML when `markdown.allowHtml` is enabled.
+- Fix: pages that were skipped as unchanged no longer disappear from the site navigation.
+- Fix: the Azure Translator endpoint of your own resource (`<name>.cognitiveservices.azure.com`) is now called on the right path, and a trailing slash on the endpoint no longer breaks the request.
+- Fix: partials are injected into machine translated pages, so their header and footer end up on the translated page in the target language.
+- Fix: secrets are kept out of the `--debug` output by property name, which covers `multilingual.translator.key` and no longer mangles values which happen to contain a secret.
+- The `multilingual.languages` setting now takes the same locale names as the `localization` front matter, for example `["nl-nl", "fr-fr"]`. LCIDs keep working and both styles can be mixed.
+- `doctor status` reports the localized pages, and the language files which no page refers to.
+- New `--removeDeleted` flag which recycles the pages whose markdown file got deleted from your sources. It uses the publish state to know which pages Doctor created, and needs to be confirmed with `--confirm`.
+- [#59](https://github.com/estruyf/doctor/issues/59): The `workflow` command can now generate an Azure DevOps pipeline with the new `--provider azdo` argument. The default remains GitHub Actions.
+- [#119](https://github.com/estruyf/doctor/issues/119): New `markdown.extended` setting to render emoji shortcodes, highlighted text, footnotes, definition lists and task lists. Enabled by default, and requires `markdown.allowHtml`.
+- [#198](https://github.com/estruyf/doctor/issues/198): New `partials` setting to reuse markdown snippets on your pages. Include them where you need them with `<include file="..." />`, or let Doctor add them to every page with `partials.header` and `partials.footer`.
+- [#198](https://github.com/estruyf/doctor/issues/198): Partials take parameters. Pass them as attributes on the include tag, like `<include file="warning" product="Doctor" />`, and use them in the partial with `{{product}}`. Their default values are set with the `params` front matter of the partial.
+- [#199](https://github.com/estruyf/doctor/issues/199): Fix: multilingual pages are published again. Translations are now handled in their own phase which runs after the normal pages, so a translation is no longer skipped when its source page was unchanged. Language files are picked up by their `.lang.md` name, and a failing SharePoint or translator call reports why instead of passing silently.
+- [#202](https://github.com/estruyf/doctor/issues/202): New `--output json` argument which silences the human output and writes the result of your `doctor status` or `doctor publish` run as a single JSON document to stdout, so a pipeline can gate on it or turn it into a pull request comment.
+
 ## [2.0.0]
 
 

@@ -1,4 +1,5 @@
 export * from "./existsAsync.js";
+export * from "./isLanguageFile.js";
 export * from "./mkdirAsync.js";
 export * from "./readFileAsync.js";
 export * from "./relativePath.js";

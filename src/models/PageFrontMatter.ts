@@ -1,4 +1,9 @@
-import { PageLocalization, HeaderOptions, MenuType } from "./index.js";
+import {
+  PageLocalization,
+  HeaderOptions,
+  MenuType,
+  PagePartials,
+} from "./index.js";
 
 export interface PageFrontMatter {
   title: string;
@@ -13,6 +18,7 @@ export interface PageFrontMatter {
   layout?: string;
   localization?: PageLocalization;
   metadata?: { [name: string]: string };
+  partials?: PagePartials;
   author?: any;
   type?: "translation";
 }

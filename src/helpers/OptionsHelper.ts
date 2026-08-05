@@ -5,6 +5,7 @@ import inquirer from "inquirer";
 import { CommandArguments } from "@models";
 import { Command } from "@commands";
 import { existsAsync, readFileAsync } from "@utils";
+import { OutputHelper } from "./OutputHelper.js";
 
 export class OptionsHelper {
   /**
@@ -39,6 +40,8 @@ export class OptionsHelper {
       "--webPartTitle": String,
       "--outputFolder": String,
       "--pageTemplate": String,
+      "--provider": String,
+      "--output": String,
 
       "--commandTimeout": Number,
 
@@ -66,6 +69,7 @@ export class OptionsHelper {
       "--applyTheme": Boolean,
       "--skipPrecheck": Boolean,
       "--forceAll": Boolean,
+      "--removeDeleted": Boolean,
       "--disableStatePersistence": Boolean,
 
       "-a": "--auth",
@@ -132,6 +136,10 @@ export class OptionsHelper {
         (args["--forceAll"] as any) ||
         options["forceAll"] ||
         false,
+      removeDeleted:
+        (args["--removeDeleted"] as any) ||
+        options["removeDeleted"] ||
+        false,
       continueOnError:
         (args["--continueOnError"] as any) ||
         options["continueOnError"] ||
@@ -146,6 +154,7 @@ export class OptionsHelper {
         args["--debug"] ||
         false,
       verbose: args["--verbose"] || options["verbose"] || false,
+      output: OutputHelper.parseFormat(args["--output"] ?? options["output"]),
       timingDetails:
         (args["--timingDetails"] as any) ||
         options["timingDetails"] ||
@@ -156,6 +165,7 @@ export class OptionsHelper {
       outputFolder: args["--outputFolder"] || "",
       siteDesign: options["siteDesign"] || null,
       markdown: options["markdown"] || null,
+      partials: options["partials"] || null,
       multilingual: options["multilingual"] || null,
       tocLevels:
         options["markdown"] && options["markdown"]["tocLevels"]
@@ -176,6 +186,7 @@ export class OptionsHelper {
       pageTemplate: args["--pageTemplate"] || options["pageTemplate"] || null,
       disableComments:
         args["--disableComments"] || options["disableComments"] || false,
+      provider: args["--provider"] || null,
     };
   }
 
@@ -233,6 +244,32 @@ export class OptionsHelper {
         message: "Are you sure you want to clean up all pages and assets?",
         default: false,
       });
+    }
+
+    // The clean up options share the same confirmation, so only ask for it once.
+    if (
+      options.removeDeleted &&
+      !options.confirm &&
+      !options.cleanEnd &&
+      !options.cleanStart
+    ) {
+      questions.push({
+        type: "confirm",
+        name: "confirm",
+        message:
+          "Are you sure you want to recycle the pages which no longer exist in your local files?",
+        default: false,
+      });
+    }
+
+    // A prompt writes to stdout and waits for an answer, which corrupts the
+    // JSON document and hangs the pipeline it was meant to feed. Failing with
+    // the missing options is the useful outcome there.
+    if (questions.length > 0 && OutputHelper.isJson()) {
+      const missing = questions.map((question) => question.name).join(", ");
+      throw new Error(
+        `Doctor needs to ask for "${missing}", which it cannot do when "--output json" is used. Pass the value as an argument, or add it to the doctor.json file.`
+      );
     }
 
     try {

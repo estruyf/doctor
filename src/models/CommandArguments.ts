@@ -2,7 +2,10 @@ import {
   MarkdownSettings,
   Menu,
   MultilingualSettings,
+  OutputFormat,
+  PartialsSettings,
   SiteDesign,
+  WorkflowProvider,
 } from "./index.js";
 
 export interface RuntimeOptions {
@@ -11,10 +14,19 @@ export interface RuntimeOptions {
   commandTimeout?: number | null;
   debug: boolean;
   verbose: boolean;
+  /**
+   * How the command reports its result. `json` silences the human output and
+   * writes a single JSON document to stdout.
+   */
+  output: OutputFormat;
   timingDetails: boolean;
   continueOnError: boolean;
   retryWhenFailed: boolean;
   confirm: boolean;
+  /**
+   * The CI/CD provider to generate the workflow for with the `workflow` command.
+   */
+  provider?: WorkflowProvider | string | null;
 }
 
 export interface AuthOptions {
@@ -45,11 +57,13 @@ export interface PublishOptions {
   skipPrecheck: boolean;
   skipExistingPages: boolean;
   forceAll: boolean;
+  removeDeleted: boolean;
   pageTemplate: string | null;
 }
 
 export interface ContentOptions {
   markdown?: MarkdownSettings;
+  partials?: PartialsSettings | null;
   shortcodesFolder?: string;
   tocLevels: number[];
   disableComments: boolean;

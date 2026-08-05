@@ -38,7 +38,7 @@ export class Init {
     if (!(await existsAsync(configFile))) {
       const config: Record<string, unknown> = {
         $schema:
-          "https://raw.githubusercontent.com/estruyf/doctor/dev/schema/2.0.0.json",
+          "https://raw.githubusercontent.com/estruyf/doctor/dev/schema/2.1.0.json",
         auth: options.auth,
         url: options.webUrl,
         folder: options.startFolder.replace(process.cwd(), "."),

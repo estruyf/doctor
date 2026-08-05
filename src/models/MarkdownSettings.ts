@@ -5,4 +5,5 @@ export interface MarkdownSettings {
   theme?: "dark" | "light";
   shortcodesFolder?: string;
   tocLevels?: number[];
+  extended?: boolean;
 }

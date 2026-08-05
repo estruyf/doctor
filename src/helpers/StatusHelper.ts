@@ -6,12 +6,14 @@ export class StatusHelper {
     public pagesCreated = 0,
     public pagesUpdated = 0,
     public pagesSkipped = 0,
+    public pagesRemoved = 0,
     public errors = 0,
     public imagesUploaded = 0,
     public imagesSkipped = 0,
     public retries = 0,
     public pageDurations: { filePath: string; durationMs: number }[] = [],
     public failedFiles: string[] = [],
+    public warnings: string[] = [],
   ) {}
 
   public static getInstance() {
@@ -23,6 +25,21 @@ export class StatusHelper {
 
   public static reset() {
     StatusHelper.instance = new StatusHelper();
+  }
+
+  /**
+   * Records something the run could not do but which is not fatal, so it can be
+   * reported in the summary instead of scrolling past in the task output.
+   */
+  public static addWarning(message: string) {
+    const warnings = StatusHelper.getInstance().warnings;
+    if (!warnings.includes(message)) {
+      warnings.push(message);
+    }
+  }
+
+  public static getWarnings(): string[] {
+    return [...StatusHelper.getInstance().warnings];
   }
 
   public static addRetry() {
@@ -54,6 +71,13 @@ export class StatusHelper {
       return;
     }
     StatusHelper.getInstance().pagesSkipped += count;
+  }
+
+  public static addPagesRemoved(count: number) {
+    if (count <= 0) {
+      return;
+    }
+    StatusHelper.getInstance().pagesRemoved += count;
   }
 
   public static addError(filePath?: string) {
@@ -100,6 +124,10 @@ export class StatusHelper {
 
   public static getPagesSkipped() {
     return StatusHelper.getInstance().pagesSkipped;
+  }
+
+  public static getPagesRemoved() {
+    return StatusHelper.getInstance().pagesRemoved;
   }
 
   public static getErrors() {
