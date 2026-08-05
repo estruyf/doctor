@@ -44,24 +44,14 @@ ${markdown.join("\n")}`;
 
     const changelogDocs = `---
 title: Changelog
-date: 2021-02-22T10:10:32.941Z
-icon: fa-bolt
 description: The changelog of Doctor
-type: docs-main
 ---
 
 ${markdown.join("\n")}`;
     fs.writeFileSync(
-      path.join(__dirname, "../docs/content/changelog/_index.md"),
+      path.join(__dirname, "../docs/src/content/docs/changelog/index.md"),
       changelogDocs,
       { encoding: "utf-8" },
     );
   }
-
-  // Prepare the beta data
-  fs.writeFileSync(
-    path.join(__dirname, "../docs/data/upcomingVersion.json"),
-    JSON.stringify(changelog[1]),
-    { encoding: "utf-8" },
-  );
 }
