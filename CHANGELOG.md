@@ -5,8 +5,8 @@
 
 - Fix: the first block of a page is now parsed as markdown instead of being kept as HTML when `markdown.allowHtml` is enabled.
 - Fix: pages that were skipped as unchanged no longer disappear from the site navigation.
-- New `partials` setting to reuse markdown snippets on your pages. Include them where you need them with `<include file="..." />`, or let Doctor add them to every page with `partials.header` and `partials.footer`.
 - [#119](https://github.com/estruyf/doctor/issues/119): New `markdown.extended` setting to render emoji shortcodes, highlighted text, footnotes, definition lists and task lists. Enabled by default, and requires `markdown.allowHtml`.
+- [#198](https://github.com/estruyf/doctor/issues/198): New `partials` setting to reuse markdown snippets on your pages. Include them where you need them with `<include file="..." />`, or let Doctor add them to every page with `partials.header` and `partials.footer`.
 
 ## [2.0.0]
 
