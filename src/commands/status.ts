@@ -1,4 +1,5 @@
 import { readFile } from "fs/promises";
+import { dirname, join } from "path";
 import { Listr } from "listr2";
 import kleur from "kleur";
 import matter from "gray-matter";
@@ -10,12 +11,12 @@ import {
   StateHelper,
 } from "@helpers";
 import { CommandArguments, PageFrontMatter, PublishContext } from "@models";
-import { existsAsync } from "@utils";
+import { existsAsync, isLanguageFile } from "@utils";
 
 interface StatusEntry {
   file: string;
   slug: string;
-  state: "new" | "modified" | "unchanged" | "deleted";
+  state: "new" | "modified" | "unchanged" | "deleted" | "orphaned";
 }
 
 export class Status {
@@ -75,6 +76,41 @@ export class Status {
             localFilesChecked = c.files.filter((file) => file.endsWith(".md")).length;
             let processed = 0;
 
+            // Language files carry no slug of their own, they are published
+            // under the URL SharePoint issues for the localized page. Walking
+            // the source pages first tells which language file belongs to which
+            // page and locale, so they can be reported too.
+            const languageFiles = new Map<
+              string,
+              { locale: string; sourceSlug: string }
+            >();
+            for (const file of c.files) {
+              if (!file.endsWith(".md") || isLanguageFile(file)) continue;
+
+              try {
+                const markup = matter(await readFile(file, "utf-8"));
+                const data = markup.data as PageFrontMatter;
+                if (!data?.title || !data.localization) continue;
+
+                const sourceSlug = FrontMatterHelper.getSlug(
+                  data,
+                  startFolder,
+                  file,
+                );
+
+                for (const locale of Object.keys(data.localization)) {
+                  const localizedPath = data.localization[locale];
+                  if (!localizedPath) continue;
+                  languageFiles.set(join(dirname(file), localizedPath), {
+                    locale,
+                    sourceSlug,
+                  });
+                }
+              } catch {
+                continue;
+              }
+            }
+
             for (const file of c.files) {
               if (!file.endsWith(".md")) continue;
 
@@ -88,17 +124,34 @@ export class Status {
               }
 
               let slug: string;
-              try {
-                const markup = matter(contents);
-                if (markup.data?.type === "translation") continue;
-                if (!markup.data?.title) continue;
-                slug = FrontMatterHelper.getSlug(
-                  markup.data as PageFrontMatter,
-                  startFolder,
-                  file,
+              if (isLanguageFile(file)) {
+                const link = languageFiles.get(file);
+                // A language file nothing refers to never gets published
+                if (!link) {
+                  entries.push({
+                    file,
+                    slug: `(not referenced by any page)`,
+                    state: "orphaned",
+                  });
+                  continue;
+                }
+                slug = StateHelper.getTranslationSlug(
+                  link.sourceSlug,
+                  link.locale,
                 );
-              } catch {
-                continue;
+              } else {
+                try {
+                  const markup = matter(contents);
+                  if (markup.data?.type === "translation") continue;
+                  if (!markup.data?.title) continue;
+                  slug = FrontMatterHelper.getSlug(
+                    markup.data as PageFrontMatter,
+                    startFolder,
+                    file,
+                  );
+                } catch {
+                  continue;
+                }
               }
 
               // Use the same hash as the publish flow, so a changed partial
@@ -118,8 +171,11 @@ export class Status {
               }
             }
 
-            // Detect pages in state that no longer exist locally
-            const localSlugs = entries.map((e) => e.slug);
+            // Detect pages in state that no longer exist locally. Orphaned
+            // language files have no slug, so they are left out.
+            const localSlugs = entries
+              .filter((e) => e.state !== "orphaned")
+              .map((e) => e.slug);
             const deletedSlugs = StateHelper.getDeletedSlugs(localSlugs, {
               multilingual: !!options.multilingual?.enableTranslations,
             });
@@ -142,6 +198,7 @@ export class Status {
     const modified = byState("modified");
     const unchanged = byState("unchanged");
     const deleted = byState("deleted");
+    const orphaned = byState("orphaned");
 
     console.log("");
     console.info(kleur.bold().bgYellow().black(` Status summary `));
@@ -156,6 +213,20 @@ export class Status {
       console.info(
         kleur.dim(
           `      Run 'doctor publish --removeDeleted --confirm' to recycle these pages.`
+        )
+      );
+      console.log("");
+    }
+
+    if (orphaned.length > 0) {
+      this.printGroup(
+        kleur.red().bold(`  ✦ Orphaned language files (${orphaned.length})`),
+        orphaned,
+        "file"
+      );
+      console.info(
+        kleur.dim(
+          `      No page refers to these through its 'localization' front matter, so they are never published.`
         )
       );
       console.log("");

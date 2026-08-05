@@ -1,5 +1,6 @@
 import CleanCSS from "clean-css";
 import fg from "fast-glob";
+import { MACHINE_TRANSLATED_SUFFIX } from "@utils";
 import MarkdownIt from "markdown-it";
 import markdownItAnchor from "markdown-it-anchor";
 import markdownItTableOfContents from "markdown-it-table-of-contents";
@@ -32,10 +33,14 @@ export class MarkdownHelper {
     ignore: string[] = []
   ) {
     const uniformalStartFolder = startFolder.replace(/\\/g, "/");
+    // Language files hold the content of the localized pages, so they are part
+    // of the scan. They do not get published on their own though: the URL of a
+    // translated page is issued by SharePoint, which is why they are published
+    // through the source page referencing them.
+    // Machine translated files are generated during a run, so they are skipped.
     const files = await fg(`${uniformalStartFolder}/**/*.md`, {
       ignore: [
-        `${uniformalStartFolder}/**/*.lang.md`,
-        `${uniformalStartFolder}/**/*.machinetranslated.md`,
+        `${uniformalStartFolder}/**/*${MACHINE_TRANSLATED_SUFFIX}`,
         ...ignore,
       ],
     });

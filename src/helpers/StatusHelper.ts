@@ -13,6 +13,7 @@ export class StatusHelper {
     public retries = 0,
     public pageDurations: { filePath: string; durationMs: number }[] = [],
     public failedFiles: string[] = [],
+    public warnings: string[] = [],
   ) {}
 
   public static getInstance() {
@@ -24,6 +25,21 @@ export class StatusHelper {
 
   public static reset() {
     StatusHelper.instance = new StatusHelper();
+  }
+
+  /**
+   * Records something the run could not do but which is not fatal, so it can be
+   * reported in the summary instead of scrolling past in the task output.
+   */
+  public static addWarning(message: string) {
+    const warnings = StatusHelper.getInstance().warnings;
+    if (!warnings.includes(message)) {
+      warnings.push(message);
+    }
+  }
+
+  public static getWarnings(): string[] {
+    return [...StatusHelper.getInstance().warnings];
   }
 
   public static addRetry() {

@@ -6,7 +6,7 @@ import {
   PublishContext,
   TaskOutput,
 } from "@models";
-import { existsAsync, readFileAsync } from "@utils";
+import { existsAsync, isLanguageFile, readFileAsync } from "@utils";
 import { FrontMatterHelper } from "./FrontMatterHelper.js";
 
 export class PrecheckHelper {
@@ -43,7 +43,9 @@ export class PrecheckHelper {
 
       const data = (parsed.data || {}) as PageFrontMatter;
 
-      if (data.type === "translation") {
+      // Language files are published under the slug SharePoint issues for
+      // them, so they never take part in the slug collision check
+      if (isLanguageFile(filePath) || data.type === "translation") {
         continue;
       }
 

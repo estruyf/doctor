@@ -28,9 +28,8 @@ export class Publish {
   public static async start(options: CommandArguments) {
     const publishStart = Date.now();
     Logger.debug(
-      `Running with the following options: ${Logger.mask(
-        JSON.stringify(options),
-        [options.password, options.certificate].filter((v): v is string => !!v)
+      `Running with the following options: ${JSON.stringify(
+        Logger.redact(options)
       )}`
     );
 
@@ -117,6 +116,21 @@ export class Publish {
           task: async (ctx, task) =>
             await DoctorTranspiler.processMDFiles(ctx, task, options, ouput),
           enabled: () => !options.skipPages,
+          rendererOptions: { persistentOutput: true },
+        },
+        {
+          // Runs after all the normal pages, as a translation can only be
+          // created once its source page exists on the site
+          title: `Process localized pages`,
+          task: async (ctx, task) =>
+            await DoctorTranspiler.processTranslations(
+              ctx.files || [],
+              task,
+              options,
+              ouput
+            ),
+          enabled: () =>
+            !options.skipPages && !!options.multilingual?.enableTranslations,
           rendererOptions: { persistentOutput: true },
         },
         {
@@ -291,6 +305,17 @@ export class Publish {
       const failedFiles = StatusHelper.getFailedFiles();
       for (const failedFile of failedFiles) {
         console.info(kleur.red(`   - ${relativePath(failedFile)}`));
+      }
+    }
+
+    // Things which were skipped on purpose, like a locale which cannot be
+    // machine translated. Reported here so they do not scroll past unnoticed.
+    const warnings = StatusHelper.getWarnings();
+    if (warnings.length > 0) {
+      console.log("");
+      console.info(kleur.bold().bgYellow().black(` Warnings `));
+      for (const warning of warnings) {
+        console.info(kleur.yellow(`   - ${warning}`));
       }
     }
   }

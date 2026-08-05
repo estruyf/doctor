@@ -9,6 +9,7 @@ import {
   TaskOutput,
   Control,
   PageFrontMatter,
+  PageLocalization,
 } from "@models";
 import {
   FileHelpers,
@@ -26,6 +27,8 @@ import {
 import { basename, join, dirname } from "path";
 import {
   existsAsync,
+  isLanguageFile,
+  isMachineTranslatedFile,
   mkdirAsync,
   readFileAsync,
   relativePath,
@@ -74,6 +77,11 @@ export class DoctorTranspiler {
       filesToProcess = plan.filesToProcess;
       StatusHelper.addPagesSkipped(plan.skippedUnchanged);
       task.output = `Processing ${filesToProcess.length} changed/new page${filesToProcess.length === 1 ? "" : "s"} (${plan.skippedUnchanged} unchanged skipped)`;
+    } else {
+      // Language files are part of the scan, but they get published through the
+      // source page which references them. Keeping them out of the list means
+      // the progress counter reflects the pages which are actually processed.
+      filesToProcess = await this.withoutTranslationFiles(files);
     }
 
     const total = filesToProcess.length;
@@ -136,9 +144,9 @@ export class DoctorTranspiler {
       try {
         const markup = matter(contents);
 
-        // Translation pages are published under the slug SharePoint provides,
-        // which gets tracked when their source page is processed.
-        if (markup.data && markup.data.type === "translation") {
+        // Language files are published under the slug SharePoint provides,
+        // which gets tracked when the translation phase runs.
+        if (isLanguageFile(file) || markup.data?.type === "translation") {
           continue;
         }
 
@@ -160,6 +168,130 @@ export class DoctorTranspiler {
     }
 
     return { slugs, unresolved };
+  }
+
+  /**
+   * Language files hold the content of a localized page, they are not pages of
+   * their own. Filters them out of a list of scanned markdown files.
+   */
+  private static async withoutTranslationFiles(
+    files: string[],
+  ): Promise<string[]> {
+    const pages: string[] = [];
+
+    for (const file of files) {
+      if (!file.endsWith(".md")) {
+        continue;
+      }
+
+      if (isLanguageFile(file)) {
+        continue;
+      }
+
+      const contents = await readFileAsync(file, { encoding: "utf-8" });
+      if (!contents) {
+        pages.push(file);
+        continue;
+      }
+
+      try {
+        const markup = matter(contents);
+        if (markup.data && markup.data.type === "translation") {
+          continue;
+        }
+      } catch {
+        // Leave the invalid front matter for processFile to report
+      }
+
+      pages.push(file);
+    }
+
+    return pages;
+  }
+
+  /**
+   * Publishes the localized pages, after all the normal pages have been
+   * published. Running this as its own phase is what keeps translations working
+   * when their source page got skipped as unchanged: the translation is driven
+   * by the language file, not by whether its source page happened to be
+   * processed in this run.
+   * @param files All scanned markdown files
+   */
+  public static async processTranslations(
+    files: string[],
+    task: TaskOutput,
+    options: CommandArguments,
+    output: PublishOutput,
+  ): Promise<void> {
+    if (!options.multilingual || !options.multilingual.enableTranslations) {
+      return;
+    }
+
+    // Source pages hold the link to their language files, so they are what gets
+    // walked here. Pages without a localization reference are machine
+    // translated when a translator is configured.
+    const sources: { file: string; slug: string; data: PageFrontMatter }[] = [];
+
+    for (const file of files) {
+      if (!file.endsWith(".md") || isLanguageFile(file)) {
+        continue;
+      }
+
+      const contents = await readFileAsync(file, { encoding: "utf-8" });
+      if (!contents) {
+        continue;
+      }
+
+      try {
+        const markup = matter(contents);
+        const data = markup.data as PageFrontMatter;
+        if (!data || data.type === "translation" || !data.title) {
+          continue;
+        }
+
+        if (!data.localization || Object.keys(data.localization).length === 0) {
+          continue;
+        }
+
+        sources.push({
+          file,
+          slug: FrontMatterHelper.getSlug(data, options.startFolder, file),
+          data,
+        });
+      } catch {
+        // Invalid front matter is reported by the pre-check and the page phase
+        continue;
+      }
+    }
+
+    if (sources.length === 0) {
+      task.output = "No localized pages to publish";
+      return;
+    }
+
+    for (let i = 0; i < sources.length; i++) {
+      const { file, slug, data } = sources[i];
+      task.output = `[${i + 1}/${sources.length}] Translating ${relativePath(file)}`;
+
+      try {
+        await MultilingualHelper.linkPage(
+          data.localization as PageLocalization,
+          file,
+          slug,
+          options,
+          task,
+          output,
+        );
+      } catch (e) {
+        StatusHelper.addError(file);
+        const errorMessage = `${relativePath(file)}: ${getErrorMessage(e)}`;
+        Logger.debug(errorMessage);
+
+        if (!options.continueOnError) {
+          throw new Error(errorMessage);
+        }
+      }
+    }
   }
 
   private static async buildProcessingPlan(
@@ -184,8 +316,8 @@ export class DoctorTranspiler {
       try {
         const markup = matter(contents);
 
-        // Translation pages are handled from source pages when multilingual linking runs.
-        if (markup.data && markup.data.type === "translation") {
+        // Language files are handled by the translation phase.
+        if (isLanguageFile(file) || markup.data?.type === "translation") {
           continue;
         }
 
@@ -303,18 +435,18 @@ export class DoctorTranspiler {
       if (contents) {
         const markup: matter.GrayMatterFile<string> = matter(contents);
 
-        // Don't process language files, these will be processed later in the process
+        // Language files are published by the translation phase, which passes
+        // the slug SharePoint issued for the localized page
         if (
           !languagePageSlug &&
-          markup.data &&
-          markup.data.type === "translation"
+          (isLanguageFile(file) || markup.data?.type === "translation")
         ) {
           return;
         }
 
         // Machine translated pages are generated from a source page which had
         // its partials injected already, so they are taken as-is.
-        const isMachineTranslated = file.endsWith(`.machinetranslated.md`);
+        const isMachineTranslated = isMachineTranslatedFile(file);
 
         // Inject the partials before the images and links get processed, so the
         // assets and references they bring along are handled like page content.
@@ -356,8 +488,11 @@ export class DoctorTranspiler {
             file,
           );
 
-        // Change detection: skip unchanged files unless --forceAll is set
-        if (!options.forceAll && !languagePageSlug) {
+        // Change detection: skip unchanged files unless --forceAll is set.
+        // Language pages take part in this too, keyed by the slug SharePoint
+        // issued for them, so the translation phase does not republish every
+        // localized page on every run.
+        if (!options.forceAll) {
           if (!StateHelper.hasChanged(slug, contentHash)) {
             setProgress(`Skipped (unchanged): ${relPath}`);
             Logger.debug(`Skipping unchanged file: ${relPath}`);
@@ -546,24 +681,6 @@ export class DoctorTranspiler {
           title,
         );
 
-        // Verify if there are linked multilingual pages
-        if (
-          !languagePageSlug &&
-          options.multilingual &&
-          options.multilingual.enableTranslations &&
-          markup &&
-          markup.data &&
-          markup.data.localization
-        ) {
-          await MultilingualHelper.linkPage(
-            markup.data.localization,
-            file,
-            slug,
-            options,
-            task,
-            output,
-          );
-        }
       }
     }
   }
