@@ -14,12 +14,8 @@ This section walks you through everything you need to get your first documentati
 Before you can publish your first page, make sure the following is in place:
 
 - **Node.js 22.13.0 or higher** on your machine or build agent.
-- **An Azure Entra ID app registration**. `doctor` does not ship with an application of its own, you bring your own app registration. It needs the **Sites.FullControl.All** application permission from SharePoint, with admin consent granted, and a certificate to authenticate with. Check the [certificate authentication](./certificate-authentication) section for the full setup.
+- **Permissions in your tenant** to create an Azure Entra ID app registration, and an administrator who can grant admin consent to it.
 - **A SharePoint site** where your documentation gets published. You pass its URL with the `--url` option, or store it in the `doctor.json` file.
-
-:::caution[Important]
-Certificate authentication is the only authentication type `doctor` supports. Without the Entra ID app registration and its certificate, `doctor` cannot sign in to your tenant.
-:::
 
 ## Install doctor
 
@@ -60,9 +56,23 @@ Since v2.0.0, `doctor` no longer runs on older Node.js versions. If you are usin
 
 To quickly get started, we provided a [sample repository](https://github.com/estruyf/doctor-sample) which allows you to test out all the functionalities of `Doctor`.
 
+## Set up certificate authentication
+
+`doctor` does not ship with an application of its own, so before you can publish anything you bring your own **Azure Entra ID app registration** and authenticate with its certificate:
+
+1. Create an app registration in the [Azure Portal](https://portal.azure.com).
+2. Add the **Sites.FullControl.All** application permission from SharePoint, and grant admin consent for your tenant.
+3. Generate a certificate, upload it to the app registration, and convert it to the `PKCS` format so you can pass it to `doctor`.
+
+The [certificate authentication](./certificate-authentication) section walks you through each of these steps with the required commands and screenshots.
+
+:::caution[Important]
+Certificate authentication is the only authentication type `doctor` supports. Without the Entra ID app registration and its certificate, `doctor` cannot sign in to your tenant.
+:::
+
 ## Publish your first pages
 
-Once the prerequisites are in place:
+Once `doctor` is installed and your app registration and certificate are in place:
 
 1. Create the folder structure and the `doctor.json` file in your project:
 
