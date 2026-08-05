@@ -122,6 +122,9 @@ Certificate authentication uses application permissions, which work for every AP
 `--forceAll`
 : Reprocess all pages, ignoring the saved publish state. By default `doctor` only publishes pages which are new or whose content changed since the last run. Check the [change detection](#change-detection--publish-state) section for more information.
 
+`--removeDeleted`
+: Recycles the pages which `doctor` published before, but whose markdown file no longer exists. Requires the `--confirm` flag, or `doctor` asks you to confirm the removal. Check the [removing deleted pages](#removing-deleted-pages) section for more information.
+
 `--skipPrecheck`
 : Skips the pre-process validation which runs before any SharePoint calls are made. Check the [pre-process checks](#pre-process-checks) section for more information.
 
@@ -195,6 +198,28 @@ Use the [`doctor status`](../../cli/#status) command to see which pages will be 
 
 > **Info**: The state gets skipped when you use the `--skipPages` flag, as no pages are processed in that case.
 
+### Removing deleted pages
+
+Deleting a markdown file does not remove the page it created on your site. `doctor` knows which pages it published, as it tracks them in the state file, and `doctor status` lists the ones without a local file as **Deleted**.
+
+Pass the `--removeDeleted` flag to act on them:
+
+```sh
+doctor publish --removeDeleted --confirm
+```
+
+Every page which is tracked in the state, but has no markdown file anymore, gets recycled and dropped from the state. The pages end up in the site its recycle bin, so you can still restore them from SharePoint itself.
+
+> **Important**: The removal needs to be confirmed. When you do not pass the `--confirm` flag, `doctor` asks you to confirm it before the publishing run starts. In a CI/CD pipeline you always need to pass `--confirm`, as there is nobody to answer the question.
+
+Good to know:
+
+- The state file is the source of truth. Pages which were created outside of `doctor`, or before the state file existed, are not touched. Use the `--cleanEnd` flag when you want to remove everything which was not published during the run.
+- Multilingual pages are removed together with their source page. Translations of a page which still exists are kept.
+- Pages which are already gone from the site are removed from the state as well, so the state keeps matching your site.
+- When a markdown file cannot be resolved to a page (an unreadable file, or one without a `title`), no pages get removed at all. The [pre-process checks](#pre-process-checks) catch these before the publishing run, unless you use `--skipPrecheck`.
+- The flag has no effect in combination with `--disableStatePersistence` or `--skipPages`, as `doctor` needs the state to know which pages it created.
+
 ### Pre-process checks
 
 Before any call to SharePoint is made, `doctor` validates your markdown files and stops the publishing run when it finds issues. This prevents a run from failing halfway through. The following checks are performed:
@@ -208,3 +233,10 @@ Before any call to SharePoint is made, `doctor` validates your markdown files an
 When one or more issues are found, the run stops and all issues are listed at once (up to a maximum of 20, followed by the number of remaining issues). Pages of the `translation` type are skipped during this validation.
 
 Use the `--skipPrecheck` flag when you want to skip this validation.
+
+## Workflow command specific options
+
+`--provider <provider>`
+: The CI/CD platform to generate the definition for. Supported values are `github` (default) and `azdo`. Check the [workflow command](../../cli/#workflow) section for more information.
+
+> **Important**: This flag can only be added to the command execution. Using it in the `doctor.json` file will be ignored.

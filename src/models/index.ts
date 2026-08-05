@@ -23,3 +23,4 @@ export * from './SiteDesign.js';
 export * from './TocPosition.js';
 export * from './Tokens.js';
 export * from './TranslationsReponse.js';
+export * from './WorkflowProvider.js';

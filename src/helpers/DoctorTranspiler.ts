@@ -108,6 +108,60 @@ export class DoctorTranspiler {
     }
   }
 
+  /**
+   * Resolve the slug of every local markdown file, which tells which pages are
+   * supposed to exist on the site. Files which cannot be resolved are returned
+   * as well, as their pages cannot be told apart from deleted ones.
+   * @param files All markdown files found in the start folder.
+   * @param options
+   */
+  public static async collectLocalSlugs(
+    files: string[],
+    options: CommandArguments,
+  ): Promise<{ slugs: string[]; unresolved: string[] }> {
+    const slugs: string[] = [];
+    const unresolved: string[] = [];
+
+    for (const file of files) {
+      if (!file.endsWith(".md")) {
+        continue;
+      }
+
+      const contents = await readFileAsync(file, { encoding: "utf-8" });
+      if (!contents) {
+        unresolved.push(file);
+        continue;
+      }
+
+      try {
+        const markup = matter(contents);
+
+        // Translation pages are published under the slug SharePoint provides,
+        // which gets tracked when their source page is processed.
+        if (markup.data && markup.data.type === "translation") {
+          continue;
+        }
+
+        if (!markup.data || !markup.data.title) {
+          unresolved.push(file);
+          continue;
+        }
+
+        slugs.push(
+          FrontMatterHelper.getSlug(
+            markup.data as PageFrontMatter,
+            options.startFolder,
+            file,
+          ),
+        );
+      } catch {
+        unresolved.push(file);
+      }
+    }
+
+    return { slugs, unresolved };
+  }
+
   private static async buildProcessingPlan(
     files: string[],
     options: CommandArguments,
@@ -222,6 +276,7 @@ export class DoctorTranspiler {
    * @param options
    * @param output
    * @param languagePage
+   * @param sourcePageSlug The slug of the source page when processing a translation
    */
   public static async processFile(
     file: string,
@@ -231,6 +286,7 @@ export class DoctorTranspiler {
     languagePageSlug: string | null = null,
     currentIndex: number = 0,
     totalFiles: number = 0,
+    sourcePageSlug: string | null = null,
   ) {
     const { webUrl, webPartTitle, skipExistingPages, disableComments } =
       options;
@@ -463,7 +519,11 @@ export class DoctorTranspiler {
 
             // Record hash so future runs can skip unchanged files and resume reliably
             if (!options.disableStatePersistence) {
-              StateHelper.markPublished(slug, contentHash);
+              StateHelper.markPublished(
+                slug,
+                contentHash,
+                languagePageSlug ? sourcePageSlug : null,
+              );
               await StateHelper.save(
                 webUrl,
                 options.assetLibrary,

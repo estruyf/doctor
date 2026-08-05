@@ -119,11 +119,12 @@ export class Status {
             }
 
             // Detect pages in state that no longer exist locally
-            const localSlugs = new Set(entries.map((e) => e.slug));
-            for (const slug of StateHelper.getTrackedSlugs()) {
-              if (!localSlugs.has(slug)) {
-                entries.push({ file: "(not found locally)", slug, state: "deleted" });
-              }
+            const localSlugs = entries.map((e) => e.slug);
+            const deletedSlugs = StateHelper.getDeletedSlugs(localSlugs, {
+              multilingual: !!options.multilingual?.enableTranslations,
+            });
+            for (const slug of deletedSlugs) {
+              entries.push({ file: "(not found locally)", slug, state: "deleted" });
             }
           },
         },
@@ -151,6 +152,14 @@ export class Status {
     this.printGroup(kleur.green().bold(`  ✦ New (${newPages.length})`), newPages, "file");
     this.printGroup(kleur.yellow().bold(`  ✦ Modified (${modified.length})`), modified, "file");
     this.printGroup(kleur.red().bold(`  ✦ Deleted (${deleted.length})`), deleted, "slug");
+    if (deleted.length > 0) {
+      console.info(
+        kleur.dim(
+          `      Run 'doctor publish --removeDeleted --confirm' to recycle these pages.`
+        )
+      );
+      console.log("");
+    }
 
     const unchangedLabel = options.verbose
       ? kleur.dim(`  ✦ Unchanged (${unchanged.length})`)

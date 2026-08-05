@@ -44,7 +44,11 @@ The options which got introduced in v2.0.0 can be defined in the `doctor.json` f
 }
 ```
 
+Options which got added in a later version, like `removeDeleted`, work the same way. Point the `$schema` value to the version you are running to get autocompletion for them in your editor.
+
 > **Important**: The flags which are marked with *"This flag can only be added to the command execution"* in the [CLI options](../cli-options) are the exception. These are ignored when you define them in the `doctor.json` file.
+
+> **Important**: The `removeDeleted` option removes pages from your site. It only runs when you confirm it, which means you still need to pass the `--confirm` flag on the command execution when you enabled it in the `doctor.json` file.
 
 The next sections describe the settings which are objects, and can only be configured in the `doctor.json` file.
 

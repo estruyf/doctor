@@ -54,6 +54,20 @@ export class Publish {
       navigation: options.menu ? { ...options.menu } : null,
     };
 
+    if (options.removeDeleted && !options.confirm) {
+      console.info(
+        kleur.bold().bgYellow().black(` Warning: `),
+        `Deleted pages are not removed, as the removal was not confirmed. Pass the '--confirm' flag together with '--removeDeleted' to recycle them.`
+      );
+    }
+
+    if (options.removeDeleted && options.disableStatePersistence) {
+      console.info(
+        kleur.bold().bgYellow().black(` Warning: `),
+        `Deleted pages are not removed, as '--disableStatePersistence' is used. Doctor needs the publish state to know which pages it created.`
+      );
+    }
+
     // Initializes the authentication
     await Authenticate.init(options);
 
@@ -106,6 +120,63 @@ export class Publish {
           rendererOptions: { persistentOutput: true },
         },
         {
+          title: `Remove deleted pages`,
+          task: async (ctx, task) => {
+            const { slugs, unresolved } = await DoctorTranspiler.collectLocalSlugs(
+              ctx.files || [],
+              options,
+            );
+
+            // Without a slug for every file, a page which does exist locally
+            // could be mistaken for a deleted one. Removing nothing is the
+            // safer outcome here.
+            if (unresolved.length > 0) {
+              task.skip(
+                `Skipped: ${unresolved.length} file${unresolved.length === 1 ? "" : "s"} could not be resolved to a page. Fix them, or run without --skipPrecheck, before removing deleted pages.`,
+              );
+              return;
+            }
+
+            const deleted = StateHelper.getDeletedSlugs(slugs, {
+              multilingual: !!options.multilingual?.enableTranslations,
+            });
+
+            if (deleted.length === 0) {
+              task.skip(`No deleted pages found`);
+              return;
+            }
+
+            try {
+              const removed = await PagesHelper.removePages(
+                webUrl,
+                deleted,
+                task,
+                options,
+                (slug) => StateHelper.removeTracked(slug),
+              );
+
+              StatusHelper.addPagesRemoved(removed.length);
+              task.output = `Recycled ${removed.length} deleted page${removed.length === 1 ? "" : "s"}`;
+            } finally {
+              // Persist right away, so a failure halfway does not leave the
+              // state pointing to pages which are already recycled.
+              if (StateHelper.isDirty()) {
+                await StateHelper.save(
+                  webUrl,
+                  options.assetLibrary,
+                  options.stateFile,
+                );
+              }
+            }
+          },
+          enabled: () =>
+            options.removeDeleted &&
+            options.confirm &&
+            !options.skipPages &&
+            !options.disableStatePersistence,
+          rendererOptions: { persistentOutput: true },
+        },
+        {
           title: `Updating navigation`,
           task: async () =>
             await NavigationHelper.update(webUrl, ouput.navigation ?? undefined),
@@ -154,6 +225,7 @@ export class Publish {
     const created = StatusHelper.getPagesCreated();
     const updated = StatusHelper.getPagesUpdated();
     const skipped = StatusHelper.getPagesSkipped();
+    const removed = StatusHelper.getPagesRemoved();
     const imagesUploaded = StatusHelper.getImages();
     const imagesSkipped = StatusHelper.getImagesSkipped();
     const retries = StatusHelper.getRetries();
@@ -182,6 +254,11 @@ export class Publish {
         ` Pages:   ${created + updated + skipped}${pageDetail ? `  (${pageDetail})` : ""}`,
       ),
     );
+    if (removed > 0) {
+      console.info(
+        kleur.white(` Removed: ${removed}  (recycled, deleted from the sources)`),
+      );
+    }
     console.info(
       kleur.white(
         ` Images:  ${imagesUploaded + imagesSkipped}${imageDetail ? `  (${imageDetail})` : ""}`,

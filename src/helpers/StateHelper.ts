@@ -8,6 +8,13 @@ import { tmpdir } from "os";
 export interface DoctorStateEntry {
   sourceHash: string;
   publishedAt: string;
+  /**
+   * The slug of the source page when this entry is a SharePoint managed
+   * translation. Translated pages have no markdown file of their own on the
+   * location SharePoint publishes them to, so they can only be matched with
+   * their source page.
+   */
+  translationOf?: string;
 }
 
 export interface DoctorState {
@@ -169,14 +176,93 @@ export class StateHelper {
 
   /**
    * Record a successfully published page in the in-memory state.
+   * @param translationOf The slug of the source page, when publishing a translation.
    */
-  public static markPublished(slug: string, contentHash: string): void {
+  public static markPublished(
+    slug: string,
+    contentHash: string,
+    translationOf: string | null = null,
+  ): void {
     if (!StateHelper.state) return;
     StateHelper.state.pages[slug] = {
       sourceHash: contentHash,
       publishedAt: new Date().toISOString(),
+      ...(translationOf ? { translationOf } : {}),
     };
     StateHelper.dirty = true;
+  }
+
+  /**
+   * Drop a page from the in-memory state, for instance after it got recycled.
+   * @returns `true` when the slug was tracked and got removed.
+   */
+  public static removeTracked(slug: string): boolean {
+    if (!StateHelper.state || !StateHelper.state.pages[slug]) {
+      return false;
+    }
+    delete StateHelper.state.pages[slug];
+    StateHelper.dirty = true;
+    return true;
+  }
+
+  /**
+   * Determine which tracked pages no longer have a local markdown file, which
+   * means they were deleted from the sources since the last publish.
+   * @param localSlugs The slugs of all pages which currently exist locally.
+   * @param options Set `multilingual` when translations are enabled on the site.
+   */
+  public static getDeletedSlugs(
+    localSlugs: Iterable<string>,
+    options: { multilingual?: boolean } = {},
+  ): string[] {
+    if (!StateHelper.loaded || !StateHelper.state) {
+      return [];
+    }
+
+    const known = new Set(
+      [...localSlugs].map((slug) => slug.toLowerCase()),
+    );
+    const deleted: string[] = [];
+
+    for (const [slug, entry] of Object.entries(StateHelper.state.pages)) {
+      if (known.has(slug.toLowerCase())) {
+        continue;
+      }
+
+      // Translations are published to a location SharePoint hands out, so they
+      // only count as deleted once their source page is gone as well.
+      if (entry && entry.translationOf) {
+        if (!known.has(entry.translationOf.toLowerCase())) {
+          deleted.push(slug);
+        }
+        continue;
+      }
+
+      // State written before translations got tracked has no reference to its
+      // source page. Stripping the locale prefix keeps those pages out of the
+      // deleted list as long as their source page still exists.
+      if (
+        options.multilingual &&
+        StateHelper.looksLikeTranslation(slug.toLowerCase(), known)
+      ) {
+        continue;
+      }
+
+      deleted.push(slug);
+    }
+
+    return deleted;
+  }
+
+  private static looksLikeTranslation(
+    slug: string,
+    localSlugs: Set<string>,
+  ): boolean {
+    const segments = slug.split("/");
+    if (segments.length < 2) {
+      return false;
+    }
+    return localSlugs.has(segments.slice(1).join("/"));
   }
 
   /** Returns true if state has been modified since the last load. */

@@ -4,6 +4,7 @@ import {
   MultilingualSettings,
   PartialsSettings,
   SiteDesign,
+  WorkflowProvider,
 } from "./index.js";
 
 export interface RuntimeOptions {
@@ -16,6 +17,10 @@ export interface RuntimeOptions {
   continueOnError: boolean;
   retryWhenFailed: boolean;
   confirm: boolean;
+  /**
+   * The CI/CD provider to generate the workflow for with the `workflow` command.
+   */
+  provider?: WorkflowProvider | string | null;
 }
 
 export interface AuthOptions {
@@ -46,6 +51,7 @@ export interface PublishOptions {
   skipPrecheck: boolean;
   skipExistingPages: boolean;
   forceAll: boolean;
+  removeDeleted: boolean;
   pageTemplate: string | null;
 }
 

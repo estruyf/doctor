@@ -39,6 +39,7 @@ export class OptionsHelper {
       "--webPartTitle": String,
       "--outputFolder": String,
       "--pageTemplate": String,
+      "--provider": String,
 
       "--commandTimeout": Number,
 
@@ -66,6 +67,7 @@ export class OptionsHelper {
       "--applyTheme": Boolean,
       "--skipPrecheck": Boolean,
       "--forceAll": Boolean,
+      "--removeDeleted": Boolean,
       "--disableStatePersistence": Boolean,
 
       "-a": "--auth",
@@ -132,6 +134,10 @@ export class OptionsHelper {
         (args["--forceAll"] as any) ||
         options["forceAll"] ||
         false,
+      removeDeleted:
+        (args["--removeDeleted"] as any) ||
+        options["removeDeleted"] ||
+        false,
       continueOnError:
         (args["--continueOnError"] as any) ||
         options["continueOnError"] ||
@@ -177,6 +183,7 @@ export class OptionsHelper {
       pageTemplate: args["--pageTemplate"] || options["pageTemplate"] || null,
       disableComments:
         args["--disableComments"] || options["disableComments"] || false,
+      provider: args["--provider"] || null,
     };
   }
 
@@ -232,6 +239,22 @@ export class OptionsHelper {
         type: "confirm",
         name: "confirm",
         message: "Are you sure you want to clean up all pages and assets?",
+        default: false,
+      });
+    }
+
+    // The clean up options share the same confirmation, so only ask for it once.
+    if (
+      options.removeDeleted &&
+      !options.confirm &&
+      !options.cleanEnd &&
+      !options.cleanStart
+    ) {
+      questions.push({
+        type: "confirm",
+        name: "confirm",
+        message:
+          "Are you sure you want to recycle the pages which no longer exist in your local files?",
         default: false,
       });
     }

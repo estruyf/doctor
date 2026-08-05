@@ -6,6 +6,7 @@ export class StatusHelper {
     public pagesCreated = 0,
     public pagesUpdated = 0,
     public pagesSkipped = 0,
+    public pagesRemoved = 0,
     public errors = 0,
     public imagesUploaded = 0,
     public imagesSkipped = 0,
@@ -56,6 +57,13 @@ export class StatusHelper {
     StatusHelper.getInstance().pagesSkipped += count;
   }
 
+  public static addPagesRemoved(count: number) {
+    if (count <= 0) {
+      return;
+    }
+    StatusHelper.getInstance().pagesRemoved += count;
+  }
+
   public static addError(filePath?: string) {
     ++StatusHelper.getInstance().errors;
 
@@ -100,6 +108,10 @@ export class StatusHelper {
 
   public static getPagesSkipped() {
     return StatusHelper.getInstance().pagesSkipped;
+  }
+
+  public static getPagesRemoved() {
+    return StatusHelper.getInstance().pagesRemoved;
   }
 
   public static getErrors() {

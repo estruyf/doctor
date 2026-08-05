@@ -17,7 +17,7 @@ aliases:
 | [`doctor init`](#init) | Creates the initial folder structure and the `doctor.json` file. |
 | [`doctor publish`](#publish) | Publishes your Markdown files as pages on your SharePoint site. |
 | [`doctor status`](#status) | Shows what the next publish run will do, without changing anything. |
-| [`doctor workflow`](#workflow) | Generates a GitHub Actions workflow for your project. |
+| [`doctor workflow`](#workflow) | Generates a GitHub Actions workflow or Azure DevOps pipeline for your project. |
 | [`doctor setup`](#setup) | Installs the `<tab>` autocomplete functionality. |
 | [`doctor cleanup`](#cleanup) | Uninstalls the autocomplete functionality. |
 | [`doctor version`](#version) | Returns the installed version number. |
@@ -84,7 +84,7 @@ The output groups your pages in the following categories:
 
 - **New**: files which are not yet tracked in the state, and will be created.
 - **Modified**: files whose content changed since the last publish, and will be updated.
-- **Deleted**: pages which are tracked in the state, but no longer exist locally.
+- **Deleted**: pages which are tracked in the state, but no longer exist locally. Use the [`--removeDeleted`](../configuration/cli-options/#removing-deleted-pages) flag on your next publishing run to recycle them.
 - **Unchanged**: files which are up to date. These are only listed when you pass the `--verbose` flag.
 
 At the end, you get a summary telling you how many pages will be published on the next run:
@@ -101,17 +101,40 @@ Pages of the `translation` type, and pages without a `title` in their front matt
 
 ## Workflow
 
-The `doctor workflow` command generates a [GitHub Actions](../ci-cd) workflow which publishes your documentation.
+The `doctor workflow` command generates a [CI/CD](../ci-cd) definition which publishes your documentation. It supports GitHub Actions and Azure DevOps.
 
 ```sh
 doctor workflow
 ```
 
+### Provider
+
+Use the `--provider` argument to pick the platform to generate the file for. When you leave it out, `doctor` generates a GitHub Actions workflow.
+
+| Provider | Aliases | Generated file |
+| --- | --- | --- |
+| `github` | `gh`, `github-actions`, `actions` | `.github/workflows/doctor.yml` |
+| `azdo` | `ado`, `devops`, `azure-devops`, `azure-pipelines` | `azure-pipelines.yml` |
+
+```sh
+doctor workflow --provider azdo
+```
+
+### GitHub Actions
+
 The command creates the `.github/workflows` folder when it does not exist yet, and writes a `doctor.yml` workflow file in it. The workflow runs when you push a change to the `main` branch, and can be started manually via the `workflow_dispatch` trigger.
 
-The generated workflow only passes the arguments which are not known yet. When your `doctor.json` file already contains the `url`, `appId`, and `tenant` values, these are left out of the `doctor publish` command, as `doctor` picks them up from the config file itself.
+Add the required values as [repository secrets](#secrets) before running the workflow.
 
-Add the following secrets to your repository before running the workflow:
+### Azure DevOps
+
+The command writes an `azure-pipelines.yml` file in the root of your project. The pipeline runs when you push a change to the `main` branch, and pull request triggers are disabled.
+
+Add the required values as **secret** pipeline variables, or add them to a variable group which you link to the pipeline. The pipeline maps them to environment variables in its publish step, as Azure DevOps does not pass secret variables to the pipeline environment on its own.
+
+### Secrets
+
+The generated file only passes the arguments which are not known yet. When your `doctor.json` file already contains the `url`, `appId`, and `tenant` values, these are left out of the `doctor publish` command, as `doctor` picks them up from the config file itself.
 
 | Secret | Description |
 | --- | --- |
@@ -121,9 +144,9 @@ Add the following secrets to your repository before running the workflow:
 | `TENANT_ID` | The ID of your tenant. Only needed when `tenant` is not in your `doctor.json` file. |
 | `SITE_URL` | The URL of the SharePoint site to publish to. Only needed when `url` is not in your `doctor.json` file. |
 
-> **Info**: An existing `.github/workflows/doctor.yml` file is never overwritten. Delete or rename it when you want to generate a new one.
+> **Info**: An existing `.github/workflows/doctor.yml` or `azure-pipelines.yml` file is never overwritten. Delete or rename it when you want to generate a new one.
 
-> **Important**: The generated workflow is a starting point. Change the branch, the path filter, or the arguments of the `doctor publish` command to match the way you work.
+> **Important**: The generated file is a starting point. Change the branch, the path filter, or the arguments of the `doctor publish` command to match the way you work.
 
 ## Setup
 

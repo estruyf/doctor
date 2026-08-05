@@ -199,6 +199,13 @@
       "description": "Reprocess all pages, ignoring the saved publish state. By default `doctor` only publishes pages which are new or whose content changed since the last run.",
       "default": false
     },
+    "removeDeleted": {
+      "$id": "#/properties/removeDeleted",
+      "type": "boolean",
+      "title": "removeDeleted",
+      "description": "Recycles the pages which are tracked in the publish state, but whose markdown file no longer exists. Requires the `--confirm` flag on the command execution.",
+      "default": false
+    },
     "disableStatePersistence": {
       "$id": "#/properties/disableStatePersistence",
       "type": "boolean",

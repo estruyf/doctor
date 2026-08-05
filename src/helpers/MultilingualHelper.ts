@@ -223,7 +223,10 @@ export class MultilingualHelper {
             task,
             options,
             output,
-            translatedSlug
+            translatedSlug,
+            0,
+            0,
+            slug
           );
         } else {
           Logger.debug(
@@ -325,7 +328,10 @@ export class MultilingualHelper {
                 task,
                 options,
                 output,
-                translatedSlug
+                translatedSlug,
+                0,
+                0,
+                slug
               );
             }
           }

@@ -14,6 +14,7 @@ import {
   ListHelpers,
   Logger,
   MarkdownHelper,
+  StatusHelper,
 } from "@helpers";
 import { executeCommand } from "@pnp/cli-microsoft365";
 import { basename, dirname } from "path";
@@ -84,6 +85,93 @@ export class PagesHelper {
         }
       }
     }
+  }
+
+  /**
+   * Recycle the pages which are tracked in the publish state, but whose markdown
+   * file no longer exists. The pages end up in the site its recycle bin, so they
+   * can still be restored from SharePoint itself.
+   * @param webUrl
+   * @param slugs The slugs of the pages to recycle
+   * @param task
+   * @param options
+   * @param onRemoved Called for every page which got recycled, also when a later
+   * page fails, so the publish state can be kept in sync with the site.
+   * @returns The slugs which are no longer on the site
+   */
+  public static async removePages(
+    webUrl: string,
+    slugs: string[],
+    task: TaskOutput,
+    options: CommandArguments,
+    onRemoved?: (slug: string) => void
+  ): Promise<string[]> {
+    const removed: string[] = [];
+
+    Logger.debug(`Recycling the following deleted pages`);
+    Logger.debug(slugs);
+
+    for (let i = 0; i < slugs.length; i++) {
+      const slug = slugs[i];
+      if (!slug) {
+        continue;
+      }
+
+      task.output = `[${i + 1}/${slugs.length}] Recycling deleted page: ${slug}`;
+
+      try {
+        const relUrl = FileHelpers.getRelUrl(webUrl, `sitepages/${slug}`);
+        await executeWithRetry(
+          "spo file remove",
+          {
+            webUrl,
+            url: relUrl,
+            recycle: true,
+            force: true,
+          },
+          CliCommand.getRetry()
+        );
+
+        removed.push(slug);
+        onRemoved?.(slug);
+      } catch (e) {
+        const errorMessage =
+          typeof e === "string" ? e : e instanceof Error ? e.message : JSON.stringify(e);
+        Logger.debug(errorMessage);
+
+        // The page is already gone from the site, so the state can drop it as well.
+        if (this.isNotFoundError(errorMessage)) {
+          Logger.debug(`Page ${slug} no longer exists on the site.`);
+          removed.push(slug);
+          onRemoved?.(slug);
+          continue;
+        }
+
+        // Prefixed with the library, so the summary shows it is a page on the
+        // site which failed, and not a local file.
+        StatusHelper.addError(`sitepages/${slug}`);
+
+        if (!options.continueOnError) {
+          throw new Error(
+            `Failed to recycle the deleted page "${slug}". ${errorMessage}`
+          );
+        }
+      }
+    }
+
+    return removed;
+  }
+
+  private static isNotFoundError(message: string): boolean {
+    const normalized = (message || "").toLowerCase();
+
+    return (
+      normalized.includes("does not exist") ||
+      normalized.includes("not exist") ||
+      normalized.includes("file not found") ||
+      normalized.includes("cannot be found") ||
+      normalized.includes("404")
+    );
   }
 
   /**
