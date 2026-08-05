@@ -232,8 +232,70 @@ test("The translated slug prefers the one SharePoint already issued", async (t) 
   StateHelper.state = {
     version: 1,
     pages: {
-      "nl-nl/SitePages/home-nl.aspx": {
+      // SharePoint names the folder after the language, not the locale, and
+      // keeps the translation next to its source page
+      "nl/home.aspx": {
         sourceHash: "abc",
+        publishedAt: "2026-01-01T00:00:00.000Z",
+        translationOf: "home.aspx",
+      },
+      "fr/home.aspx": {
+        sourceHash: "def",
+        publishedAt: "2026-01-01T00:00:00.000Z",
+        translationOf: "home.aspx",
+      },
+      "doctor/nl/installation.aspx": {
+        sourceHash: "ghi",
+        publishedAt: "2026-01-01T00:00:00.000Z",
+        translationOf: "doctor/installation.aspx",
+      },
+    },
+  };
+  StateHelper.loaded = true;
+
+  assert.equal(StateHelper.getTranslationSlug("home.aspx", "nl-nl"), "nl/home.aspx");
+  assert.equal(StateHelper.getTranslationSlug("home.aspx", "fr-fr"), "fr/home.aspx");
+  assert.equal(
+    StateHelper.getTranslationSlug("doctor/installation.aspx", "nl-nl"),
+    "doctor/nl/installation.aspx"
+  );
+  // Sites which use the full locale as their language folder are matched too
+  StateHelper.state.pages["doctor/pt-br/options.aspx"] = {
+    sourceHash: "jkl",
+    publishedAt: "2026-01-01T00:00:00.000Z",
+    translationOf: "doctor/options.aspx",
+  };
+  assert.equal(
+    StateHelper.getTranslationSlug("doctor/options.aspx", "pt-br"),
+    "doctor/pt-br/options.aspx"
+  );
+
+  // Falls back to the expected shape when the translation was never published
+  assert.equal(
+    StateHelper.getTranslationSlug("doctor/commands.aspx", "nl-nl"),
+    "doctor/nl-nl/commands.aspx"
+  );
+  assert.equal(
+    StateHelper.getTranslationSlug("home.aspx", "es-es"),
+    "es-es/home.aspx"
+  );
+});
+
+test("A published translation is not reported as a new page", async (t) => {
+  t.after(() => StateHelper.reset());
+
+  const hash = StateHelper.hashContent(TRANSLATION);
+
+  StateHelper.reset();
+  StateHelper.state = {
+    version: 1,
+    pages: {
+      "home.aspx": {
+        sourceHash: StateHelper.hashContent(SOURCE),
+        publishedAt: "2026-01-01T00:00:00.000Z",
+      },
+      "nl/home.aspx": {
+        sourceHash: hash,
         publishedAt: "2026-01-01T00:00:00.000Z",
         translationOf: "home.aspx",
       },
@@ -241,13 +303,9 @@ test("The translated slug prefers the one SharePoint already issued", async (t) 
   };
   StateHelper.loaded = true;
 
-  assert.equal(
-    StateHelper.getTranslationSlug("home.aspx", "nl-nl"),
-    "nl-nl/SitePages/home-nl.aspx"
-  );
-  // Falls back to the locale prefixed slug when it was never published
-  assert.equal(
-    StateHelper.getTranslationSlug("doctor/options.aspx", "nl-nl"),
-    "nl-nl/doctor/options.aspx"
-  );
+  const slug = StateHelper.getTranslationSlug("home.aspx", "nl-nl");
+  assert.equal(StateHelper.isTracked(slug), true);
+  assert.equal(StateHelper.hasChanged(slug, hash), false);
+  // Only a changed language file, partial or page content marks it modified
+  assert.equal(StateHelper.hasChanged(slug, "changed"), true);
 });

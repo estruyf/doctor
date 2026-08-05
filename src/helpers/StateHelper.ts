@@ -172,22 +172,55 @@ export class StateHelper {
    * @param locale The locale of the translation, for instance `nl-nl`
    */
   public static getTranslationSlug(sourceSlug: string, locale: string): string {
-    const prefix = `${locale.toLowerCase()}/`;
+    const normalizedSource = sourceSlug.toLowerCase();
+    const normalizedLocale = locale.trim().toLowerCase();
 
     if (StateHelper.state) {
       for (const [slug, entry] of Object.entries(StateHelper.state.pages)) {
         if (
           entry &&
           entry.translationOf &&
-          entry.translationOf.toLowerCase() === sourceSlug.toLowerCase() &&
-          slug.toLowerCase().startsWith(prefix)
+          entry.translationOf.toLowerCase() === normalizedSource &&
+          StateHelper.matchesLocale(slug, normalizedLocale)
         ) {
           return slug;
         }
       }
     }
 
-    return `${locale}/${sourceSlug}`;
+    return StateHelper.toTranslationSlug(sourceSlug, locale);
+  }
+
+  /**
+   * SharePoint publishes a translation next to its source page, in a folder
+   * named after the language it issued: `home.aspx` becomes `nl/home.aspx` and
+   * `doctor/installation.aspx` becomes `doctor/nl/installation.aspx`. The
+   * language folder is therefore the segment right before the file name.
+   */
+  private static matchesLocale(slug: string, locale: string): boolean {
+    const segments = slug.toLowerCase().split("/");
+    if (segments.length < 2) {
+      return false;
+    }
+
+    const languageFolder = segments[segments.length - 2];
+
+    // The folder is either the locale itself, or only its language part, which
+    // is what SharePoint uses for the languages it has a single variant of
+    return (
+      languageFolder === locale || languageFolder === locale.split("-")[0]
+    );
+  }
+
+  /**
+   * The slug a translation is expected to get, used as long as SharePoint has
+   * not issued one yet. The language folder is the full locale here, as which
+   * of the two shapes SharePoint picks is only known once the page exists.
+   */
+  private static toTranslationSlug(sourceSlug: string, locale: string): string {
+    const segments = sourceSlug.split("/");
+    const fileName = segments.pop() as string;
+    return [...segments, locale, fileName].join("/");
   }
 
   /**
