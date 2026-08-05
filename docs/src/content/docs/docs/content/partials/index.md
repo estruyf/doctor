@@ -40,6 +40,54 @@ Partials can include other partials, as long as they don't end up including them
 `include` tags inside code blocks are left untouched, so you can document them on your pages.
 :::
 
+## Parameters
+
+The same snippet often only differs in a word or two. Instead of writing a partial per variation, add the differences as attributes on the `include` tag:
+
+```markdown
+<include file="warning" product="Doctor" version="2.1.0" />
+```
+
+Every attribute other than `file` (or `name` and `src`) becomes a parameter of the partial, which uses it with `{{name}}`:
+
+```markdown
+:::caution
+`{{product}}` needs version `{{version}}` or higher.
+:::
+```
+
+Parameters which are the same on most pages get a default value in the front matter of the partial:
+
+```markdown
+---
+params:
+  product: Doctor
+  version: 2.1.0
+---
+
+`{{product}}` needs version `{{version}}` or higher.
+```
+
+The value on the `include` tag wins from the default, so the page only mentions what is different:
+
+```markdown
+<include file="warning" version="2.2.0" />
+```
+
+A partial passes its own parameters on to the partials it includes:
+
+```markdown
+<include file="./banner" title="{{product}}" />
+```
+
+:::note[Info]
+Parameters inside code blocks are left untouched, like the `include` tags themselves. Outside of a code block, escape a placeholder with a backslash (`\{{product}}`) when it should end up on the page as-is.
+:::
+
+:::caution[Important]
+`Doctor` fails the publishing run when a partial uses a parameter which is not passed on its `include` tag and has no default value. This way a typo in a parameter name doesn't end up on your site.
+:::
+
 ## Adding a partial to every page
 
 When a partial belongs on all of your pages, let `Doctor` add it for you with the `header` and `footer` settings:
@@ -54,7 +102,7 @@ When a partial belongs on all of your pages, let `Doctor` add it for you with th
 }
 ```
 
-The `header` partial is added at the top of every page, the `footer` partial at the bottom.
+The `header` partial is added at the top of every page, the `footer` partial at the bottom. As they have no `include` tag, the parameters they use need a default value in their front matter.
 
 Pages which don't need them can opt out in their front matter:
 

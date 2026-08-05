@@ -4,6 +4,8 @@ import {
   CommandArguments,
   PageFrontMatter,
   PagePartials,
+  PartialFrontMatter,
+  PartialParams,
   PartialsSettings,
 } from "@models";
 import { Logger, ShortcodesHelpers, StateHelper } from "@helpers";
@@ -12,9 +14,15 @@ import { existsAsync, readFileAsync, relativePath } from "@utils";
 const DEFAULT_FOLDER = "./partials";
 const MAX_DEPTH = 10;
 
-// `<include file="navigation" />` and `<include file="navigation"></include>`
-const INCLUDE_REGEX = /<include\s+([^>]*?)\s*\/?>(\s*<\/include>)?/gi;
+// `<include file="navigation" />` and `<include file="navigation"></include>`.
+// Quoted attribute values may contain a `>`, so they are matched as a whole.
+const INCLUDE_REGEX =
+  /<include\s+((?:"[^"]*"|'[^']*'|[^>])*?)\s*\/?>(\s*<\/include>)?/gi;
 const ATTRIBUTE_REGEX = /([\w-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+// The attributes which point at the partial itself instead of being a parameter
+const REFERENCE_ATTRIBUTES = ["file", "name", "src"];
+// `{{product}}`, optionally escaped as `\{{product}}` to keep it as-is
+const PARAMETER_REGEX = /(\\?)\{\{\s*([\w][\w.-]*)\s*\}\}/g;
 // Markdown links and images: `[text](target)` / `![alt](target "title")`
 const MARKDOWN_LINK_REGEX = /(!?\[[^\]]*\]\()([^)\s]+)((?:\s+"[^"]*")?\))/g;
 // Reference style link definitions: `[ref]: target`
@@ -210,6 +218,7 @@ export class PartialsHelper {
    * @param stack The files which are currently being resolved
    * @param options
    * @param isPartial
+   * @param params The parameters of the partial the content comes from
    */
   private static async expand(
     content: string,
@@ -218,12 +227,17 @@ export class PartialsHelper {
     stack: string[],
     options: CommandArguments,
     isPartial: boolean,
+    params: PartialParams = {},
   ): Promise<string> {
     // Code samples showing an include tag should be left as-is
     const snippets: string[] = [];
     let masked = ShortcodesHelpers.maskCode(content, snippets);
 
     if (isPartial) {
+      // Before the includes are read, so a partial can pass one of its own
+      // parameters on to the partials it includes
+      masked = PartialsHelper.applyParams(masked, params, stack);
+
       masked = PartialsHelper.rebaseLinks(
         masked,
         sourceDir,
@@ -259,6 +273,7 @@ export class PartialsHelper {
         pageDir,
         stack,
         options,
+        PartialsHelper.getParams(attributes),
       );
       lastIndex = (match.index ?? 0) + match[0].length;
     }
@@ -275,6 +290,7 @@ export class PartialsHelper {
    * @param pageDir
    * @param stack
    * @param options
+   * @param params The parameters passed on the include tag
    */
   private static async load(
     reference: string,
@@ -282,6 +298,7 @@ export class PartialsHelper {
     pageDir: string,
     stack: string[],
     options: CommandArguments,
+    params: PartialParams = {},
   ): Promise<string> {
     const partialPath = PartialsHelper.getPartialPath(
       reference,
@@ -325,8 +342,10 @@ export class PartialsHelper {
       return "";
     }
 
-    // Partials may have front matter, so they stay valid markdown files
-    const { content } = matter(contents);
+    // Partials may have front matter, so they stay valid markdown files. Its
+    // `params` hold the defaults of the parameters the partial uses.
+    const { content, data } = matter(contents);
+    const defaults = PartialsHelper.getDefaults(data as PartialFrontMatter);
 
     return (
       await PartialsHelper.expand(
@@ -336,6 +355,7 @@ export class PartialsHelper {
         [...stack, partialPath],
         options,
         true,
+        { ...defaults, ...params },
       )
     ).trim();
   }
@@ -448,6 +468,100 @@ export class PartialsHelper {
     }
 
     return `${rebased}${hash}`;
+  }
+
+  /**
+   * Replace the `{{parameter}}` placeholders of a partial by the values passed
+   * on its include tag. A placeholder can be escaped with a backslash when it
+   * should end up on the page as-is.
+   * @param content
+   * @param params
+   * @param stack
+   */
+  private static applyParams(
+    content: string,
+    params: PartialParams,
+    stack: string[],
+  ): string {
+    const missing: string[] = [];
+
+    const result = content.replace(
+      PARAMETER_REGEX,
+      (match: string, escaped: string, name: string) => {
+        if (escaped) {
+          return match.substring(1);
+        }
+
+        const value = params[name];
+        if (value === undefined) {
+          if (!missing.includes(name)) {
+            missing.push(name);
+          }
+          return match;
+        }
+
+        return value;
+      },
+    );
+
+    if (missing.length > 0) {
+      const partial = stack[stack.length - 1];
+      const parent = stack[stack.length - 2] ?? partial;
+      const names = missing.map((name) => `"${name}"`).join(", ");
+      const single = missing.length === 1;
+
+      throw new Error(
+        `The partial "${relativePath(partial)}" uses the ${
+          single ? "parameter" : "parameters"
+        } ${names}, which ${single ? "is" : "are"} not set. Pass ${
+          single ? "it" : "them"
+        } on the include tag in "${relativePath(
+          parent,
+        )}", or give ${single ? "it" : "them"} a default value with the "params" front matter of the partial.`,
+      );
+    }
+
+    return result;
+  }
+
+  /**
+   * Get the parameters of an include tag, which are all of its attributes
+   * except the one referencing the partial itself
+   * @param attributes
+   */
+  private static getParams(attributes: {
+    [key: string]: string;
+  }): PartialParams {
+    const params: PartialParams = {};
+
+    for (const [name, value] of Object.entries(attributes)) {
+      if (!REFERENCE_ATTRIBUTES.includes(name.toLowerCase())) {
+        params[name] = value;
+      }
+    }
+
+    return params;
+  }
+
+  /**
+   * Get the default parameter values from the front matter of a partial
+   * @param data
+   */
+  private static getDefaults(
+    data: PartialFrontMatter | undefined,
+  ): PartialParams {
+    const defaults: PartialParams = {};
+    const params = data?.params;
+
+    if (typeof params !== "object" || params === null || Array.isArray(params)) {
+      return defaults;
+    }
+
+    for (const [name, value] of Object.entries(params)) {
+      defaults[name] = value === null || value === undefined ? "" : `${value}`;
+    }
+
+    return defaults;
   }
 
   /**

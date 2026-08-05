@@ -11,6 +11,7 @@
 - The `multilingual.languages` setting now takes the same locale names as the `localization` front matter, for example `["nl-nl", "fr-fr"]`. LCIDs keep working and both styles can be mixed.
 - `doctor status` reports the localized pages, and the language files which no page refers to.
 - New `--removeDeleted` flag which recycles the pages whose markdown file got deleted from your sources. It uses the publish state to know which pages Doctor created, and needs to be confirmed with `--confirm`.
+- Partials take parameters. Pass them as attributes on the include tag, like `<include file="warning" product="Doctor" />`, and use them in the partial with `{{product}}`. Their default values are set with the `params` front matter of the partial.
 - [#59](https://github.com/estruyf/doctor/issues/59): The `workflow` command can now generate an Azure DevOps pipeline with the new `--provider azdo` argument. The default remains GitHub Actions.
 - [#119](https://github.com/estruyf/doctor/issues/119): New `markdown.extended` setting to render emoji shortcodes, highlighted text, footnotes, definition lists and task lists. Enabled by default, and requires `markdown.allowHtml`.
 - [#198](https://github.com/estruyf/doctor/issues/198): New `partials` setting to reuse markdown snippets on your pages. Include them where you need them with `<include file="..." />`, or let Doctor add them to every page with `partials.header` and `partials.footer`.

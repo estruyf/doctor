@@ -243,6 +243,121 @@ test("process fails on an include tag without a file attribute", async (t) => {
   );
 });
 
+test("process passes the attributes of an include tag as parameters", async (t) => {
+  const { root, options } = await setup({
+    "partials/warning.md": `> **Warning**: {{product}} needs version {{ version }}.`,
+  });
+  t.after(() => cleanup(root));
+
+  const { content } = await processPage(
+    root,
+    options,
+    `<include file="warning.md" product="Doctor" version="2.1.0" />`
+  );
+
+  assert.match(content, /> \*\*Warning\*\*: Doctor needs version 2\.1\.0\./);
+});
+
+test("process falls back to the parameter defaults of the partial", async (t) => {
+  const { root, options } = await setup({
+    "partials/warning.md": `---\nparams:\n  product: Doctor\n  version: 2.1.0\n---\n\n{{product}} {{version}}`,
+  });
+  t.after(() => cleanup(root));
+
+  const { content } = await processPage(
+    root,
+    options,
+    `<include file="warning" />\n\n<include file="warning" version="2.2.0" />`
+  );
+
+  assert.match(content, /Doctor 2\.1\.0/);
+  // The value on the include tag wins from the default
+  assert.match(content, /Doctor 2\.2\.0/);
+});
+
+test("process passes parameters on to the partials a partial includes", async (t) => {
+  const { root, options } = await setup({
+    "partials/warning.md": `<include file="./banner" title="{{product}}" />`,
+    "partials/banner.md": `> {{title}} is not supported.`,
+  });
+  t.after(() => cleanup(root));
+
+  const { content } = await processPage(
+    root,
+    options,
+    `<include file="warning" product="Doctor" />`
+  );
+
+  assert.match(content, /> Doctor is not supported\./);
+});
+
+test("process leaves the parameters inside code blocks and escaped ones untouched", async (t) => {
+  const { root, options } = await setup({
+    "partials/warning.md": [
+      "```markdown",
+      "{{product}}",
+      "```",
+      "",
+      "Inline `{{product}}` and escaped \\{{product}} stay as-is, {{product}} doesn't.",
+    ].join("\n"),
+  });
+  t.after(() => cleanup(root));
+
+  const { content } = await processPage(
+    root,
+    options,
+    `<include file="warning" product="Doctor" />`
+  );
+
+  assert.equal(content.match(/\{\{product\}\}/g)?.length, 3);
+  assert.doesNotMatch(content, /\\\{\{product\}\}/);
+  assert.match(content, /escaped \{\{product\}\} stay as-is, Doctor doesn't\./);
+});
+
+test("process keeps the parameters of a page its own content untouched", async (t) => {
+  const { root, options } = await setup();
+  t.after(() => cleanup(root));
+
+  const { content } = await processPage(root, options, `# {{product}}`);
+
+  assert.match(content, /# \{\{product\}\}/);
+});
+
+test("process changes the hash of a page when its parameters changed", async (t) => {
+  const { root, options } = await setup({
+    "partials/warning.md": `> {{product}}`,
+  });
+  t.after(() => cleanup(root));
+
+  const before = await processPage(
+    root,
+    options,
+    `<include file="warning" product="Doctor" />`
+  );
+
+  PartialsHelper.reset();
+
+  const after = await processPage(
+    root,
+    options,
+    `<include file="warning" product="Doctor CLI" />`
+  );
+
+  assert.notEqual(before.hash, after.hash);
+});
+
+test("process fails on a parameter which is not set", async (t) => {
+  const { root, options } = await setup({
+    "partials/warning.md": `> {{product}} on {{platform}}`,
+  });
+  t.after(() => cleanup(root));
+
+  await assert.rejects(
+    () => processPage(root, options, `<include file="warning" />`),
+    /uses the parameters "product", "platform", which are not set/
+  );
+});
+
 test("getIgnorePatterns only excludes partials stored inside the start folder", async (t) => {
   const { root, startFolder, options } = await setup();
   t.after(() => cleanup(root));
