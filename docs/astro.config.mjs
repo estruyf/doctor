@@ -50,7 +50,6 @@ export default defineConfig({
           label: "Getting Started",
           items: [
             { label: "Overview", link: "/docs/getting-started/" },
-            { label: "Installation", link: "/docs/getting-started/installation/" },
             {
               label: "Certificate Authentication",
               link: "/docs/getting-started/certificate-authentication/",
@@ -78,11 +77,11 @@ export default defineConfig({
             { label: "Multilingual", link: "/docs/content/multilingual/" },
           ],
         },
-        { label: "CLI", link: "/docs/cli/" },
         {
-          label: "Configuration",
+          label: "CLI",
           items: [
-            { label: "Overview", link: "/docs/configuration/" },
+            { label: "Commands", link: "/docs/cli/" },
+            { label: "Configuration", link: "/docs/configuration/" },
             { label: "CLI options", link: "/docs/configuration/cli-options/" },
             { label: "doctor.json", link: "/docs/configuration/doctor-json/" },
           ],
@@ -108,7 +107,8 @@ export default defineConfig({
     }),
   ],
   redirects: {
-    "/docs/installation/": "/docs/getting-started/installation/",
+    "/docs/installation/": "/docs/getting-started/",
+    "/docs/getting-started/installation/": "/docs/getting-started/",
     "/docs/certificate-authentication/": "/docs/getting-started/certificate-authentication/",
     "/docs/pages/": "/docs/content/pages/",
     "/docs/navigation/": "/docs/content/navigation/",

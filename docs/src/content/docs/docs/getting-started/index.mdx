@@ -5,19 +5,60 @@ sidebar:
   label: Overview
 ---
 
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+
 This section walks you through everything you need to get your first documentation site published on SharePoint with `doctor`.
 
 ## Prerequisites
 
 Before you can publish your first page, make sure the following is in place:
 
-- **Node.js 22.13.0 or higher** and `doctor` installed on your machine or build agent. Check the [installation](./installation) section.
+- **Node.js 22.13.0 or higher** on your machine or build agent.
 - **An Azure Entra ID app registration**. `doctor` does not ship with an application of its own, you bring your own app registration. It needs the **Sites.FullControl.All** application permission from SharePoint, with admin consent granted, and a certificate to authenticate with. Check the [certificate authentication](./certificate-authentication) section for the full setup.
 - **A SharePoint site** where your documentation gets published. You pass its URL with the `--url` option, or store it in the `doctor.json` file.
 
 :::caution[Important]
 Certificate authentication is the only authentication type `doctor` supports. Without the Entra ID app registration and its certificate, `doctor` cannot sign in to your tenant.
 :::
+
+## Install doctor
+
+Install `doctor` globally. Pick the **stable** release, or the **next** release to try out the latest changes before they are published.
+
+<Tabs>
+  <TabItem label="Stable">
+    Using npm:
+
+    ```sh
+    npm i -g @estruyf/doctor
+    ```
+
+    Using yarn:
+
+    ```sh
+    yarn global add @estruyf/doctor
+    ```
+  </TabItem>
+  <TabItem label="Next">
+    Using npm:
+
+    ```sh
+    npm i -g @estruyf/doctor@next
+    ```
+
+    Using yarn:
+
+    ```sh
+    yarn global add @estruyf/doctor@next
+    ```
+  </TabItem>
+</Tabs>
+
+:::caution
+Since v2.0.0, `doctor` no longer runs on older Node.js versions. If you are using `doctor` in a CI/CD pipeline, make sure the pipeline uses a supported Node.js version.
+:::
+
+To quickly get started, we provided a [sample repository](https://github.com/estruyf/doctor-sample) which allows you to test out all the functionalities of `Doctor`.
 
 ## Publish your first pages
 

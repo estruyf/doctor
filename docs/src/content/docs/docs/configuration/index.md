@@ -2,7 +2,6 @@
 title: Configuration
 sidebar:
   order: 0
-  label: Overview
 ---
 
 Everything you can configure for `doctor` lives in two places: the **arguments** you pass to a command, and the **`doctor.json`** file in the root of your project. Both use the same names, so an option you know from the command line can be moved to the configuration file, and the other way around.
