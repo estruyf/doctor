@@ -15,7 +15,13 @@
   --sl-color-text-accent: #158274;
 }
 
-/* Slightly larger, centred logo on the site title */
+/* Header logo (mascot) inside a white circle for contrast on the dark bar */
 .site-title img {
-  height: 2rem;
+  height: 2.5rem;
+  width: 2.5rem;
+  padding: 0.3rem;
+  background-color: #fff;
+  border-radius: 50%;
+  object-fit: contain;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
 }

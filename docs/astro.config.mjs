@@ -10,7 +10,7 @@ export default defineConfig({
       title: "Doctor",
       description: "Maintain your documentation on SharePoint without pain",
       logo: {
-        src: "./src/assets/doctor.svg",
+        src: "./src/assets/doctor_no-text.svg",
         alt: "Doctor",
         replacesTitle: false,
       },
@@ -41,6 +41,9 @@ export default defineConfig({
         baseUrl: "https://github.com/estruyf/doctor/edit/dev/docs/",
       },
       customCss: ["./src/styles/custom.css"],
+      components: {
+        Footer: "./src/components/Footer.astro",
+      },
       sidebar: [
         { label: "Documentation", link: "/docs/" },
         {
