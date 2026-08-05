@@ -15,6 +15,7 @@
 - [#119](https://github.com/estruyf/doctor/issues/119): New `markdown.extended` setting to render emoji shortcodes, highlighted text, footnotes, definition lists and task lists. Enabled by default, and requires `markdown.allowHtml`.
 - [#198](https://github.com/estruyf/doctor/issues/198): New `partials` setting to reuse markdown snippets on your pages. Include them where you need them with `<include file="..." />`, or let Doctor add them to every page with `partials.header` and `partials.footer`.
 - [#199](https://github.com/estruyf/doctor/issues/199): Fix: multilingual pages are published again. Translations are now handled in their own phase which runs after the normal pages, so a translation is no longer skipped when its source page was unchanged. Language files are picked up by their `.lang.md` name, and a failing SharePoint or translator call reports why instead of passing silently.
+- [#202](https://github.com/estruyf/doctor/issues/202): New `--output json` argument which silences the human output and writes the result of your `doctor status` or `doctor publish` run as a single JSON document to stdout, so a pipeline can gate on it or turn it into a pull request comment.
 
 ## [2.0.0]
 
