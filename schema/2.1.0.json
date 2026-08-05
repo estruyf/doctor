@@ -419,6 +419,33 @@
         }
       }
     },
+    "partials": {
+      "$id": "#/properties/partials",
+      "type": "object",
+      "title": "partials",
+      "description": "Reusable markdown snippets which can be included on your pages with the `<include file=\"...\" />` tag.",
+      "properties": {
+        "folder": {
+          "$id": "#/properties/partials/properties/folder",
+          "type": "string",
+          "title": "folder",
+          "description": "Specifies where the partials can be retrieved.",
+          "default": "./partials"
+        },
+        "header": {
+          "$id": "#/properties/partials/properties/header",
+          "type": "string",
+          "title": "header",
+          "description": "The partial which gets automatically added at the top of every page. Pages can opt out with `partials: false` or `partials: { header: false }` in their front matter."
+        },
+        "footer": {
+          "$id": "#/properties/partials/properties/footer",
+          "type": "string",
+          "title": "footer",
+          "description": "The partial which gets automatically added at the bottom of every page. Pages can opt out with `partials: false` or `partials: { footer: false }` in their front matter."
+        }
+      }
+    },
     "multilingual": {
       "$id": "#/properties/multilingual",
       "type": "object",

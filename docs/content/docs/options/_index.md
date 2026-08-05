@@ -354,6 +354,29 @@ Example:
 
 > **Important**: When allowing `Doctor` to take over for rendering the HTML, be aware that the pages can best not be modified on SharePoint. Otherwise the web part will override the HTML completly.
 
+#### Reusable content partials
+
+The `partials` property allows you to reuse markdown snippets on your pages. More information can be found on the [partials](../partials) page.
+
+- **partials**
+  - **folder**: `string` - Specifies where the partials can be retrieved. Default folder location `Doctor` expects is `./partials`.
+  - **header**: `string` - The partial which gets added at the top of every page.
+  - **footer**: `string` - The partial which gets added at the bottom of every page.
+
+Example:
+
+```json
+{
+  "partials": {
+    "folder": "./partials",
+    "header": "banner",
+    "footer": "navigation"
+  }
+}
+```
+
+> **Info**: Pages can skip the automatically added partials with the `partials` front matter property.
+
 #### Global navigation structure
 
 You can also define a static navigation structure in the `doctor.json` file. Example:

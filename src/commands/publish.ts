@@ -10,6 +10,7 @@ import {
   SiteHelpers,
   PagesHelper,
   MultilingualHelper,
+  PartialsHelper,
   PrecheckHelper,
   StateHelper,
   StatusHelper,
@@ -81,7 +82,12 @@ export class Publish {
         {
           title: `Fetch all markdown files`,
           task: async (ctx, task) =>
-            await MarkdownHelper.fetchMDFiles(ctx, task, startFolder),
+            await MarkdownHelper.fetchMDFiles(
+              ctx,
+              task,
+              startFolder,
+              PartialsHelper.getIgnorePatterns(options)
+            ),
           enabled: () => !options.skipPages,
           rendererOptions: { persistentOutput: true },
         },

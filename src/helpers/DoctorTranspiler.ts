@@ -19,6 +19,7 @@ import {
   MultilingualHelper,
   NavigationHelper,
   PagesHelper,
+  PartialsHelper,
   StateHelper,
   StatusHelper,
 } from "@helpers";
@@ -144,7 +145,13 @@ export class DoctorTranspiler {
           options.startFolder,
           file,
         );
-        const contentHash = StateHelper.hashContent(contents);
+        // Partials are part of the page, so a changed partial has to mark every
+        // page using it as changed
+        const { hash: contentHash } = await PartialsHelper.process(
+          file,
+          contents,
+          options,
+        );
 
         if (StateHelper.hasChanged(slug, contentHash)) {
           filesToProcess.push(file);
@@ -238,9 +245,6 @@ export class DoctorTranspiler {
 
       let contents = await readFileAsync(file, { encoding: "utf-8" });
       if (contents) {
-        // Compute hash once — used for change detection and state recording
-        const contentHash = StateHelper.hashContent(contents);
-
         const markup: matter.GrayMatterFile<string> = matter(contents);
 
         // Don't process language files, these will be processed later in the process
@@ -252,9 +256,21 @@ export class DoctorTranspiler {
           return;
         }
 
-        const htmlMarkup = file.endsWith(`.machinetranslated.md`)
+        // Machine translated pages are generated from a source page which had
+        // its partials injected already, so they are taken as-is.
+        const isMachineTranslated = file.endsWith(`.machinetranslated.md`);
+
+        // Inject the partials before the images and links get processed, so the
+        // assets and references they bring along are handled like page content.
+        // The hash is computed once — used for change detection and state recording
+        const { content, hash: contentHash } = isMachineTranslated
+          ? { content: markup.content, hash: StateHelper.hashContent(contents) }
+          : await PartialsHelper.process(file, contents, options);
+        markup.content = content;
+
+        const htmlMarkup = isMachineTranslated
           ? contents
-          : this.converter.render(contents);
+          : this.converter.render(markup.content);
 
         const $ = load(htmlMarkup, {
           xml: {

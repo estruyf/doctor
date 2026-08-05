@@ -2,6 +2,7 @@ import {
   MarkdownSettings,
   Menu,
   MultilingualSettings,
+  PartialsSettings,
   SiteDesign,
 } from "./index.js";
 
@@ -50,6 +51,7 @@ export interface PublishOptions {
 
 export interface ContentOptions {
   markdown?: MarkdownSettings;
+  partials?: PartialsSettings | null;
   shortcodesFolder?: string;
   tocLevels: number[];
   disableComments: boolean;

@@ -22,6 +22,10 @@
       {
         "id": null,
         "title": "Fix: pages that were skipped as unchanged no longer disappear from the site navigation."
+      },
+      {
+        "id": 198,
+        "title": "New `partials` setting to reuse markdown snippets on your pages. Include them where you need them with `<include file=\"...\" />`, or let Doctor add them to every page with `partials.header` and `partials.footer`."
       }
     ]
   },

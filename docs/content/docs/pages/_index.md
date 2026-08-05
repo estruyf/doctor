@@ -44,6 +44,7 @@ Optional Front Matter properties are:
   - **authors**: `string[]` - The UPNs (for example `john@contoso.com`) of the authors to show in the page header.
 - **menu**: `Menu`- Defines where the page gets added to the navigation structure. Check: [menu section](#Menu).
 - **metadata**: `Metadata` - With this object you can set extra metadata for your page. Check: [Metadata section](#Metadata).
+- **partials**: `boolean | { header?: boolean, footer?: boolean }` - Allows you to skip the partials which are added to every page with the [`partials.header` and `partials.footer`](../partials/#adding-a-partial-to-every-page) options. Use `false` to skip them all, or disable them one by one. Default: all configured partials are added.
 - **localization**: `{ [locale name]: relative path }[]` - Defines the localization pages linked to the current page. Find out more at [how to setup and use localization](../multilingual).
 - **type**: `string` - Specifies the type of page. Currently it supports only `translation` and should only be configured on localization pages. Find out more at [how to setup and use localization](../multilingual).
 

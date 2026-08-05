@@ -14,6 +14,7 @@ export * from './MultilingualHelper.js';
 export * from './NavigationHelper.js';
 export * from './OptionsHelper.js';
 export * from './PagesHelper.js';
+export * from './PartialsHelper.js';
 export * from './PrecheckHelper.js';
 export * from './ShortcodesHelpers.js';
 export * from './SitesHelpers.js';

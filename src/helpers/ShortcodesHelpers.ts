@@ -180,11 +180,12 @@ export class ShortcodesHelpers {
 
   /**
    * Replace the fenced and inline code blocks by placeholders, so that the
-   * shortcodes which are used as code samples are not rendered
+   * shortcodes which are used as code samples are not rendered. Shared with the
+   * partials processing, which needs the same protection for its include tags.
    * @param markdown
    * @param snippets
    */
-  private static maskCode(markdown: string, snippets: string[]): string {
+  public static maskCode(markdown: string, snippets: string[]): string {
     const toPlaceholder = (snippet: string) => {
       snippets.push(snippet);
       return `${CODE_PLACEHOLDER_PREFIX}${
@@ -243,7 +244,7 @@ export class ShortcodesHelpers {
    * @param htmlMarkup
    * @param snippets
    */
-  private static unmaskCode(htmlMarkup: string, snippets: string[]): string {
+  public static unmaskCode(htmlMarkup: string, snippets: string[]): string {
     if (snippets.length === 0) {
       return htmlMarkup;
     }

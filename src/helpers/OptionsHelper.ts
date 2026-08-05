@@ -156,6 +156,7 @@ export class OptionsHelper {
       outputFolder: args["--outputFolder"] || "",
       siteDesign: options["siteDesign"] || null,
       markdown: options["markdown"] || null,
+      partials: options["partials"] || null,
       multilingual: options["multilingual"] || null,
       tocLevels:
         options["markdown"] && options["markdown"]["tocLevels"]

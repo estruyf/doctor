@@ -9,6 +9,7 @@ import {
   Logger,
   NavigationHelper,
   PagesHelper,
+  PartialsHelper,
   StateHelper,
   ShortcodesHelpers,
   StatusHelper,
@@ -32,6 +33,7 @@ export class Commands {
       Commands.resetRuntimeState();
       Logger.init(options.debug);
       CliCommand.init(options);
+      PartialsHelper.init(options);
 
       console.log("");
       console.log(
@@ -85,6 +87,7 @@ export class Commands {
     CliCommand.reset();
     StatusHelper.reset();
     ShortcodesHelpers.reset();
+    PartialsHelper.reset();
     StateHelper.reset();
     NavigationHelper.reset();
     FileHelpers.reset();

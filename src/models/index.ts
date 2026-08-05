@@ -15,6 +15,7 @@ export * from './PageLocalization.js';
 export * from './PageLocalizationCreation.js';
 export * from './PageTemplate.js';
 export * from './PageTranslations.js';
+export * from './PartialsSettings.js';
 export * from './PublishContext.js';
 export * from './PublishOutput.js';
 export * from './Shortcode.js';

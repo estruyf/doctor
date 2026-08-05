@@ -6,6 +6,7 @@ import { Authenticate } from "@commands";
 import {
   FrontMatterHelper,
   MarkdownHelper,
+  PartialsHelper,
   StateHelper,
 } from "@helpers";
 import { CommandArguments, PageFrontMatter, PublishContext } from "@models";
@@ -58,7 +59,13 @@ export class Status {
         },
         {
           title: `Fetch all markdown files`,
-          task: async (c, task) => await MarkdownHelper.fetchMDFiles(c, task, startFolder),
+          task: async (c, task) =>
+            await MarkdownHelper.fetchMDFiles(
+              c,
+              task,
+              startFolder,
+              PartialsHelper.getIgnorePatterns(options)
+            ),
           rendererOptions: { persistentOutput: true },
         },
         {
@@ -94,7 +101,14 @@ export class Status {
                 continue;
               }
 
-              const hash = StateHelper.hashContent(contents);
+              // Use the same hash as the publish flow, so a changed partial
+              // shows the pages using it as modified
+              let hash: string;
+              try {
+                ({ hash } = await PartialsHelper.process(file, contents, options));
+              } catch {
+                hash = StateHelper.hashContent(contents);
+              }
               const changed = StateHelper.hasChanged(slug, hash);
 
               if (statePageCount === 0) {
