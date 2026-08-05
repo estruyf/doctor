@@ -2,6 +2,7 @@ import {
   MarkdownSettings,
   Menu,
   MultilingualSettings,
+  OutputFormat,
   PartialsSettings,
   SiteDesign,
   WorkflowProvider,
@@ -13,6 +14,11 @@ export interface RuntimeOptions {
   commandTimeout?: number | null;
   debug: boolean;
   verbose: boolean;
+  /**
+   * How the command reports its result. `json` silences the human output and
+   * writes a single JSON document to stdout.
+   */
+  output: OutputFormat;
   timingDetails: boolean;
   continueOnError: boolean;
   retryWhenFailed: boolean;

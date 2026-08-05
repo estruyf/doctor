@@ -1,6 +1,7 @@
 import kleur from "kleur";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import { OutputHelper } from "@helpers";
 import { readFileAsync } from "@utils";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -13,9 +14,9 @@ export class Version {
   public static async start() {
     const version = await this.getVersion();
     if (version) {
-      console.log(`Current installed version: ${version}`);
+      OutputHelper.log(`Current installed version: ${version}`);
     } else {
-      console.log(kleur.red("Unknown version!"));
+      OutputHelper.log(kleur.red("Unknown version!"));
     }
   }
 

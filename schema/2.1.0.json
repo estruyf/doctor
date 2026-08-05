@@ -171,6 +171,14 @@
       "description": "Provides extended logging output. When enabled, the task list is rendered with the verbose renderer, so every task and its output stays visible instead of being collapsed.",
       "default": false
     },
+    "output": {
+      "$id": "#/properties/output",
+      "type": "string",
+      "title": "output",
+      "description": "The way a command reports its result. Use `json` to silence the human output and write the result of the `status` and `publish` commands as a single JSON document to stdout, which a CI/CD pipeline can act on.",
+      "enum": ["default", "json"],
+      "default": "default"
+    },
     "timingDetails": {
       "$id": "#/properties/timingDetails",
       "type": "boolean",

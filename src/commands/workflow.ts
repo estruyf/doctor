@@ -1,5 +1,6 @@
 import { join } from "path";
 import kleur from "kleur";
+import { OutputHelper } from "@helpers";
 import { CommandArguments, WorkflowProvider } from "@models";
 import { existsAsync, mkdirAsync, writeFileAsync } from "@utils";
 
@@ -49,7 +50,7 @@ export class Workflow {
       : file;
 
     if (await existsAsync(filePath)) {
-      console.log(
+      OutputHelper.log(
         kleur.bold().bgYellow().black(` Skipped: `),
         `The "${relPath}" file already exists. Delete or rename it when you want to generate a new one.`
       );
@@ -64,14 +65,14 @@ export class Workflow {
       encoding: "utf-8",
     });
 
-    console.log(
+    OutputHelper.log(
       kleur.bold().bgGreen().black(` Created: `),
       `The "${relPath}" ${
         provider === "github" ? "workflow" : "pipeline"
       } file has been created.`
     );
-    console.log("");
-    console.log(
+    OutputHelper.log("");
+    OutputHelper.log(
       provider === "github"
         ? `Add the following secrets to your repository before running the workflow: ${this.getRequiredSecrets(
             options

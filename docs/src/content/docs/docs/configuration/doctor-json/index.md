@@ -42,6 +42,10 @@ The options which got introduced in v2.0.0 can be defined in the `doctor.json` f
 
 Options which got added in a later version, like `removeDeleted`, work the same way. Point the `$schema` value to the version you are running to get autocompletion for them in your editor.
 
+:::note[Info]
+The `output` option can be defined here as well, but it is best passed on the command execution (`--output json`). Setting it in the `doctor.json` file makes every local run report [JSON](../cli-options/#json-output) instead of the readable task list.
+:::
+
 :::caution[Important]
 The flags which are marked with *"This flag can only be added to the command execution"* in the [CLI options](../cli-options) are the exception. These are ignored when you define them in the `doctor.json` file.
 :::

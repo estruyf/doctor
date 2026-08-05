@@ -1,12 +1,13 @@
 import { Listr } from "listr2";
 import kleur from "kleur";
-import { Authenticate } from "@commands";
+import { Authenticate, Version } from "@commands";
 import {
   DoctorTranspiler,
   FileHelpers,
   Logger,
   MarkdownHelper,
   NavigationHelper,
+  OutputHelper,
   SiteHelpers,
   PagesHelper,
   MultilingualHelper,
@@ -15,7 +16,12 @@ import {
   StateHelper,
   StatusHelper,
 } from "@helpers";
-import { CommandArguments, PublishContext, PublishOutput } from "@models";
+import {
+  CommandArguments,
+  PublishContext,
+  PublishOutput,
+  PublishResult,
+} from "@models";
 import { existsAsync, relativePath } from "@utils";
 
 export class Publish {
@@ -54,15 +60,13 @@ export class Publish {
     };
 
     if (options.removeDeleted && !options.confirm) {
-      console.info(
-        kleur.bold().bgYellow().black(` Warning: `),
+      OutputHelper.warning(
         `Deleted pages are not removed, as the removal was not confirmed. Pass the '--confirm' flag together with '--removeDeleted' to recycle them.`
       );
     }
 
     if (options.removeDeleted && options.disableStatePersistence) {
-      console.info(
-        kleur.bold().bgYellow().black(` Warning: `),
+      OutputHelper.warning(
         `Deleted pages are not removed, as '--disableStatePersistence' is used. Doctor needs the publish state to know which pages it created.`
       );
     }
@@ -224,12 +228,13 @@ export class Publish {
         renderer: "default",
         fallbackRenderer: "verbose",
         fallbackRendererCondition: options.debug || options.verbose,
+        silentRendererCondition: OutputHelper.isJson(),
       }
     )
       .run()
       .catch((err) => {
-        console.log("");
-        console.log(
+        OutputHelper.log("");
+        OutputHelper.log(
           kleur.bgRed().bold().white(` Command retries: `),
           kleur.bold().red(StatusHelper.getRetries())
         );
@@ -245,6 +250,57 @@ export class Publish {
     const retries = StatusHelper.getRetries();
     const errors = StatusHelper.getErrors();
     const totalDurationMs = Date.now() - publishStart;
+    const timingStats = StatusHelper.getPageTimingStats();
+
+    if (OutputHelper.isJson()) {
+      const result: PublishResult = {
+        command: "publish",
+        // A run which continued after a failure still exits with code 0, so the
+        // errors are what a pipeline has to gate on.
+        success: errors === 0,
+        version: await Version.getVersion(),
+        url: webUrl,
+        summary: {
+          pages: {
+            total: created + updated + skipped,
+            created,
+            updated,
+            skipped,
+            removed,
+          },
+          images: {
+            total: imagesUploaded + imagesSkipped,
+            uploaded: imagesUploaded,
+            skipped: imagesSkipped,
+          },
+          retries,
+          errors,
+          durationMs: totalDurationMs,
+        },
+        failedFiles: StatusHelper.getFailedFiles().map((file) =>
+          relativePath(file)
+        ),
+        warnings: StatusHelper.getWarnings(),
+      };
+
+      if (options.timingDetails && timingStats) {
+        result.timings = {
+          count: timingStats.count,
+          averageMs: timingStats.averageMs,
+          fastest: {
+            file: relativePath(timingStats.fastest.filePath),
+            durationMs: timingStats.fastest.durationMs,
+          },
+          slowest: {
+            file: relativePath(timingStats.slowest.filePath),
+            durationMs: timingStats.slowest.durationMs,
+          },
+        };
+      }
+
+      OutputHelper.setResult(result);
+      return;
+    }
 
     const pageDetail = [
       created > 0 ? `${created} created` : null,
@@ -282,7 +338,6 @@ export class Publish {
     console.info(kleur.white(` Time:    ${this.formatDuration(totalDurationMs)}`));
 
     if (options.timingDetails) {
-      const timingStats = StatusHelper.getPageTimingStats();
       if (timingStats) {
         console.info(kleur.white(` Avg/page: ${this.formatDuration(timingStats.averageMs)}`));
         console.info(

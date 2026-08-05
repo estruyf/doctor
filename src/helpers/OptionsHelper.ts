@@ -5,6 +5,7 @@ import inquirer from "inquirer";
 import { CommandArguments } from "@models";
 import { Command } from "@commands";
 import { existsAsync, readFileAsync } from "@utils";
+import { OutputHelper } from "./OutputHelper.js";
 
 export class OptionsHelper {
   /**
@@ -40,6 +41,7 @@ export class OptionsHelper {
       "--outputFolder": String,
       "--pageTemplate": String,
       "--provider": String,
+      "--output": String,
 
       "--commandTimeout": Number,
 
@@ -152,6 +154,7 @@ export class OptionsHelper {
         args["--debug"] ||
         false,
       verbose: args["--verbose"] || options["verbose"] || false,
+      output: OutputHelper.parseFormat(args["--output"] ?? options["output"]),
       timingDetails:
         (args["--timingDetails"] as any) ||
         options["timingDetails"] ||
@@ -257,6 +260,16 @@ export class OptionsHelper {
           "Are you sure you want to recycle the pages which no longer exist in your local files?",
         default: false,
       });
+    }
+
+    // A prompt writes to stdout and waits for an answer, which corrupts the
+    // JSON document and hangs the pipeline it was meant to feed. Failing with
+    // the missing options is the useful outcome there.
+    if (questions.length > 0 && OutputHelper.isJson()) {
+      const missing = questions.map((question) => question.name).join(", ");
+      throw new Error(
+        `Doctor needs to ask for "${missing}", which it cannot do when "--output json" is used. Pass the value as an argument, or add it to the doctor.json file.`
+      );
     }
 
     try {

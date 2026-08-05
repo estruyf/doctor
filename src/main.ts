@@ -8,6 +8,7 @@ import {
   ListHelpers,
   Logger,
   NavigationHelper,
+  OutputHelper,
   PagesHelper,
   PartialsHelper,
   StateHelper,
@@ -32,22 +33,22 @@ export class Commands {
 
       Commands.resetRuntimeState();
       Logger.init(options.debug);
+      // Before any other helper, as they report through it
+      OutputHelper.init(options);
       CliCommand.init(options);
       PartialsHelper.init(options);
 
-      console.log("");
-      console.log(
+      OutputHelper.log("");
+      OutputHelper.log(
         kleur.bold().bgMagenta().white(` START: `),
         `${options.task} job`
       );
-      console.log("");
+      OutputHelper.log("");
 
       if (options.task === Command.publish) {
         if (options.markdown && options.markdown.allowHtml) {
-          console.info(
-            kleur.bold().bgYellow().black(` Warning: `),
-            `You specified to allow custom HTML usage in Doctor. Be aware that once you modify the page on SharePoint itself, the HTML will be overwritten. Best is to maintain content from the Doctor sources.
-          `
+          OutputHelper.warning(
+            `You specified to allow custom HTML usage in Doctor. Be aware that once you modify the page on SharePoint itself, the HTML will be overwritten. Best is to maintain content from the Doctor sources.`
           );
 
           await ShortcodesHelpers.init(options.shortcodesFolder);
@@ -59,13 +60,23 @@ export class Commands {
       } else if (options.task === Command.workflow) {
         await Workflow.start(options);
       } else if (options.task === Command.version) {
-        Version.start();
+        await Version.start();
       } else if (options.task === Command.status) {
         await Status.start(options);
       } else if (options.task === Command.setup) {
         autocomplete.setup();
       } else if (options.task === Command.cleanup) {
         autocomplete.cleanup();
+      }
+
+      // Written last, so the JSON document is the only thing on stdout and a
+      // command which reported nothing structured still returns a result.
+      if (OutputHelper.isJson()) {
+        OutputHelper.flush({
+          command: options.task,
+          version: await Version.getVersion(),
+        });
+        return;
       }
 
       console.log("");
@@ -84,6 +95,7 @@ export class Commands {
 
   private static resetRuntimeState() {
     Logger.reset();
+    OutputHelper.reset();
     CliCommand.reset();
     StatusHelper.reset();
     ShortcodesHelpers.reset();

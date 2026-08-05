@@ -81,6 +81,9 @@ This flag can only be added to the command execution. Using it in the `doctor.js
 `--verbose`
 : Provides extended logging output. When enabled, the task list is rendered with the verbose renderer, so every task and its output stays visible instead of being collapsed. For the `doctor status` command, this flag also lists the unchanged files.
 
+`--output <default|json>`
+: The way the command reports its result. With `json`, the human readable output is silenced and a single JSON document is written to stdout, which a CI/CD pipeline can gate on or turn into a pull request comment. Check the [JSON output](#json-output) section for the documents the `status` and `publish` commands return.
+
 `--commandName <commandName>`
 : Override the command used to execute `CLI for Microsoft 365`. By default, `doctor` executes commands through the bundled `@pnp/cli-microsoft365` API directly. The `m365` (default) and `localm365` values both use this in-process API. Any other value is executed as a binary on your `PATH`. Use this option only when you explicitly want to run a different command binary.
 
@@ -95,6 +98,115 @@ This flag can only be added to the command execution. Using it in the `doctor.js
 
 :::caution[Important]
 The value must be a whole number greater than `0`. When an invalid value is provided, `doctor` shows a warning and continues with the default of `120000`.
+:::
+
+### JSON output
+
+The `--output json` argument turns the result of a run into something a script can act on. All human readable output is left out, and `doctor` writes a single JSON document to stdout.
+
+```sh
+doctor status --output json
+```
+
+Which lets your pipeline decide whether it has anything to publish:
+
+```sh
+if doctor status --output json | jq -e '.summary.upToDate' > /dev/null; then
+  echo "Nothing changed, skipping the publish"
+fi
+```
+
+#### Status
+
+```json
+{
+  "command": "status",
+  "success": true,
+  "version": "2.1.0",
+  "url": "https://<tenant>.sharepoint.com/sites/<documentation>",
+  "state": {
+    "enabled": true,
+    "tracked": 12,
+    "filesChecked": 14
+  },
+  "summary": {
+    "new": 1,
+    "modified": 2,
+    "unchanged": 11,
+    "deleted": 0,
+    "orphaned": 0,
+    "changed": 3,
+    "upToDate": false
+  },
+  "pages": {
+    "new": [{ "file": "docs/new-page.md", "slug": "new-page.aspx" }],
+    "modified": [],
+    "unchanged": [],
+    "deleted": [],
+    "orphaned": []
+  },
+  "warnings": []
+}
+```
+
+| Property | Description |
+| --- | --- |
+| `state.enabled` | Whether the publish state is used. All pages are reported as new when it is disabled with `--disableStatePersistence`. |
+| `summary.changed` | The new and modified pages together: what the next publish run processes. |
+| `summary.upToDate` | `true` when there is nothing left to publish, and nothing to remove. |
+| `pages.*` | The pages of each category, with the `file` path relative to the folder you ran `doctor` from. A `deleted` page has no `file`, an `orphaned` language file has no `slug`. |
+
+The `pages` lists are always complete, also for the unchanged pages. The `--verbose` flag only influences the human readable output.
+
+#### Publish
+
+```json
+{
+  "command": "publish",
+  "success": true,
+  "version": "2.1.0",
+  "url": "https://<tenant>.sharepoint.com/sites/<documentation>",
+  "summary": {
+    "pages": { "total": 14, "created": 1, "updated": 2, "skipped": 11, "removed": 0 },
+    "images": { "total": 3, "uploaded": 3, "skipped": 0 },
+    "retries": 0,
+    "errors": 0,
+    "durationMs": 42123
+  },
+  "failedFiles": [],
+  "warnings": []
+}
+```
+
+The `timings` property is added when you pass the `--timingDetails` flag.
+
+:::note[Info]
+A publish run with `--continueOnError` exits with code `0`, also when pages failed. Gate on `success` or on `summary.errors`, and use `failedFiles` to report which pages need attention.
+:::
+
+#### Failures
+
+A failing run writes the same kind of document, and exits with code `1`:
+
+```json
+{
+  "command": "publish",
+  "success": false,
+  "version": "2.1.0",
+  "error": {
+    "message": "The provided folder location doesn't exist."
+  }
+}
+```
+
+Every other command returns a `{ "command", "success", "version" }` document, so `--output json` never leaves you with output which cannot be parsed.
+
+:::caution[Important]
+`doctor` cannot ask you anything while it reports machine readable output, as a prompt would corrupt the document and block your pipeline. Pass all required values as arguments, or add them to the `doctor.json` file. That includes `--confirm` for the commands which remove content.
+:::
+
+:::note[Info]
+The `--debug` output goes to stderr, so it never ends up in the document you parse.
 :::
 
 ## Publish command specific options

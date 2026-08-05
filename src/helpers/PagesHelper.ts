@@ -14,6 +14,7 @@ import {
   ListHelpers,
   Logger,
   MarkdownHelper,
+  OutputHelper,
   StatusHelper,
 } from "@helpers";
 import { executeCommand } from "@pnp/cli-microsoft365";
@@ -320,7 +321,7 @@ export class PagesHelper {
             skipExistingPages
           );
         } else {
-          console.log(
+          OutputHelper.log(
             `Template "${template}" not found on the site, will create a default page instead.`
           );
         }

@@ -68,6 +68,14 @@ If you want to manually pass your arguments, you can do this as follows:
 doctor publish --url https://<tenant>.sharepoint.com/sites/<documentation>
 ```
 
+### Reporting the run to your pipeline
+
+Pass `--output json` to get the result of the run as a single JSON document instead of the publishing stats. Check the [JSON output](../configuration/cli-options/#json-output) section for the document it returns.
+
+```sh
+doctor publish --output json > publish.json
+```
+
 ## Status
 
 The `doctor status` command is a read-only command which compares your local markdown files against the publish state stored in SharePoint. It tells you what the next `doctor publish` run will do, without making any changes to your site.
@@ -100,6 +108,16 @@ When state persistence is disabled with `--disableStatePersistence`, no state ge
 :::note[Info]
 The `status` command always reports the real difference with the state. The `forceAll` option is ignored here, as it only influences what `doctor publish` reprocesses.
 :::
+
+### Gating a pipeline on the status
+
+Pass `--output json` to get the same report as a single JSON document, which lets a pipeline decide whether it has anything to do, or turn the changed pages into a pull request comment:
+
+```sh
+doctor status --output json | jq -e '.summary.upToDate'
+```
+
+Check the [JSON output](../configuration/cli-options/#json-output) section for the full document.
 
 Pages of the `translation` type, and pages without a `title` in their front matter, are not included in the comparison.
 

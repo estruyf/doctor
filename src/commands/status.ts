@@ -3,19 +3,29 @@ import { dirname, join } from "path";
 import { Listr } from "listr2";
 import kleur from "kleur";
 import matter from "gray-matter";
-import { Authenticate } from "@commands";
+import { Authenticate, Version } from "@commands";
 import {
   FrontMatterHelper,
   MarkdownHelper,
+  OutputHelper,
   PartialsHelper,
   StateHelper,
+  StatusHelper,
 } from "@helpers";
-import { CommandArguments, PageFrontMatter, PublishContext } from "@models";
-import { existsAsync, isLanguageFile } from "@utils";
+import {
+  CommandArguments,
+  PageFrontMatter,
+  PublishContext,
+  StatusResult,
+  StatusResultPage,
+} from "@models";
+import { existsAsync, isLanguageFile, relativePath } from "@utils";
 
 interface StatusEntry {
-  file: string;
-  slug: string;
+  /** `null` for a page which only exists in the publish state. */
+  file: string | null;
+  /** `null` for a language file which no page refers to. */
+  slug: string | null;
   state: "new" | "modified" | "unchanged" | "deleted" | "orphaned";
 }
 
@@ -128,11 +138,7 @@ export class Status {
                 const link = languageFiles.get(file);
                 // A language file nothing refers to never gets published
                 if (!link) {
-                  entries.push({
-                    file,
-                    slug: `(not referenced by any page)`,
-                    state: "orphaned",
-                  });
+                  entries.push({ file, slug: null, state: "orphaned" });
                   continue;
                 }
                 slug = StateHelper.getTranslationSlug(
@@ -174,13 +180,13 @@ export class Status {
             // Detect pages in state that no longer exist locally. Orphaned
             // language files have no slug, so they are left out.
             const localSlugs = entries
-              .filter((e) => e.state !== "orphaned")
+              .filter((e): e is StatusEntry & { slug: string } => !!e.slug)
               .map((e) => e.slug);
             const deletedSlugs = StateHelper.getDeletedSlugs(localSlugs, {
               multilingual: !!options.multilingual?.enableTranslations,
             });
             for (const slug of deletedSlugs) {
-              entries.push({ file: "(not found locally)", slug, state: "deleted" });
+              entries.push({ file: null, slug, state: "deleted" });
             }
           },
         },
@@ -189,6 +195,7 @@ export class Status {
         renderer: "default",
         fallbackRenderer: "verbose",
         fallbackRendererCondition: options.debug || options.verbose,
+        silentRendererCondition: OutputHelper.isJson(),
       }
     ).run(ctx);
 
@@ -199,6 +206,41 @@ export class Status {
     const unchanged = byState("unchanged");
     const deleted = byState("deleted");
     const orphaned = byState("orphaned");
+    const totalChanged = newPages.length + modified.length;
+
+    if (OutputHelper.isJson()) {
+      const result: StatusResult = {
+        command: "status",
+        success: true,
+        version: await Version.getVersion(),
+        url: webUrl,
+        state: {
+          enabled: !options.disableStatePersistence,
+          tracked: statePageCount,
+          filesChecked: localFilesChecked,
+        },
+        summary: {
+          new: newPages.length,
+          modified: modified.length,
+          unchanged: unchanged.length,
+          deleted: deleted.length,
+          orphaned: orphaned.length,
+          changed: totalChanged,
+          upToDate: totalChanged === 0 && deleted.length === 0,
+        },
+        pages: {
+          new: this.toResultPages(newPages),
+          modified: this.toResultPages(modified),
+          unchanged: this.toResultPages(unchanged),
+          deleted: this.toResultPages(deleted),
+          orphaned: this.toResultPages(orphaned),
+        },
+        warnings: StatusHelper.getWarnings(),
+      };
+
+      OutputHelper.setResult(result);
+      return;
+    }
 
     console.log("");
     console.info(kleur.bold().bgYellow().black(` Status summary `));
@@ -244,7 +286,6 @@ export class Status {
 
     console.log("");
 
-    const totalChanged = newPages.length + modified.length;
     if (totalChanged === 0 && deleted.length === 0) {
       console.info(kleur.bold().bgGreen().black(` ✔ Everything up to date `));
     } else {
@@ -266,5 +307,17 @@ export class Status {
       }
     }
     console.log("");
+  }
+
+  /**
+   * Converts the reported entries to their machine readable form, with the file
+   * paths relative to the working directory so they can be linked from a PR
+   * comment.
+   */
+  private static toResultPages(entries: StatusEntry[]): StatusResultPage[] {
+    return entries.map((entry) => ({
+      file: entry.file ? relativePath(entry.file) : null,
+      slug: entry.slug,
+    }));
   }
 }

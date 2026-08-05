@@ -1,5 +1,5 @@
-import kleur from "kleur";
 import { CommandArguments } from "@models";
+import { OutputHelper } from "./OutputHelper.js";
 
 export const DEFAULT_COMMAND_TIMEOUT = 120000;
 
@@ -65,16 +65,14 @@ export class CliCommand {
     const timeout = typeof value === "string" ? Number(value.trim()) : value;
 
     if (!Number.isInteger(timeout) || (timeout as number) <= 0) {
-      console.info(
-        kleur.bold().bgYellow().black(` Warning: `),
+      OutputHelper.warning(
         `The "commandTimeout" option must be a whole number of milliseconds greater than 0, but received "${value}". Doctor continues with the default of ${DEFAULT_COMMAND_TIMEOUT}ms.`
       );
       return DEFAULT_COMMAND_TIMEOUT;
     }
 
     if ((timeout as number) < 1000) {
-      console.info(
-        kleur.bold().bgYellow().black(` Warning: `),
+      OutputHelper.warning(
         `The "commandTimeout" option is set to ${timeout}ms. This value is in milliseconds, so commands will most likely time out before they complete.`
       );
     }

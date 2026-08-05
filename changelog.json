@@ -58,6 +58,10 @@
       {
         "id": null,
         "title": "New `--removeDeleted` flag which recycles the pages whose markdown file got deleted from your sources. It uses the publish state to know which pages Doctor created, and needs to be confirmed with `--confirm`."
+      },
+      {
+        "id": 202,
+        "title": "New `--output json` argument which silences the human output and writes the result of your `doctor status` or `doctor publish` run as a single JSON document to stdout, so a pipeline can gate on it or turn it into a pull request comment."
       }
     ]
   },

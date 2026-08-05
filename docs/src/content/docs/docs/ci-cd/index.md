@@ -31,3 +31,44 @@ doctor workflow
 Check the [workflow command](../cli#workflow) section for the secrets you need to add to your repository.
 
 If you want to know more about using `doctor` in GitHub Actions, you can check out the following article from Elio: [Using Doctor in GitHub Actions for your documentation](https://www.eliostruyf.com/doctor-github-actions-publishing-documentation/).
+
+## Reporting on a pull request
+
+The [`--output json`](../configuration/cli-options/#json-output) argument makes the result of a run readable for your pipeline. A `doctor status` run on a pull request tells you which pages it is going to touch, before anything is published:
+
+```yaml
+- name: Check which pages change
+  id: status
+  run: |
+    doctor status --output json \
+      --url ${{ secrets.SITE_URL }} \
+      --appId ${{ secrets.APP_ID }} \
+      --tenant ${{ secrets.TENANT_ID }} \
+      --certificate ${{ secrets.CERTIFICATE }} > status.json
+
+    {
+      echo "upToDate=$(jq -r '.summary.upToDate' status.json)"
+      echo "comment<<EOF"
+      jq -r '"**\(.summary.changed)** page(s) will be published.\n" +
+             ((.pages.new + .pages.modified) | map("- `\(.file)`") | join("\n"))' status.json
+      echo "EOF"
+    } >> "$GITHUB_OUTPUT"
+
+- name: Comment on the pull request
+  uses: peter-evans/create-or-update-comment@v4
+  with:
+    issue-number: ${{ github.event.pull_request.number }}
+    body: ${{ steps.status.outputs.comment }}
+```
+
+The same document lets you skip the publish step altogether when nothing changed:
+
+```yaml
+- name: Publish
+  if: ${{ !fromJSON(steps.status.outputs.upToDate) }}
+  run: doctor publish
+```
+
+:::caution[Important]
+`doctor` cannot prompt while it reports JSON, as that would block your pipeline. Pass every value it needs as an argument or through the `doctor.json` file, including `--confirm` for the runs which remove content.
+:::

@@ -1,5 +1,6 @@
 export * from './Chrome.js';
 export * from './CommandArguments.js';
+export * from './CommandResult.js';
 export * from './Control.js';
 export * from './File.js';
 export * from './Folder.js';
@@ -9,6 +10,7 @@ export * from './MarkdownSettings.js';
 export * from './Menu.js';
 export * from './MultilingualSettings.js';
 export * from './NavigationItem.js';
+export * from './OutputFormat.js';
 export * from './Page.js';
 export * from './PageFrontMatter.js';
 export * from './PageLocalization.js';
