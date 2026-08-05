@@ -48,23 +48,38 @@ localization:
 
 The localization property contains the following. `locale name` and `relative path` to the linked language page.
 
+The `languages` setting takes the same locale names as the `localization` front matter, so both sides use one vocabulary:
+
+```json
+{
+  "multilingual": {
+    "enableTranslations": true,
+    "languages": ["nl-nl", "fr-fr", "es-es"]
+  }
+}
+```
+
+LCIDs keep working as well, and the two styles can be mixed: `["nl-nl", 1036]` is the same as `["nl-nl", "fr-fr"]`. An entry which is neither stops the run instead of quietly changing the languages of your site.
+
 :::note[Info]
 An overview of the supported LCIDs for SharePoint can be found on [Supported LCIDs by SharePoint](https://github.com/pnp/PnP-PowerShell/wiki/Supported-LCIDs-by-SharePoint).
 :::
 
-:::caution[Important]
-Make sure you use an LCID name that you enabled on site-level.
+:::caution[Warning]
+`languages` is applied to the site as-is, it replaces the languages which were enabled on it. Any locale you use in a `localization` front matter has to be in this list, otherwise SharePoint refuses to create the translation. Doctor reports the locales which are missing from it.
 :::
 
 ### Localization translation page
 
-For the translation page, `home.nl.lang.md` in the above example, you should set its page `type` to `translation`. This property makes sure the page will not get process during the standard page processing.
+Name the translation page with a `.lang.md` suffix, `home.nl.lang.md` in the above example. That suffix is what tells `doctor` the file holds the content of a localized page: it is left out of the standard page processing and published in the localization phase instead, under the URL SharePoint issues for the translation.
 
 :::note[Info]
-If you want the transpiler to run faster. You can add `.lang.md` at the end. This way, `doctor` will exclude these files and only use them when referenced on the source page.
+Setting `type: translation` on the page is still supported, but no longer needed. A file which does not end on `.lang.md` does need it.
 :::
 
-By default, SharePoint will copy the header settings from the source page. If you want to override these settings, you can add the same options as all other pages as long as you make sure `type: translation` is set for these pages.
+Because a translation never gets a slug of its own, a `slug` in its front matter is ignored.
+
+By default, SharePoint will copy the header settings from the source page. If you want to override these settings, you can add the same options as all other pages.
 
 :::note[Info]
 Sample of how you can use multilingual with `doctor` has been provided in [https://github.com/estruyf/doctor-sample](https://github.com/estruyf/doctor-sample).
@@ -91,9 +106,18 @@ If you want to make use of the Azure Translator service which is part of the [Az
 }
 ```
 
+Both endpoint forms Azure hands out are supported:
+
+- The global endpoint: `https://api.cognitive.microsofttranslator.com`
+- The endpoint of your own resource: `https://<your-resource>.cognitiveservices.azure.com`
+
+:::note[Info]
+A trailing slash on the endpoint is fine, `doctor` normalizes it. If the run reports `Resource Not Found`, the endpoint is reachable but the key or region does not match the resource.
+:::
+
 ### Automatically translate pages
 
-When you want to make use of this APIs for page translations. All you need to do is specifying the `localization` property to its front matter of the page. In this case, you do not need to specify the path to the page. As the page will be translated on the fly.
+When you want to make use of these APIs for page translations. All you need to do is specifying the `localization` property to its front matter of the page. In this case, you do not need to specify the path to the page. As the page will be translated on the fly.
 
 ```yaml
 localization:

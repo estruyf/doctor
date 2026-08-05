@@ -207,6 +207,10 @@ On the next run, `doctor` compares the hash of each local file with the one in t
 - Pages which are **new** or **modified** get published.
 - Pages which are **unchanged** get skipped.
 
+The hash covers the markdown file together with the [partials](../doctor-json/#reusable-content-partials) it uses, so a changed partial marks every page using it as modified.
+
+Localized pages are tracked the same way, under the URL SharePoint issued for them. They are published in their own phase which runs after the normal pages, so a changed `.lang.md` file gets published even when its source page did not change.
+
 :::caution[Important]
 This is a behavior change since v2.0.0. Previously all pages were processed on every run. If you want the old behavior, use the `--forceAll` flag.
 :::
