@@ -5,11 +5,6 @@ tableOfContents: false
 ---
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@estruyf/doctor" title="Check why it fails">
-    <img src="https://github.com/estruyf/doctor/actions/workflows/release.yml/badge.svg"
-        alt="Does it build and publish?" style="display: inline-block" />
-  </a>
-
   <a href="https://www.npmjs.com/package/@estruyf/doctor" title="Go to npm">
     <img src="https://img.shields.io/npm/v/@estruyf/doctor/latest?style=flat-square"
       alt="npm @estruyf/doctor@latest" style="display: inline-block" />

@@ -17,8 +17,61 @@ By default, `Doctor` looks for these snippets in the `./partials` folder. You ca
 ```
 
 :::note[Info]
-A partial is a plain markdown file. It may contain front matter, so it stays a valid markdown file in your editor, but that front matter is not used.
+A partial is a plain markdown file. It may contain front matter, so it stays a valid markdown file in your editor. Only its [`params`](#parameters) are used, the other properties are ignored.
 :::
+
+## Folder structure
+
+The partials live next to your sources, in their own folder:
+
+```
+.
+├── doctor.json          # where the partials folder is configured
+├── partials/            # the reusable snippets
+│   ├── banner.md
+│   ├── navigation.md
+│   └── warning.md
+└── src/                 # your markdown pages
+    ├── home.md
+    └── docs/
+        └── page.md
+```
+
+Each of those partials is a markdown file with the piece of content you want to reuse:
+
+```markdown title="partials/warning.md"
+---
+params:
+  product: Doctor
+---
+
+> **Warning**: {{product}} overwrites the page on every publish.
+```
+
+Your pages pull it in where they need it:
+
+```markdown title="src/docs/page.md"
+---
+title: My page
+---
+
+# My page
+
+<include file="warning" product="Doctor" />
+```
+
+And `doctor.json` points at the folder, which is `./partials` unless you say otherwise:
+
+```json title="doctor.json"
+{
+  "folder": "./src",
+  "partials": {
+    "folder": "./partials"
+  }
+}
+```
+
+The rest of this page explains each of these pieces. Keep the `partials` folder next to your sources folder instead of inside it, as explained in [what it means for publishing](#what-it-means-for-publishing).
 
 ## Including a partial
 
