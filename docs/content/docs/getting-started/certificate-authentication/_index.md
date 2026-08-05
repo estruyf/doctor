@@ -70,6 +70,6 @@ doctor publish --certificate <base64String> --appId <appId> --tenant <tenant> --
 
 > **Info**: When you specified a password while creating the certificate, you also need to pass it with the `--password <password>` argument.
 
-> **Info**: You can store the `appId` and `tenant` settings in the `doctor.json` file, so you do not need to repeat them on every run. More information can be found under the [doctor.json](../../options/#doctorjson) section.
+> **Info**: You can store the `appId` and `tenant` settings in the `doctor.json` file, so you do not need to repeat them on every run. More information can be found under the [doctor.json](../../configuration/doctor-json) section.
 
 > **Important**: Keep the `certificate` and its `password` out of the `doctor.json` file when you commit it to source control. Pass them on the command line from a secret instead.

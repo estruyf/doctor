@@ -30,7 +30,7 @@ Once the prerequisites are in place:
    doctor init --url <url> --appId <appId> --tenant <tenant>
    ```
 
-2. Write your content as Markdown files in the source folder (`./src` by default). Check the [pages](../pages) section for the front matter each page supports.
+2. Write your content as Markdown files in the source folder (`./src` by default). Check the [pages](../content/pages) section for the front matter each page supports.
 
 3. Check what the next publishing run will do:
 
@@ -44,4 +44,11 @@ Once the prerequisites are in place:
    doctor publish --certificate ./cert.pfx
    ```
 
-> **Info**: The `appId`, `tenant`, and `url` values can live in the `doctor.json` file, so you only need to pass the `certificate` (and its `password`) on each run. Keep those secrets out of source control. More information can be found in the [options](../options) section.
+> **Info**: The `appId`, `tenant`, and `url` values can live in the `doctor.json` file, so you only need to pass the `certificate` (and its `password`) on each run. Keep those secrets out of source control. More information can be found in the [configuration](../configuration) section.
+
+## Next steps
+
+- [Content](../content): write your pages, build the navigation, and reuse snippets with partials and shortcodes.
+- [CLI](../cli): all the commands `doctor` offers.
+- [Configuration](../configuration): every command argument and `doctor.json` setting.
+- [CI/CD](../ci-cd): publish your documentation automatically from Azure DevOps or GitHub Actions.

@@ -36,6 +36,42 @@
     display: inline-block;
     padding: 10px 15px;
   }
+
+  /* Sidebar hierarchy: documentation > section > page > sub page */
+  .sidebar .list-styled > li.sidelist > a {
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .sidebar .list-styled > li.sidelist > ul > li.sidelist > a {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-color);
+    padding-bottom: 4px;
+  }
+
+  .sidebar .list-styled > li.sidelist > ul > li.sidelist {
+    margin-top: 18px;
+  }
+
+  .sidebar .list-styled > li.sidelist > ul > li.sidelist > ul > li.sidelist > a {
+    font-size: 15px;
+  }
+
+  .sidebar .list-styled > li.sidelist > ul > li.sidelist > ul li.sidelist {
+    padding-left: 14px;
+  }
+
+  .sidebar .list-styled > li.sidelist > ul > li.sidelist > ul > li.sidelist > ul li.sidelist > a {
+    font-size: 14px;
+    padding: 6px 0;
+  }
+
+  .sidebar .list-styled > li.sidelist > ul > li.sidelist::before {
+    display: none;
+  }
   </style>
 
 {{ "<!-- Main Stylesheet -->" | safeHTML }}
