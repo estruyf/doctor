@@ -22,8 +22,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, '#release') || github.ref ==
-      'refs/heads/main'
+    # A published release carries the tag ref, not `refs/heads/main`, so gate on
+    # the event name instead of the ref.
+    if: >-
+      contains(github.event.head_commit.message, '#release')
+      || github.event_name == 'release'
+      || github.event_name == 'workflow_dispatch'
 
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
