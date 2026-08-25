@@ -3,6 +3,15 @@ title: Changelog
 description: The changelog of Doctor
 ---
 
+## [2.2.0]
+
+
+- [#206](https://github.com/estruyf/doctor/issues/206): Fix: Mermaid diagrams are drawn by `Doctor` while publishing, in the Mermaid version it ships. They used to be left to a script tag the Markdown web part never executes, so SharePoint rendered them with its own older Mermaid, or not at all.
+- [#206](https://github.com/estruyf/doctor/issues/206): Mermaid diagrams are uploaded to a `mermaid` folder in your asset library and shown with an `<img>`, as SharePoint strips inline SVG out of the HTML it injects.
+- [#206](https://github.com/estruyf/doctor/issues/206): New `alt` attribute on the `mermaid` shortcode to describe a diagram.
+- [#206](https://github.com/estruyf/doctor/issues/206): The `architecture-beta`, `gantt` and `sankey-beta` diagrams are drawn as well. `mindmap`, `C4Context` and `block-beta` need a browser and are still left to SharePoint.
+- [#206](https://github.com/estruyf/doctor/issues/206): Fix: a publish no longer keeps running after a page with a diagram which uses a layout engine.
+
 ## [2.1.0]
 
 
@@ -15,7 +24,6 @@ description: The changelog of Doctor
 - `doctor status` reports the localized pages, and the language files which no page refers to.
 - New `--removeDeleted` flag which recycles the pages whose markdown file got deleted from your sources. It uses the publish state to know which pages Doctor created, and needs to be confirmed with `--confirm`.
 - [#59](https://github.com/estruyf/doctor/issues/59): The `workflow` command can now generate an Azure DevOps pipeline with the new `--provider azdo` argument. The default remains GitHub Actions.
-- [#104](https://github.com/estruyf/doctor/issues/104): Fix: Mermaid diagrams are now rendered by `Doctor` while publishing and put on the page as an image. Previously the diagram was left to a script tag, which the Markdown web part never executes, so SharePoint rendered it with its own older Mermaid version or not at all. SharePoint also strips `<style>` elements, the root `<svg>` and `data:` image sources out of the HTML it injects, so the diagram is uploaded to a `mermaid` folder in your asset library and shown with an `<img>`, which SharePoint serves untouched. Use the `alt` attribute to describe the diagram. `architecture-beta`, `gantt` and `sankey-beta` render as well, and a diagram that used one of them no longer keeps `Doctor` running after the publish. The three types that still cannot be drawn without a browser (`mindmap`, `C4Context`, `block-beta`) fall back to SharePoint.
 - [#119](https://github.com/estruyf/doctor/issues/119): New `markdown.extended` setting to render emoji shortcodes, highlighted text, footnotes, definition lists and task lists. Enabled by default, and requires `markdown.allowHtml`.
 - [#198](https://github.com/estruyf/doctor/issues/198): New `partials` setting to reuse markdown snippets on your pages. Include them where you need them with `<include file="..." />`, or let Doctor add them to every page with `partials.header` and `partials.footer`.
 - [#198](https://github.com/estruyf/doctor/issues/198): Partials take parameters. Pass them as attributes on the include tag, like `<include file="warning" product="Doctor" />`, and use them in the partial with `{{product}}`. Their default values are set with the `params` front matter of the partial.
