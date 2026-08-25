@@ -1,8 +1,8 @@
 name: Publish to NPM
 
 # Runs on:
-# - a published GitHub release
-# - a push to dev (beta release, or a full release when the commit message contains `#release`)
+# - a published GitHub release (full release)
+# - a push to dev when the commit message contains `#release` (beta release)
 # - a manual run (full release by default, beta when the `release` input is unchecked)
 on:
   push:
@@ -37,14 +37,16 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org/
 
+      # `dev` never publishes a full release: a `#release` commit there triggers this
+      # workflow, but it goes out as a beta on the `next` tag. Full releases come from
+      # a published GitHub release, or a manual run with the `release` input checked.
       - name: Check if this run is a release
         id: check
         env:
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
           EVENT_NAME: ${{ github.event_name }}
           MANUAL_RELEASE: ${{ inputs.release }}
         run: |
-          if [ "$EVENT_NAME" = "release" ] || [ "$MANUAL_RELEASE" = "true" ] || [[ "$COMMIT_MESSAGE" == *"#release"* ]]; then
+          if [ "$EVENT_NAME" = "release" ] || { [ "$EVENT_NAME" = "workflow_dispatch" ] && [ "$MANUAL_RELEASE" = "true" ]; }; then
             echo "release=true" >> $GITHUB_OUTPUT
           else
             echo "release=false" >> $GITHUB_OUTPUT
