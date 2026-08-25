@@ -132,14 +132,19 @@ Write here the Doctor page content.
 
 ### Metadata
 
-Adding metadata for a page is fairly simple. You can do this by specifying the `metadata` object with corresponding `field name` and its `value`.
+Adding metadata for a page is done by specifying the `metadata` object with corresponding SharePoint field names and their values.
 
 ```yaml
 metadata:
   <field name>: <value>
 ```
 
-#### Example
+The field names support multiple formats for lookup:
+- **Internal Name** (exact case-insensitive match)
+- **Static Name** (case-insensitive match)
+- **Display Title** (case-insensitive match)
+
+#### Basic Example
 
 ```yaml
 ---
@@ -152,4 +157,219 @@ metadata:
   Category: "Choice 1"
   SingleLineText: "Single line of text value"
 ---
+```
+
+#### Supported Field Types
+
+##### Simple Fields
+
+The following field types are passed through unchanged:
+- `Text` - Plain text values
+- `Note` - Multi-line text values
+- `Number` - Numeric values
+- `Currency` - Currency values
+- `Boolean` - Boolean values (true/false)
+- `Choice` - Single choice fields (use the exact choice value)
+
+```yaml
+metadata:
+  Category: "Choice 1"
+  Priority: 5
+  Budget: 10000
+  Approved: true
+```
+
+##### Taxonomy Fields (Managed Metadata)
+
+**Single Taxonomy Field** (`TaxonomyFieldType`):
+
+Input can be a simple string label, or an object with label and optional term GUID:
+
+```yaml
+metadata:
+  Department: "Finance"
+```
+
+Or with explicit term GUID (prevents lookup):
+
+```yaml
+metadata:
+  Department:
+    label: "Finance"
+    termGuid: "550e8400-e29b-41d4-a716-446655440000"
+```
+
+**Multi Taxonomy Field** (`TaxonomyFieldTypeMulti`):
+
+Input can be an array of labels or objects:
+
+```yaml
+metadata:
+  Skills:
+    - "C#"
+    - "TypeScript"
+    - label: "Azure"
+      termGuid: "660e8400-e29b-41d4-a716-446655440000"
+```
+
+When a term GUID is omitted, Doctor resolves the label using Graph API against the associated term set. If resolution fails, the field is skipped and a debug message is logged. Resolution results are cached per run to avoid repeated lookups.
+
+##### User Fields
+
+**Single User Field** (`User`):
+
+Input is a UPN (User Principal Name). Output is formatted as a SharePoint person claim:
+
+```yaml
+metadata:
+  Owner: "john.doe@contoso.com"
+```
+
+Outputs: `[{'Key':'i:0#.f|membership|john.doe@contoso.com'}]`
+
+**Multi User Field** (`UserMulti`):
+
+Input is an array of UPNs:
+
+```yaml
+metadata:
+  Approvers:
+    - "john.doe@contoso.com"
+    - "jane.smith@contoso.com"
+```
+
+Outputs: `[{'Key':'i:0#.f|membership|john.doe@contoso.com'},{'Key':'i:0#.f|membership|jane.smith@contoso.com'}]`
+
+##### DateTime Fields
+
+Input accepts multiple formats:
+- ISO 8601: `"2024-01-15T10:30:45Z"` (converted to local time)
+- Date only: `"2024-01-15"` (treated as local midnight)
+- Already normalized: `"2024-01-15 10:30:45"` (passed through unchanged)
+
+```yaml
+metadata:
+  PublishDate: "2024-01-15"
+  ReviewDate: "2024-01-20T14:30:00Z"
+  ApprovalDate: "2024-01-22 09:00:00"
+```
+
+All date-only values are normalized to `yyyy-MM-dd HH:mm:ss` format with local-midnight semantics. Invalid or ambiguous values are logged as debug messages and passed through unchanged, allowing SharePoint to handle the validation.
+
+##### Lookup Fields
+
+**Single Lookup Field** (`Lookup`):
+
+Input is a numeric item ID (integer or numeric string):
+
+```yaml
+metadata:
+  ParentPage: 42
+  ReferencedPage: "123"
+```
+
+**Multi Lookup Field** (`LookupMulti`):
+
+Input is an array of numeric IDs, joined with `;#` delimiter:
+
+```yaml
+metadata:
+  RelatedPages:
+    - 1
+    - 5
+    - 8
+```
+
+Non-numeric values are logged as debug messages and skipped; the field is only set if at least one valid ID is found.
+
+##### URL Fields
+
+Input can be a string or an object:
+
+```yaml
+metadata:
+  # String format (url, description)
+  CompanyWebsite: "https://contoso.com, Company Home"
+  
+  # Object format with url and description
+  MoreInfo:
+    url: "https://contoso.com/docs"
+    description: "Full Documentation"
+  
+  # Object with url only
+  Link:
+    url: "https://contoso.com"
+```
+
+If an object has no `url` property, the field is skipped with a debug message.
+
+##### Multi-Choice Fields
+
+Input can be a pre-formatted string or an array of values, joined with `;#`:
+
+```yaml
+metadata:
+  # Pre-formatted string
+  Tags: "Tag1;#Tag2;#Tag3"
+  
+  # Array format (automatically joined)
+  Features:
+    - "Feature A"
+    - "Feature B"
+    - "Feature C"
+```
+
+Empty strings in arrays are automatically filtered out.
+
+#### Metadata Validation
+
+- Invalid field names (not found on the list) are logged as debug messages and skipped.
+- If a field transformation returns `undefined`, that field is skipped and publishing continues.
+- Non-fatal errors (e.g., taxonomy term not found) log debug messages but do not block page publishing.
+- Transformed metadata is validated before being set on the page; SharePoint validation still applies.
+
+#### Example with Multiple Field Types
+
+```yaml
+---
+title: Product Documentation
+slug: product-guide.aspx
+description: "Complete product guide with metadata"
+
+metadata:
+  # Simple fields
+  Priority: 1
+  Approved: true
+  
+  # Taxonomy (single and multi)
+  Category: "Documentation"
+  Tags:
+    - "Product"
+    - "Guide"
+  
+  # User fields
+  Owner: "product-team@contoso.com"
+  Reviewers:
+    - "alice@contoso.com"
+    - "bob@contoso.com"
+  
+  # DateTime field
+  PublishedDate: "2024-01-15"
+  
+  # Lookup field
+  ParentPage: 42
+  
+  # URL field
+  SourceRepository:
+    url: "https://github.com/contoso/docs"
+    description: "GitHub Repository"
+  
+  # Multi-choice field
+  Features:
+    - "Search"
+    - "Export"
+    - "Print"
+---
+
+Your page content here...
 ```

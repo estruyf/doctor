@@ -1,10 +1,10 @@
-import { Observable } from "rxjs";
 import {
   Page,
   PageTemplate,
   File,
   MarkdownSettings,
   CommandArguments,
+  TaskOutput,
 } from "@models";
 import {
   CliCommand,
@@ -14,6 +14,7 @@ import {
   ListHelpers,
   Logger,
   MarkdownHelper,
+  StatusHelper,
 } from "@helpers";
 import { executeCommand } from "@pnp/cli-microsoft365";
 import { basename, dirname } from "path";
@@ -41,6 +42,16 @@ export class PagesHelper {
   ]);
 
   /**
+   * Reset all static state
+   */
+  public static reset(): void {
+    PagesHelper.pages = [];
+    PagesHelper.processedPages = {};
+    PagesHelper.listFieldMap = {};
+    PagesHelper.termGuidMap = new Map<string, string>();
+  }
+
+  /**
    * Retrieve all the pages from the current site
    * @param webUrl
    */
@@ -55,63 +66,137 @@ export class PagesHelper {
   /**
    * Cleaning up all the untouched pages
    * @param webUrl
+   * @param task
+   * @param options
    */
   public static async clean(
     webUrl: string,
+    task: TaskOutput,
     options: CommandArguments
-  ): Promise<Observable<string>> {
-    return new Observable((observer) => {
-      (async () => {
-        const untouched = this.getUntouchedPages().filter(
-          (slug) =>
-            !slug.toLowerCase().startsWith("templates") &&
-            slug.endsWith(".aspx")
-        );
-        Logger.debug(`Removing the following files`);
-        Logger.debug(untouched);
-        for (const slug of untouched) {
-          try {
-            if (slug) {
-              Logger.debug(`Cleaning up page: ${slug}`);
-              observer.next(`Cleaning up page: ${slug}`);
-              const filePath = `sitepages/${slug}`;
-              const relUrl = FileHelpers.getRelUrl(webUrl, filePath);
-              await executeWithRetry(
-                "spo file remove",
-                {
-                  webUrl,
-                  url: relUrl,
-                  force: true,
-                },
-                CliCommand.getRetry()
-              );
-            }
-          } catch (e) {
-            observer.error(e);
-            Logger.debug(e.message);
-
-            if (!options.continueOnError) {
-              throw e.message;
-            }
-          }
+  ): Promise<void> {
+    const untouched = this.getUntouchedPages().filter(
+      (slug) =>
+        !slug.toLowerCase().startsWith("templates") &&
+        slug.endsWith(".aspx")
+    );
+    Logger.debug(`Removing the following files`);
+    Logger.debug(untouched);
+    for (const slug of untouched) {
+      try {
+        if (slug) {
+          Logger.debug(`Cleaning up page: ${slug}`);
+          task.output = `Cleaning up page: ${slug}`;
+          const filePath = `sitepages/${slug}`;
+          const relUrl = FileHelpers.getRelUrl(webUrl, filePath);
+          await executeWithRetry(
+            "spo file remove",
+            {
+              webUrl,
+              url: relUrl,
+              force: true,
+            },
+            CliCommand.getRetry()
+          );
         }
-        observer.complete();
-      })();
-    });
+      } catch (e) {
+        const errorMessage =
+          typeof e === "string" ? e : e instanceof Error ? e.message : JSON.stringify(e);
+        Logger.debug(errorMessage);
+
+        if (!options.continueOnError) {
+          throw new Error(errorMessage);
+        }
+      }
+    }
   }
 
   /**
-   * Check if the page exists, and if it doesn't it will be created
-   * @param webUrl
-   * @param slug
-   * @param title
-   */
+  * Recycle the pages which are tracked in the publish state, but whose markdown
+  * file no longer exists. The pages end up in the site its recycle bin, so they
+  * can still be restored from SharePoint itself.
+  * @param webUrl
+  * @param slugs The slugs of the pages to recycle
+  * @param task
+  * @param options
+  * @param onRemoved Called for every page which got recycled, also when a later
+  * page fails, so the publish state can be kept in sync with the site.
+  * @returns The slugs which are no longer on the site
+  */
+  public static async removePages(
+   webUrl: string,
+   slugs: string[],
+   task: TaskOutput,
+   options: CommandArguments,
+   onRemoved?: (slug: string) => void
+  ): Promise<string[]> {
+   const removed: string[] = [];
+
+   Logger.debug(`Recycling the following deleted pages`);
+   Logger.debug(slugs);
+
+   for (let i = 0; i < slugs.length; i++) {
+     const slug = slugs[i];
+     if (!slug) {
+       continue;
+     }
+
+     task.output = `[${i + 1}/${slugs.length}] Recycling deleted page: ${slug}`;
+
+     try {
+       const relUrl = FileHelpers.getRelUrl(webUrl, `sitepages/${slug}`);
+       await executeWithRetry(
+         "spo file remove",
+         {
+           webUrl,
+           url: relUrl,
+           recycle: true,
+           force: true,
+         },
+         CliCommand.getRetry()
+       );
+
+       removed.push(slug);
+       onRemoved?.(slug);
+     } catch (e) {
+       const errorMessage =
+         typeof e === "string" ? e : e instanceof Error ? e.message : JSON.stringify(e);
+       Logger.debug(errorMessage);
+
+       // The page is already gone from the site, so the state can drop it as well.
+       if (this.isNotFoundError(errorMessage)) {
+         Logger.debug(`Page ${slug} no longer exists on the site.`);
+         removed.push(slug);
+         onRemoved?.(slug);
+         continue;
+       }
+
+       // Prefixed with the library, so the summary shows it is a page on the
+       // site which failed, and not a local file.
+       StatusHelper.addError(`sitepages/${slug}`);
+
+       if (!options.continueOnError) {
+         throw new Error(
+           `Failed to recycle the deleted page "${slug}". ${errorMessage}`
+         );
+       }
+     }
+   }
+
+   return removed;
+  }
+
+  /**
+  * Check if the page exists, and if it doesn't it will be created
+  * @param webUrl
+  * @param slug
+  * @param title
+  */
   public static async createPageIfNotExists(
-    webUrl: string,
-    slug: string,
-    title: string,
-    layout: string = "Article",
-    commentsDisabled: boolean = false,
+   webUrl: string,
+   slug: string,
+   title: string,
+   layout: string = "Article",
+   commentsDisabled: boolean = false,
     description: string = "",
     template: string | null = null,
     skipExistingPages: boolean = false
@@ -123,7 +208,7 @@ export class PagesHelper {
         if (PagesHelper.pages && PagesHelper.pages.length > 0) {
           const page = PagesHelper.pages.find(
             (page: File) =>
-              page.FileRef.toLowerCase() === relativeUrl.toLowerCase()
+              page.FileRef?.toLowerCase() === relativeUrl.toLowerCase()
           );
           if (page) {
             // Page already existed
@@ -395,7 +480,7 @@ export class PagesHelper {
     slug: string,
     webUrl: string,
     options: CommandArguments,
-    wpId: string = null,
+    wpId: string | null | undefined = null,
     mdOptions: MarkdownSettings | null,
     wasAlreadyParsed: boolean = false
   ) {
@@ -490,7 +575,7 @@ export class PagesHelper {
   public static async setPageMetadata(
     webUrl: string,
     slug: string,
-    metadata: { [fieldName: string]: any } = null
+    metadata: { [fieldName: string]: any } | null = null
   ) {
     const pageId = await this.getPageId(webUrl, slug);
     const pageList = await ListHelpers.getSitePagesList(webUrl);
@@ -978,12 +1063,27 @@ export class PagesHelper {
     let untouched: string[] = [];
     for (const page of PagesHelper.pages) {
       const { FileRef: url } = page;
+      if (!url) {
+        continue;
+      }
       const slug = url.toLowerCase().split("/sitepages/")[1];
       if (!PagesHelper.processedPages[slug]) {
         untouched.push(slug);
       }
     }
     return untouched;
+  }
+
+  private static isNotFoundError(message: string): boolean {
+    const normalized = (message || "").toLowerCase();
+
+    return (
+      normalized.includes("does not exist") ||
+      normalized.includes("not exist") ||
+      normalized.includes("file not found") ||
+      normalized.includes("cannot be found") ||
+      normalized.includes("404")
+    );
   }
 
 }
