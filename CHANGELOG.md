@@ -3,11 +3,7 @@
 ## [2.2.0]
 
 
-- [#206](https://github.com/estruyf/doctor/issues/206): Fix: Mermaid diagrams are drawn by `Doctor` while publishing, in the Mermaid version it ships. They used to be left to a script tag the Markdown web part never executes, so SharePoint rendered them with its own older Mermaid, or not at all.
-- [#206](https://github.com/estruyf/doctor/issues/206): Mermaid diagrams are uploaded to a `mermaid` folder in your asset library and shown with an `<img>`, as SharePoint strips inline SVG out of the HTML it injects.
-- [#206](https://github.com/estruyf/doctor/issues/206): New `alt` attribute on the `mermaid` shortcode to describe a diagram.
-- [#206](https://github.com/estruyf/doctor/issues/206): The `architecture-beta`, `gantt` and `sankey-beta` diagrams are drawn as well. `mindmap`, `C4Context` and `block-beta` need a browser and are still left to SharePoint.
-- [#206](https://github.com/estruyf/doctor/issues/206): Fix: a publish no longer keeps running after a page with a diagram which uses a layout engine.
+- [#206](https://github.com/estruyf/doctor/issues/206): New: Mermaid diagrams are drawn by `Doctor` while publishing, in the Mermaid version it ships. They used to be left to a script tag the Markdown web part never executes, so SharePoint rendered them with its own older Mermaid, or not at all.
 
 ## [2.1.0]
 
