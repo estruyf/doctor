@@ -707,7 +707,12 @@ export class DoctorTranspiler {
     const { startFolder, assetLibrary, webUrl, overwriteImages } = options;
 
     const imgSources = imgElms
-      .filter((i) => !!$(i).attr("src") && !$(i).attr("src")!.startsWith(`http`))
+      .filter((i) => {
+        const src = $(i).attr("src");
+        // A `data:` source carries its image with it, so there is no file to
+        // upload. Shortcodes use those for the diagrams they draw.
+        return !!src && !src.startsWith(`http`) && !src.startsWith(`data:`);
+      })
       .map((img) => $(img).attr("src")!);
     const uImgSources = [...new Set(imgSources)];
     const total = uImgSources.length;

@@ -9,6 +9,15 @@
     ]
   },
   {
+    "title": "2.2.0",
+    "updates": [
+      {
+        "id": 206,
+        "title": "New: Mermaid diagrams are drawn by `Doctor` while publishing, in the Mermaid version it ships. They used to be left to a script tag the Markdown web part never executes, so SharePoint rendered them with its own older Mermaid, or not at all."
+      }
+    ]
+  },
+  {
     "title": "2.1.0",
     "updates": [
       {

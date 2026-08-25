@@ -7,6 +7,7 @@ import {
   FolderHelpers,
   ListHelpers,
   Logger,
+  MermaidHelper,
   NavigationHelper,
   OutputHelper,
   PagesHelper,
@@ -99,6 +100,7 @@ export class Commands {
     CliCommand.reset();
     StatusHelper.reset();
     ShortcodesHelpers.reset();
+    MermaidHelper.reset();
     PartialsHelper.reset();
     StateHelper.reset();
     NavigationHelper.reset();

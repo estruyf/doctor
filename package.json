@@ -1,6 +1,6 @@
 {
   "name": "@estruyf/doctor",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Maintain your documentation on SharePoint without pain.",
   "main": "dist/main.js",
   "homepage": "https://github.com/estruyf/doctor",
@@ -94,11 +94,13 @@
     "arg": "5.0.2",
     "cheerio": "1.2.0",
     "clean-css": "5.3.3",
+    "dompurify": "3.4.14",
     "fast-glob": "3.3.3",
     "gray-matter": "4.0.3",
     "highlight.js": "11.11.1",
     "html-entities": "2.6.0",
     "inquirer": "13.3.2",
+    "jsdom": "29.1.1",
     "kleur": "4.1.5",
     "listr2": "11.0.0",
     "markdown-it": "14.1.1",
@@ -110,7 +112,9 @@
     "markdown-it-shortcode-tag": "1.1.0",
     "markdown-it-table-of-contents": "1.1.0",
     "markdown-it-task-lists": "2.1.1",
+    "mermaid": "11.17.0",
     "mime": "4.1.0",
-    "omelette": "0.4.17"
+    "omelette": "0.4.17",
+    "svgdom": "0.1.28"
   }
 }
