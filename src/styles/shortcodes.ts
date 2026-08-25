@@ -59,4 +59,15 @@ h4:hover a.toc-anchor,
 h5:hover a.toc-anchor,
 h6:hover a.toc-anchor {
   display: inline;
-}`;
+}
+.doctor__mermaid {
+  margin: 1em 0;
+  overflow-x: auto;
+  text-align: center;
+}
+
+.doctor__mermaid img {
+  max-width: 100%;
+  height: auto;
+}
+`;

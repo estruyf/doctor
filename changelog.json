@@ -66,6 +66,10 @@
       {
         "id": 202,
         "title": "New `--output json` argument which silences the human output and writes the result of your `doctor status` or `doctor publish` run as a single JSON document to stdout, so a pipeline can gate on it or turn it into a pull request comment."
+      },
+      {
+        "id": 104,
+        "title": "Fix: Mermaid diagrams are now rendered by `Doctor` while publishing and put on the page as an image. Previously the diagram was left to a script tag, which the Markdown web part never executes, so SharePoint rendered it with its own older Mermaid version or not at all. SharePoint also strips `<style>` elements, the root `<svg>` and `data:` image sources out of the HTML it injects, so the diagram is uploaded to a `mermaid` folder in your asset library and shown with an `<img>`, which SharePoint serves untouched. Use the `alt` attribute to describe the diagram. `architecture-beta`, `gantt` and `sankey-beta` render as well, and a diagram that used one of them no longer keeps `Doctor` running after the publish. The three types that still cannot be drawn without a browser (`mindmap`, `C4Context`, `block-beta`) fall back to SharePoint."
       }
     ]
   },
