@@ -3,6 +3,11 @@ title: Changelog
 description: The changelog of Doctor
 ---
 
+## [2.2.0]
+
+
+- [#206](https://github.com/estruyf/doctor/issues/206): New: Mermaid diagrams are drawn by `Doctor` while publishing, in the Mermaid version it ships. They used to be left to a script tag the Markdown web part never executes, so SharePoint rendered them with its own older Mermaid, or not at all.
+
 ## [2.1.0]
 
 
