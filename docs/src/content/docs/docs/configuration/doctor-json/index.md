@@ -22,7 +22,7 @@ The options which got introduced in v2.0.0 can be defined in the `doctor.json` f
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/estruyf/doctor/dev/schema/2.0.0.json",
+  "$schema": "https://raw.githubusercontent.com/estruyf/doctor/dev/schema/2.1.0.json",
   "url": "https://<tenant>.sharepoint.com/sites/<documentation>",
   "appId": "<appId>",
   "tenant": "<tenant>",

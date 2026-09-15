@@ -1,7 +1,8 @@
 # Plan: control shortcodes — splitting a page into multiple web parts
 
-Status: draft / not started — revised 2026-09-15 after a review against the code and against
-`@pnp/cli-microsoft365` 11.5.0 (see Change History)
+Status: **implemented** on `feat/sharepoint-metadata-transforms` (2026-09-15). The design below is
+what was built; see [As built](#as-built) for the decisions taken during implementation and where
+the result differs from this plan.
 Author: proposed via AI coding agent session, for @estruyf to review
 Related: enables a real implementation of a "related pages" search web part, currently only a
 documented placeholder shortcode (`<related-pages />`) in a consumer repo
@@ -135,13 +136,18 @@ only `id`, `pageName`, `webUrl`, `webPartData`, `webPartProperties` — there is
 If a `<related-pages />` moves from position 2 to position 4 in the source, reconcile has to remove
 and re-add it (new instance ids each run) or PATCH `CanvasContent1` directly.
 
-**Evaluate composing `CanvasContent1` and PATCHing once, instead of looping CLI calls.** A page
-costs 1 CLI call today; with N segments plus reconcile it becomes 2N+ calls, each a full page
-checkout/save under the 120s `CliCommand.getTimeout()` and its single 5s retry. `spo page control
-remove` additionally calls `SavePageAsDraft` and then **republishes** unless `--draft` is passed,
-which will fight `draft: true` front matter. doctor already drops to direct REST through
-`ApiHelper` where the CLI falls short; doing the same here is worth costing out as the primary path
-rather than as a fallback.
+**Decided: compose `CanvasContent1` and write it once, rather than looping CLI calls.** A page cost
+1 CLI call before this; with N segments plus reconcile it would have become 2N+ calls, each a full
+page checkout/save under the 120s `CliCommand.getTimeout()` and its single 5s retry. `spo page
+control remove` additionally calls `SavePageAsDraft` and then **republishes** unless `--draft` is
+passed, which fights `draft: true` front matter. And neither of the two caveats above has a fix on
+the CLI path at all.
+
+So the canvas is read, composed in full and written back with one `SavePageAsDraft`, through
+`ApiHelper` — the same route doctor already uses where the CLI falls short. This replaces the
+add/set path for *every* page, not only the split ones, so there is one implementation rather than
+two. Publishing stays where it was, in `PagesHelper.publishPageIfNeeded`, so a draft page is still
+left as a draft.
 
 ### 4. Reconciling controls across runs (idempotency)
 
@@ -235,9 +241,9 @@ in the same change:
 - `docs/src/content/docs/docs/content/shortcodes/index.md` — document the `kind` field and the
   control-shortcode contract, with a sidebar entry per "new shortcode" in the definition-of-done
   table.
-- `schema/<current>.json` — only if this introduces a new `doctor.json` setting. Note the highest
-  schema file is `schema/2.1.0.json` while `package.json` is already at 2.2.0; worth confirming
-  whether a 2.2.0 schema should exist before this lands.
+- `schema/<current>.json` — only if this introduces a new `doctor.json` setting. It does not, and
+  `schema/2.1.0.json` already covers every option the code reads, so no new schema file was added.
+  Its `$id` pointed at `2.0.0.json`, which was corrected.
 - `changelog.json` — new entry.
 - `tests/` — tests import compiled helpers from `dist/` with no SharePoint available, so the
   testable surface is segmentation plus reconcile planning (given a segment list and a prior state,
@@ -246,22 +252,97 @@ in the same change:
   control shortcode produces three segments in the right order, a control tag below top level
   throws, and a re-publish plans an update in place rather than a duplicate.
 
-## Open questions for @estruyf
+## Decisions (was: open questions for @estruyf)
 
-Proposed answers from the review; @estruyf to confirm or overrule.
+All three were decided as proposed and built that way. @estruyf can still overrule any of them; the
+first two are the ones with a cost to reversing.
 
-1. **Should `kind: "control"` be opt-in per `doctor.json`?** — Proposed: **no flag.**
+1. **Should `kind: "control"` be opt-in per `doctor.json`?** — Decided: **no flag.**
    `markdown.allowHtml` already gates the entire shortcode system (§7), and using the feature
    requires authoring a module with `kind: "control"`, so it is safe by construction. A flag would
    add a fourth place to keep in sync (args → `doctor.json` → `CommandArguments` → schema) for no
    real safety gain. Instead, validate that an unrecognised `kind` throws (§1).
-2. **Multi-column pages** — Proposed: **same section/column for v1.** `--order` is already scoped per
-   zone/column, so a `column=`/`section=` attribute would mean creating sections during publish (the
-   `spo page section add` fallback in `insertOrCreateControl` exists) *and* reconciling across them.
-   Defer it.
+2. **Multi-column pages** — Decided: **same section/column for v1.** Every control doctor writes
+   lands in section 1, column 1, as before. `CanvasHelper.compose()` already takes a `section` and
+   `column`, so a `column=`/`section=` attribute on the tag is an additive change later; what it
+   would still need is creating sections during publish and reconciling across them. Deferred.
 3. **Is there an existing "this control belongs to doctor" mechanism to reuse?** — Answered: **no.**
-   The title match is all there is; the translation pipeline tags nothing. Use `StateHelper`, per the
-   revised §4.
+   The title match was all there was; the translation pipeline tags nothing. `StateHelper` now
+   records the instance ids per slug, per the revised §4.
+
+## As built
+
+What shipped, and where it departs from the plan above.
+
+**The publish path was rewritten, not extended.** `PagesHelper.insertOrCreateControl()` is gone,
+replaced by `applySegments()`. `getPageControls()` and `MarkdownHelper.getJsonData()` were its only
+callers and went with it. Every page — including the single-segment majority — now goes through
+`CanvasHelper`: read and check out the page, compose the whole canvas, one `SavePageAsDraft`.
+
+**Three combinations are refused rather than published wrong.** Each was a "document it as a known
+limit" in §6/§7; on reflection a page that publishes incorrectly is worse than one that fails:
+
+- `<toc />` together with a control shortcode. Each segment is rendered on its own, so the table of
+  contents could only ever list the headings beside it.
+- A control shortcode on a machine translated page, which reaches publish as HTML.
+- A control shortcode with `--disableStatePersistence`. The state file is the only record of which
+  web parts are doctor's, so without it a re-publish would add a second copy on every run.
+
+**The stylesheet is emitted once.** `getHtmlData()` takes an `includeStyles` argument, and only the
+first markdown segment carries the hljs and shortcode CSS (§6).
+
+**Where a control tag may sit is stricter than "top level".** It has to be alone on an unindented
+line with no body. Anything else — mid-paragraph, in a list item, a blockquote, indented, or
+wrapped around content — throws. A control shortcode has no body to render, so there was nothing to
+gain from being lenient.
+
+**Ownership is by recorded instance id, with `--webPartTitle` as the fallback.** `StateHelper`
+stores the ids per slug (`controls`), and `markPublished()` carries them across. Without state,
+doctor recognises only its own markdown controls, by `webPartTitle` and the numbered
+`webPartTitle (n)` variants, and only inside its own column — which is why control shortcodes
+require the state file.
+
+**The standard web part list is copied, not deep-imported** (`src/models/StandardWebPart.ts`), as
+the note at the end of this plan suggested. 27 fixed ids beat an unversioned import from the CLI's
+`dist`.
+
+**No `doctor.json` setting, and no schema change.** Open question 1 was decided as proposed. The
+schema question it raised is resolved too: `schema/2.1.0.json` already covers every `doctor.json`
+option the code reads, and 2.2.0 added none, so there is nothing for a 2.2.0 or 2.3.0 schema file
+to say. Its `$id` pointed at `2.0.0.json` and was corrected, and the `doctor.json` docs page now
+points at the same 2.1.0 schema `doctor init` writes.
+
+**One thing added that the plan did not call for:** the access token is cached per site for ten
+minutes. Each page now does a read and a write over REST, and `AccessToken.get()` runs two CLI
+commands every time.
+
+**State discipline.** Segmentation is a pure exported function holding nothing, so it needs no
+`reset()`. `CanvasHelper` caches the web part definitions and the token, and is registered in
+`Commands.resetRuntimeState()`.
+
+**Not verified against a tenant.** 46 tests cover segmentation, the shortcode registry and canvas
+composition — including reordering, removal, and leaving foreign controls alone. The REST calls
+themselves (checkout, `SavePageAsDraft`, `getclientsidewebparts()`) are exercised by nothing but a
+real publish.
+
+### Files
+
+| File | Change |
+| --- | --- |
+| `src/models/Shortcode.ts` | `kind`, the control render contract and its context |
+| `src/models/PageSegment.ts` | new — the segment union |
+| `src/models/StandardWebPart.ts` | new — the OOTB web part ids and the Markdown web part id |
+| `src/helpers/ShortcodesHelpers.ts` | carry `kind` through `init()`, reject an unknown one, keep control tags out of the inline parser |
+| `src/helpers/SegmentsHelper.ts` | new — pure segmentation and the tag probe |
+| `src/helpers/CanvasHelper.ts` | new — compose `CanvasContent1`, check out, save, resolve web part definitions |
+| `src/helpers/PagesHelper.ts` | `applySegments()` replaces `insertOrCreateControl()` |
+| `src/helpers/MarkdownHelper.ts` | `getWebPartData()`, and `includeStyles` on `getHtmlData()` |
+| `src/helpers/StateHelper.ts` | `controls` per slug, with `getControls()`/`setControls()` |
+| `src/helpers/DoctorTranspiler.ts` | segment the page and call `applySegments()` |
+| `src/main.ts` | `CanvasHelper.reset()` |
+| `tests/segments.test.mjs`, `tests/canvas.test.mjs`, `tests/control-shortcodes.test.mjs` | new |
+| `docs/.../shortcodes/control/index.md` | new page, sidebar entry, `kind` on the overview |
+| `changelog.json` | 2.3.0 entry |
 
 ## Downstream motivation (context, not part of this repo's implementation)
 
@@ -280,4 +361,5 @@ through the `--standardWebPart` branch of §3.
 | Date | Change |
 |---|---|
 | 2026-09-10 | Initial draft |
+| 2026-09-15 | Implemented. Publish path decided: compose `CanvasContent1` and write it in one call, replacing the CLI add/set loop for every page. Three combinations that §6/§7 listed as known limits are refused instead: `toc` plus a control shortcode, a control shortcode on a machine translated page, and one published with `--disableStatePersistence`. Added an [As built](#as-built) section with the decisions, the deviations and the file list. |
 | 2026-09-15 | Revised after review against the code and `@pnp/cli-microsoft365` 11.5.0. Corrected three claims: the `beforeMarkdown` constraint in §1 (control tags must be kept out of the inline registry, not positioned within it), the reconciliation marker in §4 (`searchablePlainTexts.code` is page content, not hidden metadata — use `StateHelper`), and "`page control remove` is already used elsewhere" in §4 (it is not; `--removeDeleted` recycles pages). Added: `--order` insert-position semantics and the impossibility of reordering via `page control set` (§3), the `CanvasContent1` PATCH alternative (§3), title-scheme fragility (§4), new §6 on CSS duplication / `toc` / anchor-slug breakage when splitting a document, new §7 on the `allowHtml` gate and multilingual, `StateHelper` and the schema-version note in the scope list, and proposed answers to all three open questions. |
