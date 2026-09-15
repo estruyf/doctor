@@ -33,6 +33,10 @@
       },
       {
         "id": null,
+        "title": "Fix: setting a page description no longer stops the publish on a tenant which does not allow the account to run a system update. Doctor falls back to a normal update — the description is set, at the cost of the page's `Modified` date changing with it — and says so once per run instead of on every page."
+      },
+      {
+        "id": null,
         "title": "A page whose metadata cannot be worked out is now skipped whole instead of being published with part of it missing. Every value is resolved before anything is written, so a missing column, a term which is not in the term set, an author who is not a user of the site, or a value its column type does not accept leaves the page untouched, reports what was wrong, and carries on with the next page. The page stays out of the publish state, so the next run publishes it once the front matter is fixed."
       }
     ]

@@ -21,6 +21,7 @@ import {
   FolderHelpers,
   ListHelpers,
   Logger,
+  OutputHelper,
   MarkdownHelper,
   MetadataHelper,
   ShortcodesHelpers,
@@ -50,6 +51,8 @@ export class PagesHelper {
   private static pages: File[] = [];
   private static processedPages: { [slug: string]: number } = {};
   private static listFieldMap: { [listId: string]: Map<string, FieldInfo> } = {};
+  /** Set once the tenant refuses a CSOM system update, see setPageDescription */
+  private static systemUpdateRefused = false;
 
   /**
    * Reset all static state
@@ -58,6 +61,7 @@ export class PagesHelper {
     PagesHelper.pages = [];
     PagesHelper.processedPages = {};
     PagesHelper.listFieldMap = {};
+    PagesHelper.systemUpdateRefused = false;
   }
 
   /**
@@ -1037,19 +1041,48 @@ export class PagesHelper {
   ) {
     const pageId = await this.getPageId(webUrl, slug);
     const pageList = await ListHelpers.getSitePagesList(webUrl);
-    if (pageId && pageList) {
-      await executeWithRetry(
-        "spo listitem set",
-        {
-          listId: pageList.Id,
-          id: pageId,
-          webUrl,
-          Description: description,
-          systemUpdate: true,
-        },
-        CliCommand.getRetry()
-      );
+
+    if (!pageId || !pageList) {
+      return;
     }
+
+    const item = {
+      listId: pageList.Id,
+      id: pageId,
+      webUrl,
+      Description: description,
+    };
+
+    // A system update leaves Modified and Modified By alone, which is what a
+    // description belongs in. It goes through CSOM though, and a tenant can
+    // refuse that to an app which is otherwise allowed to edit the page — so
+    // rather than losing the description, fall back to a normal update and say
+    // what that costs. Once refused it stays refused for the run, so the other
+    // pages do not each pay for the same doomed call.
+    if (!PagesHelper.systemUpdateRefused) {
+      try {
+        await executeWithRetry(
+          "spo listitem set",
+          { ...item, systemUpdate: true },
+          CliCommand.getRetry()
+        );
+        return;
+      } catch (e: any) {
+        PagesHelper.systemUpdateRefused = true;
+        Logger.debug(
+          `System update refused on ${webUrl}: ${e?.message || e}`
+        );
+        OutputHelper.warning(
+          `This account is not allowed to update a page without touching its history, so page descriptions are set with a normal update instead. The pages get their description, but their "Modified" date and "Modified By" change with it. Granting the account permission to run a system update on the Site Pages library avoids that.`
+        );
+      }
+    }
+
+    await executeWithRetry(
+      "spo listitem set",
+      item,
+      CliCommand.getRetry()
+    );
   }
 
   /**
