@@ -11,7 +11,7 @@ description: The changelog of Doctor
 - Fix: managed metadata fields can be set from a term label again. The term lookup called the CLI without a term group, so it never resolved and the field was silently left empty — only an explicit `termGuid` worked. Labels are now resolved against the column's term set through the site term store.
 - Managed metadata: a column pinned to an anchor term only resolves labels inside that sub-tree, a term can be written by any of its labels, and a duplicate label can be written as a path (`Regions > Europe`).
 - New: the `author` front matter sets the page author. Takes the SharePoint site user ID (what the Doctor Metadata VS Code extension writes) or a UPN.
-- A page is no longer published without warning when one of its columns cannot be set. A missing column, a term which is not in the term set, an author who is not a user of the site, or a value its column type does not accept is now reported, the rest of the page is published as usual, and the page is kept out of the publish state so the next run tries that column again instead of treating the page as unchanged.
+- A page whose metadata cannot be worked out is now skipped whole instead of being published with part of it missing. Every value is resolved before anything is written, so a missing column, a term which is not in the term set, an author who is not a user of the site, or a value its column type does not accept leaves the page untouched, reports what was wrong, and carries on with the next page. The page stays out of the publish state, so the next run publishes it once the front matter is fixed.
 
 ## [2.2.0]
 
