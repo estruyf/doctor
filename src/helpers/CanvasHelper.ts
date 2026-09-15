@@ -185,7 +185,12 @@ export class CanvasHelper {
       return { ...control.position };
     }
 
-    const owned = canvas.find((control) => isOwned(control) && control.position);
+    // Where doctor's content already is — but only when that is somewhere it
+    // should have been. A control left in the full-width banner section by an
+    // earlier run is not a position to preserve, it is one to correct.
+    const owned = canvas.find(
+      (control) => isOwned(control) && CanvasHelper.isContentSection(control),
+    );
     if (owned) {
       return { ...owned.position };
     }
@@ -197,8 +202,9 @@ export class CanvasHelper {
       return { ...content.position };
     }
 
-    // Only a banner (or nothing usable) on the page: give the content its own
-    // section underneath instead of squeezing it in next to the banner
+    // Only a banner (or nothing usable) on the page: give the content a section
+    // of its own underneath. A new zone, not another column of the banner's
+    // section — a full-width section takes a single web part.
     const zones = canvas
       .filter((control) => control.position)
       .map((control) => control.position.zoneIndex);

@@ -472,3 +472,60 @@ test("CanvasHelper puts several segments together in the content section", () =>
     "doctor-placeholder (2)",
   ]);
 });
+
+test("CanvasHelper moves its control out of the banner section", () => {
+  // What an earlier run left behind: doctor's markdown web part sitting in the
+  // full-width section next to the banner. That is not a position to keep, so
+  // the content moves to a section of its own and the banner is left alone.
+  const existing = [
+    banner(),
+    {
+      ...webPart("ours-1", "doctor-placeholder", 2),
+      position: { ...fullWidthSection(2) },
+    },
+    SETTINGS,
+  ];
+
+  const canvas = CanvasHelper.compose(existing, [markdown("doctor-placeholder")], {
+    ownedTitlePrefix: "doctor-placeholder",
+  });
+
+  const content = canvas.find((c) => c.webPartId === MARKDOWN_WEBPART);
+  assert.equal(content.position.sectionFactor, 12, "a normal one-column section");
+  assert.equal(content.position.layoutIndex, 1);
+  assert.equal(content.position.zoneIndex, 2, "a new zone below the banner");
+  assert.equal(content.position.sectionIndex, 1, "not another column of the banner");
+
+  // The banner keeps its full-width section, alone
+  const bannerZone = canvas.filter(
+    (c) => c.position && c.position.zoneIndex === 1,
+  );
+  assert.equal(bannerZone.length, 1);
+  assert.equal(bannerZone[0].webPartId, BANNER_WEBPART);
+  assert.deepEqual(titles(canvas), ["Banner", "doctor-placeholder"]);
+});
+
+test("CanvasHelper moves its control out of a vertical section", () => {
+  const existing = [
+    banner(),
+    {
+      ...webPart("ours-1", "doctor-placeholder", 1),
+      position: {
+        zoneIndex: 1,
+        sectionIndex: 1,
+        sectionFactor: 12,
+        layoutIndex: 2,
+        controlIndex: 1,
+      },
+    },
+    SETTINGS,
+  ];
+
+  const canvas = CanvasHelper.compose(existing, [markdown("doctor-placeholder")], {
+    ownedTitlePrefix: "doctor-placeholder",
+  });
+
+  const content = canvas.find((c) => c.webPartId === MARKDOWN_WEBPART);
+  assert.equal(content.position.layoutIndex, 1, "not the vertical section");
+  assert.equal(content.position.sectionFactor, 12);
+});
