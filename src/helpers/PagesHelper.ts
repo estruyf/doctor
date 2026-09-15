@@ -20,6 +20,7 @@ import {
   ListHelpers,
   Logger,
   MarkdownHelper,
+  MetadataHelper,
   ShortcodesHelpers,
   StateHelper,
   StatusHelper,
@@ -44,19 +45,9 @@ interface FieldInfo {
 }
 
 export class PagesHelper {
-  private static readonly PERSON_CLAIM_PREFIX = "i:0#.f|membership|";
   private static pages: File[] = [];
   private static processedPages: { [slug: string]: number } = {};
   private static listFieldMap: { [listId: string]: Map<string, FieldInfo> } = {};
-
-  private static readonly SIMPLE_FIELD_TYPES = new Set<string>([
-    "Text",
-    "Note",
-    "Number",
-    "Currency",
-    "Boolean",
-    "Choice",
-  ]);
 
   /**
    * Reset all static state
@@ -782,7 +773,10 @@ export class PagesHelper {
   ): Promise<any> {
     const typeAsString = fieldInfo.typeAsString || "";
 
-    if (!typeAsString || this.SIMPLE_FIELD_TYPES.has(typeAsString)) {
+    if (
+      !typeAsString ||
+      MetadataHelper.SIMPLE_FIELD_TYPES.has(typeAsString)
+    ) {
       return value;
     }
 
@@ -792,19 +786,25 @@ export class PagesHelper {
       case "TaxonomyFieldTypeMulti":
         return await this.transformTaxonomyMulti(webUrl, fieldInfo, value);
       case "User":
-        return this.transformUserSingle(value);
+        return MetadataHelper.toUserClaim(value);
       case "UserMulti":
-        return this.transformUserMulti(value);
+        return MetadataHelper.toUserClaims(value);
       case "DateTime":
-        return this.transformDateTime(value);
+        return MetadataHelper.transformDateTime(value);
       case "Lookup":
-        return this.transformLookupSingle(fieldInfo, value);
+        return MetadataHelper.transformLookupSingle(
+          value,
+          fieldInfo.internalName
+        );
       case "LookupMulti":
-        return this.transformLookupMulti(fieldInfo, value);
+        return MetadataHelper.transformLookupMulti(
+          value,
+          fieldInfo.internalName
+        );
       case "URL":
-        return this.transformUrl(value);
+        return MetadataHelper.transformUrl(value);
       case "MultiChoice":
-        return this.transformMultiChoice(value);
+        return MetadataHelper.transformMultiChoice(value);
       default:
         return value;
     }
@@ -815,7 +815,7 @@ export class PagesHelper {
     fieldInfo: FieldInfo,
     value: any
   ): Promise<string | undefined> {
-    const term = this.normalizeTaxonomyTerm(value);
+    const term = MetadataHelper.normalizeTaxonomyTerm(value);
     if (!term) {
       Logger.debug(
         `Skipping taxonomy field '${fieldInfo.internalName}' because the value is invalid.`
@@ -835,7 +835,7 @@ export class PagesHelper {
     const terms: string[] = [];
 
     for (const entry of values) {
-      const term = this.normalizeTaxonomyTerm(entry);
+      const term = MetadataHelper.normalizeTaxonomyTerm(entry);
       if (!term) {
         Logger.debug(
           `Skipping invalid taxonomy value for field '${fieldInfo.internalName}'.`
@@ -846,7 +846,7 @@ export class PagesHelper {
       terms.push(await this.toTaxonomyValue(webUrl, fieldInfo, term));
     }
 
-    return terms.length > 0 ? terms.join(";") : undefined;
+    return MetadataHelper.joinTaxonomyValues(terms);
   }
 
   /**
@@ -860,34 +860,11 @@ export class PagesHelper {
     term: { label: string; termGuid?: string }
   ): Promise<string> {
     if (term.termGuid) {
-      return `${term.label}|${term.termGuid}`;
+      return MetadataHelper.toTaxonomyValue(term.label, term.termGuid);
     }
 
     const resolved = await this.resolveTerm(webUrl, fieldInfo, term.label);
-    return `${resolved.label}|${resolved.id}`;
-  }
-
-  private static normalizeTaxonomyTerm(
-    value: any
-  ): { label: string; termGuid?: string } | null {
-    if (typeof value === "string") {
-      const label = value.trim();
-      return label ? { label } : null;
-    }
-
-    if (!value || typeof value !== "object") {
-      return null;
-    }
-
-    const label = typeof value.label === "string" ? value.label.trim() : "";
-    const termGuid =
-      typeof value.termGuid === "string" ? value.termGuid.trim() : undefined;
-
-    if (!label) {
-      return null;
-    }
-
-    return { label, ...(termGuid ? { termGuid } : {}) };
+    return MetadataHelper.toTaxonomyValue(resolved.label, resolved.id);
   }
 
   /**
@@ -933,7 +910,7 @@ export class PagesHelper {
     }
 
     if (typeof author === "string" && author.includes("@")) {
-      return `${this.PERSON_CLAIM_PREFIX}${author.trim().toLowerCase()}`;
+      return MetadataHelper.toClaimKey(author) as string;
     }
 
     throw new Error(
@@ -959,129 +936,6 @@ export class PagesHelper {
       label,
       fieldInfo.anchorId
     );
-  }
-
-  private static transformUserSingle(value: any): string | undefined {
-    if (typeof value !== "string" || !value.trim()) {
-      Logger.debug(`Skipping User field because value '${value}' is invalid.`);
-      return undefined;
-    }
-
-    const upn = value.trim().toLowerCase();
-    return `[{'Key':'${this.PERSON_CLAIM_PREFIX}${upn}'}]`;
-  }
-
-  private static transformUserMulti(value: any): string | undefined {
-    const values = Array.isArray(value) ? value : [value];
-    const claims: string[] = [];
-
-    for (const entry of values) {
-      if (typeof entry !== "string" || !entry.trim()) {
-        Logger.debug(`Skipping invalid UserMulti value '${entry}'.`);
-        continue;
-      }
-
-      const upn = entry.trim().toLowerCase();
-      claims.push(`{'Key':'${this.PERSON_CLAIM_PREFIX}${upn}'}`);
-    }
-
-    return claims.length > 0 ? `[${claims.join(",")}]` : undefined;
-  }
-
-  private static transformDateTime(value: any): any {
-    if (typeof value !== "string") {
-      return value;
-    }
-
-    const trimmed = value.trim();
-    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(trimmed)) {
-      return trimmed;
-    }
-
-    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-      return `${trimmed} 00:00:00`;
-    }
-
-    const parsed = new Date(trimmed);
-    if (!Number.isNaN(parsed.getTime())) {
-      return `${parsed.getFullYear()}-${this.pad2(parsed.getMonth() + 1)}-${this.pad2(parsed.getDate())} ${this.pad2(parsed.getHours())}:${this.pad2(parsed.getMinutes())}:${this.pad2(parsed.getSeconds())}`;
-    }
-
-    Logger.debug(
-      `DateTime value '${value}' is ambiguous or invalid. Passing through without conversion.`
-    );
-    return value;
-  }
-
-  private static transformLookupSingle(
-    fieldInfo: FieldInfo,
-    value: any
-  ): number | undefined {
-    if (typeof value === "number" && Number.isInteger(value)) {
-      return value;
-    }
-
-    if (typeof value === "string" && /^\d+$/.test(value.trim())) {
-      return parseInt(value.trim(), 10);
-    }
-
-    Logger.debug(
-      `Skipping lookup field '${fieldInfo.internalName}' because value '${value}' is not a numeric item ID.`
-    );
-    return undefined;
-  }
-
-  private static transformLookupMulti(
-    fieldInfo: FieldInfo,
-    value: any
-  ): string | undefined {
-    const values = Array.isArray(value) ? value : [value];
-    const ids: number[] = [];
-
-    for (const entry of values) {
-      const transformed = this.transformLookupSingle(fieldInfo, entry);
-      if (typeof transformed === "number") {
-        ids.push(transformed);
-      }
-    }
-
-    return ids.length > 0 ? ids.join(";#") : undefined;
-  }
-
-  private static transformUrl(value: any): string | undefined {
-    if (typeof value === "string") {
-      return value;
-    }
-
-    if (!value || typeof value !== "object") {
-      Logger.debug(`Skipping URL field because value '${value}' is invalid.`);
-      return undefined;
-    }
-
-    const url = typeof value.url === "string" ? value.url.trim() : "";
-    const description =
-      typeof value.description === "string" ? value.description.trim() : "";
-
-    if (!url) {
-      Logger.debug(`Skipping URL field because the url property is missing.`);
-      return undefined;
-    }
-
-    return description ? `${url}, ${description}` : url;
-  }
-
-  private static transformMultiChoice(value: any): any {
-    if (Array.isArray(value)) {
-      return value
-        .filter((entry) => typeof entry === "string" && entry.trim())
-        .join(";#");
-    }
-
-    return value;
-  }
-
-  private static pad2(value: number): string {
-    return value.toString().padStart(2, "0");
   }
 
   /**
