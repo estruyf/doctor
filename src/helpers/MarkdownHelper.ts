@@ -9,7 +9,7 @@ import markdownItMark from "markdown-it-mark";
 import markdownItFootnote from "markdown-it-footnote";
 import markdownItDeflist from "markdown-it-deflist";
 import markdownItTaskLists from "markdown-it-task-lists";
-import { CliCommand, ShortcodesHelpers, TempDataHelper } from "@helpers";
+import { CliCommand, ShortcodesHelpers } from "@helpers";
 import { CommandArguments, MarkdownSettings, PublishContext, TaskOutput } from "@models";
 import hljs from "highlight.js";
 import { encode } from "html-entities";
@@ -150,17 +150,17 @@ ${markdown}
   }
 
   /**
-   * Retrieve the JSON data for the web part
+   * Retrieve the web part data for the markdown web part
    * @param webPartTitle
    * @param markdown
    */
-  public static async getJsonData(
+  public static async getWebPartData(
     webPartTitle: string,
     markdown: string,
     mdOptions: MarkdownSettings | null,
     options: CommandArguments,
     wasAlreadyParsed: boolean = false
-  ): Promise<string> {
+  ): Promise<any> {
     const allowHtml = mdOptions && mdOptions.allowHtml;
     const theme =
       mdOptions && mdOptions.theme ? mdOptions.theme.toLowerCase() : "dark";
@@ -196,7 +196,7 @@ ${markdown}
       }
     }
 
-    return await TempDataHelper.create(wpData);
+    return wpData;
   }
 
 }

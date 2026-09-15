@@ -15,6 +15,13 @@ export interface DoctorStateEntry {
    * their source page.
    */
   translationOf?: string;
+  /**
+   * The instance ids of the controls doctor put on the page, in the order the
+   * segments appear in the markdown. A page becomes more than one control when
+   * it uses a control shortcode, and the title alone cannot tell doctor's
+   * controls apart from ones the page owner added on the SharePoint side.
+   */
+  controls?: string[];
 }
 
 export interface DoctorState {
@@ -244,11 +251,48 @@ export class StateHelper {
     translationOf: string | null = null,
   ): void {
     if (!StateHelper.state) return;
+    // The controls are recorded while the page is written, which happens
+    // before this call, so they have to survive the entry being rewritten
+    const controls = StateHelper.state.pages[slug]?.controls;
+
     StateHelper.state.pages[slug] = {
       sourceHash: contentHash,
       publishedAt: new Date().toISOString(),
       ...(translationOf ? { translationOf } : {}),
+      ...(controls && controls.length > 0 ? { controls } : {}),
     };
+    StateHelper.dirty = true;
+  }
+
+  /**
+   * The instance ids doctor recorded for a page's controls on an earlier run
+   * @param slug
+   */
+  public static getControls(slug: string): string[] {
+    return StateHelper.state?.pages[slug]?.controls ?? [];
+  }
+
+  /**
+   * Record which controls on the page belong to doctor, so a later run updates
+   * them instead of adding a second set next to them.
+   * @param slug
+   * @param instanceIds in segment order
+   */
+  public static setControls(slug: string, instanceIds: string[]): void {
+    if (!StateHelper.state) return;
+
+    const entry = StateHelper.state.pages[slug];
+    if (entry) {
+      entry.controls = instanceIds;
+    } else {
+      // The page is written before it is marked published
+      StateHelper.state.pages[slug] = {
+        sourceHash: "",
+        publishedAt: new Date().toISOString(),
+        controls: instanceIds,
+      };
+    }
+
     StateHelper.dirty = true;
   }
 

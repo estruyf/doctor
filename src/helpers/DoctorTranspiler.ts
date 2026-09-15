@@ -7,8 +7,8 @@ import {
   PublishContext,
   PublishOutput,
   TaskOutput,
-  Control,
   PageFrontMatter,
+  PageSegment,
   PageLocalization,
 } from "@models";
 import {
@@ -21,6 +21,8 @@ import {
   NavigationHelper,
   PagesHelper,
   PartialsHelper,
+  SegmentsHelper,
+  ShortcodesHelpers,
   StateHelper,
   StatusHelper,
 } from "@helpers";
@@ -594,28 +596,37 @@ export class DoctorTranspiler {
               : `Creating new page: ${title}`,
             );
 
-            // Retrieving all the controls from the page, so that we can start replacing the
-            const controlData: string = await PagesHelper.getPageControls(
-              webUrl,
-              slug,
-            );
-            if (controlData) {
-              const webparts: Control[] = JSON.parse(controlData);
-              const markdownWp: Control | undefined = webparts.find(
-                (c: Control) =>
-                  c.webPartData && c.webPartData.title === webPartTitle,
-              );
-              await PagesHelper.insertOrCreateControl(
-                webPartTitle,
-                markup.content,
-                slug,
-                webUrl,
-                options,
-                markdownWp ? markdownWp.id : undefined,
-                options.markdown ?? null,
-                file.endsWith(`.machinetranslated.md`),
+            // A control shortcode cuts the page into several web parts. A page
+            // without one yields a single segment holding the whole document,
+            // which is the input the Markdown web part has always received.
+            const controlTags = ShortcodesHelpers.getControlTags();
+            const wasAlreadyParsed = file.endsWith(`.machinetranslated.md`);
+
+            // A machine translated page reaches this point as HTML, so there is
+            // no markdown left to cut up
+            if (
+              wasAlreadyParsed &&
+              SegmentsHelper.hasControlTag(markup.content, controlTags)
+            ) {
+              throw new Error(
+                `The translated page "${relPath}" uses a control shortcode, which doctor cannot place on a machine translated page. Remove it from the source page, or translate that page by hand.`,
               );
             }
+
+            const segments: PageSegment[] = wasAlreadyParsed
+              ? [{ type: "markdown", content: markup.content }]
+              : SegmentsHelper.split(markup.content, controlTags);
+
+            await PagesHelper.applySegments(
+              webPartTitle,
+              segments,
+              slug,
+              webUrl,
+              options,
+              options.markdown ?? null,
+              wasAlreadyParsed,
+              { frontMatter: markup.data ?? {}, slug, webUrl },
+            );
 
             // Apply the page header after the page has content, because the CLI header command
             // fails on pages with uninitialized CanvasContent1/LayoutWebpartsContent.

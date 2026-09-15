@@ -1,6 +1,7 @@
 export * from './AccessToken.js';
 export * from './ApiHelper.js';
 export * from './ArgumentsHelper.js';
+export * from './CanvasHelper.js';
 export * from './CliCommand.js';
 export * from './ContextInfo.js';
 export * from './DoctorTranspiler.js';
@@ -19,6 +20,7 @@ export * from './OutputHelper.js';
 export * from './PagesHelper.js';
 export * from './PartialsHelper.js';
 export * from './PrecheckHelper.js';
+export * from './SegmentsHelper.js';
 export * from './ShortcodesHelpers.js';
 export * from './SitesHelpers.js';
 export * from './StateHelper.js';

@@ -2,6 +2,7 @@ import kleur from "kleur";
 import { Command, Init, Publish, Status, Version, Workflow } from "@commands";
 import { CommandArguments } from "@models";
 import {
+  CanvasHelper,
   CliCommand,
   FileHelpers,
   FolderHelpers,
@@ -106,6 +107,7 @@ export class Commands {
     NavigationHelper.reset();
     FileHelpers.reset();
     PagesHelper.reset();
+    CanvasHelper.reset();
     ListHelpers.reset();
     FolderHelpers.reset();
   }

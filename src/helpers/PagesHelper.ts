@@ -4,9 +4,15 @@ import {
   File,
   MarkdownSettings,
   CommandArguments,
+  ControlSegment,
+  ControlShortcodeContext,
+  PageSegment,
   TaskOutput,
+  MARKDOWN_WEB_PART_ID,
+  STANDARD_WEB_PARTS,
 } from "@models";
 import {
+  CanvasHelper,
   CliCommand,
   executeWithRetry,
   FileHelpers,
@@ -14,7 +20,10 @@ import {
   ListHelpers,
   Logger,
   MarkdownHelper,
+  ShortcodesHelpers,
+  StateHelper,
   StatusHelper,
+  WebPartControl,
 } from "@helpers";
 import { executeCommand } from "@pnp/cli-microsoft365";
 import { basename, dirname } from "path";
@@ -444,126 +453,181 @@ export class PagesHelper {
   }
 
   /**
-   * Retrieve all the page controls
-   * @param webUrl
-   * @param slug
+   * Write the page's controls: one Markdown web part per markdown segment and
+   * one web part per control shortcode, in the order they appear in the source.
+   *
+   * The whole canvas is composed and written in one call rather than looping
+   * the CLI's add/set/remove commands, because those cannot move an existing
+   * control and each of them re-saves and republishes the page.
    */
-  public static async getPageControls(
-    webUrl: string,
-    slug: string
-  ): Promise<string> {
-    Logger.debug(`Get page controls for ${slug}`);
-
-    const { stdout } = await executeWithRetry(
-      "spo page get",
-      {
-        webUrl,
-        name: slug,
-        output: "json",
-      },
-      CliCommand.getRetry()
-    );
-    const output = JSON.parse(stdout || "{}");
-
-    Logger.debug(JSON.stringify(output.canvasContentJson || "[]"));
-    return output.canvasContentJson || "[]";
-  }
-
-  /**
-   * Inserts or create the control
-   * @param webPartTitle
-   * @param markdown
-   */
-  public static async insertOrCreateControl(
+  public static async applySegments(
     webPartTitle: string,
-    markdown: string,
+    segments: PageSegment[],
     slug: string,
     webUrl: string,
     options: CommandArguments,
-    wpId: string | null | undefined = null,
     mdOptions: MarkdownSettings | null,
-    wasAlreadyParsed: boolean = false
+    wasAlreadyParsed: boolean = false,
+    context: ControlShortcodeContext | null = null
   ) {
+    const hasControls = segments.some((segment) => segment.type === "control");
+
     Logger.debug(
-      `Insert the markdown webpart for the page ${slug} - Control ID: ${wpId} - Was already parsed: ${wasAlreadyParsed}`
+      `Writing ${segments.length} segment(s) for the page ${slug} - Was already parsed: ${wasAlreadyParsed}`
     );
 
-    const wpData = await MarkdownHelper.getJsonData(
-      webPartTitle,
-      markdown,
-      mdOptions,
-      options,
-      wasAlreadyParsed
-    );
-
-    if (wpId) {
-      // Web part needs to be updated
-      await executeWithRetry(
-        "spo page control set",
-        {
-          webUrl,
-          pageName: slug,
-          id: wpId,
-          webPartData: `@${wpData}`,
-        },
-        CliCommand.getRetry()
+    // The state file is the only record of which controls are doctor's. Without
+    // it a control shortcode's web part cannot be told apart from one the page
+    // owner added, so a re-publish would add a second one on every run.
+    if (hasControls && options.disableStatePersistence) {
+      throw new Error(
+        `The page "${slug}" uses a control shortcode, which needs the publish state to recognise its web parts on a next run. Remove '--disableStatePersistence' to publish it.`
       );
-    } else {
-      // Add new markdown web part
-      const addOptions = {
-        webUrl,
-        pageName: slug,
-        webPartId: "1ef5ed11-ce7b-44be-bc5e-4abd55101d16",
-        webPartData: `@${wpData}`,
-        section: 1,
-        column: 1,
-      };
+    }
 
-      try {
-        await executeWithRetry(
-          "spo page clientsidewebpart add",
-          addOptions,
-          CliCommand.getRetry()
-        );
-      } catch (e: any) {
-        if (!this.isInvalidPlacementError(e)) {
-          throw e;
-        }
+    const page = await CanvasHelper.checkout(webUrl, slug);
+    const existing: any[] = page?.CanvasContent1
+      ? JSON.parse(page.CanvasContent1)
+      : [];
 
-        Logger.debug(
-          `Page ${slug} has no compatible section yet. Creating a OneColumn section and retrying web part add.`
-        );
+    const ownership = {
+      ownedInstanceIds: StateHelper.getControls(slug),
+      ownedTitlePrefix: webPartTitle,
+    };
 
-        await executeWithRetry(
-          "spo page section add",
-          {
-            webUrl,
-            pageName: slug,
-            sectionTemplate: "OneColumn",
-          },
-          CliCommand.getRetry()
+    // Reuse the instance id of a control of the same type, so SharePoint keeps
+    // the control rather than seeing it removed and a new one added
+    const reusable: { [webPartId: string]: string[] } = {};
+    for (const control of CanvasHelper.getOwned(existing, ownership)) {
+      const key = (control.webPartId || "").toLowerCase();
+      (reusable[key] = reusable[key] || []).push(control.id);
+    }
+    const takeInstanceId = (webPartId: string): string | undefined =>
+      reusable[webPartId.toLowerCase()]?.shift();
+
+    const controls: WebPartControl[] = [];
+    let markdownSegment = 0;
+
+    for (const segment of segments) {
+      if (segment.type === "markdown") {
+        const title = PagesHelper.getSegmentTitle(
+          webPartTitle,
+          markdownSegment++
         );
 
-        await executeWithRetry(
-          "spo page clientsidewebpart add",
-          addOptions,
-          CliCommand.getRetry()
+        controls.push({
+          webPartId: MARKDOWN_WEB_PART_ID,
+          webPartData: await MarkdownHelper.getWebPartData(
+            title,
+            segment.content,
+            mdOptions,
+            options,
+            wasAlreadyParsed
+          ),
+          instanceId: takeInstanceId(MARKDOWN_WEB_PART_ID),
+        });
+      } else {
+        const webPartId = await PagesHelper.getControlWebPart(
+          segment,
+          webUrl,
+          slug,
+          context
         );
+
+        controls.push({
+          webPartId: webPartId.id,
+          webPartData: webPartId.data,
+          instanceId: takeInstanceId(webPartId.id),
+        });
       }
     }
+
+    const canvas = CanvasHelper.compose(existing, controls, ownership);
+    await CanvasHelper.save(webUrl, slug, canvas);
+
+    StateHelper.setControls(
+      slug,
+      canvas
+        .filter((control: any) =>
+          controls.some((added) => added.webPartData === control.webPartData)
+        )
+        .map((control: any) => control.id)
+    );
   }
 
-  private static isInvalidPlacementError(error: any): boolean {
-    const message =
-      typeof error === "string"
-        ? error
-        : error?.message || JSON.stringify(error);
-    const normalized = (message || "").toLowerCase();
+  /**
+   * The title doctor gives the Markdown web part of a segment. The first keeps
+   * `--webPartTitle` so a page that was published before this existed still
+   * matches its own control.
+   */
+  private static getSegmentTitle(webPartTitle: string, index: number): string {
+    return index === 0 ? webPartTitle : `${webPartTitle} (${index + 1})`;
+  }
 
-    return (
-      normalized.includes("invalid section") ||
-      normalized.includes("invalid column")
+  /**
+   * Ask a control shortcode which web part it becomes, and build the data for
+   * a new instance of it.
+   */
+  private static async getControlWebPart(
+    segment: ControlSegment,
+    webUrl: string,
+    slug: string,
+    context: ControlShortcodeContext | null
+  ): Promise<{ id: string; data: any }> {
+    const shortcode = ShortcodesHelpers.getControl(segment.shortcode);
+    if (!shortcode) {
+      throw new Error(
+        `The "${segment.shortcode}" control shortcode used on "${slug}" is not registered. Check the 'markdown.shortcodesFolder' setting.`
+      );
+    }
+
+    const result = await shortcode.render(
+      segment.attributes,
+      context ?? { frontMatter: {}, slug, webUrl }
     );
+
+    if (!result || (!result.standardWebPart && !result.webPartId)) {
+      throw new Error(
+        `The "${segment.shortcode}" control shortcode has to return a 'standardWebPart' name or a 'webPartId'.`
+      );
+    }
+
+    const id = result.standardWebPart
+      ? PagesHelper.getStandardWebPartId(result.standardWebPart)
+      : (result.webPartId as string);
+
+    const data = await CanvasHelper.getWebPartData(
+      webUrl,
+      id,
+      result.webPartProperties ?? null
+    );
+
+    if (result.title) {
+      data.title = result.title;
+    }
+
+    return { id, data };
+  }
+
+  /**
+   * Resolve an out-of-the-box web part name to its id
+   */
+  private static getStandardWebPartId(name: string): string {
+    const match = STANDARD_WEB_PARTS.find(
+      (webPart) => webPart.name.toLowerCase() === name.toLowerCase()
+    );
+
+    if (!match) {
+      throw new Error(
+        `"${name}" is not a standard web part. Use one of: ${STANDARD_WEB_PARTS.map(
+          (webPart) => webPart.name
+        )
+          .filter((value, index, all) => all.indexOf(value) === index)
+          .join(", ")}.`
+      );
+    }
+
+    return match.id;
   }
 
   /**

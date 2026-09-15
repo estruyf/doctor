@@ -8,7 +8,14 @@ import {
   MermaidRenderer,
   TableOfContentsRenderer,
 } from "../shortcodes/index.js";
-import { Shortcode, TocPosition } from "@models";
+import {
+  ControlShortcodeRender,
+  InlineShortcodeRender,
+  SHORTCODE_KINDS,
+  Shortcode,
+  ShortcodeKind,
+  TocPosition,
+} from "@models";
 import { Logger } from "@helpers";
 import { existsAsync } from "@utils";
 
@@ -48,10 +55,21 @@ export class ShortcodesHelpers {
         const loadedModule = await import(pathToFileURL(filePath).href);
         const sc = loadedModule.default ?? loadedModule;
         if (sc && sc.name && sc.render) {
+          const kind: ShortcodeKind = sc.kind ?? "inline";
+
+          // An unknown kind falls back to "inline" if it isn't caught here,
+          // which would silently render a control shortcode as HTML
+          if (!SHORTCODE_KINDS.includes(kind)) {
+            throw new Error(
+              `Unknown kind "${sc.kind}" for shortcode "${sc.name}" in ${file}. Use ${SHORTCODE_KINDS.map((k) => `"${k}"`).join(" or ")}.`,
+            );
+          }
+
           ShortcodesHelpers.shortcodes[sc.name] = {
+            kind,
             render: sc.render,
             beforeMarkdown: !!sc.beforeMarkdown,
-          };
+          } as Shortcode[string];
         }
       }
     }
@@ -96,8 +114,13 @@ export class ShortcodesHelpers {
       }
     }
 
+    // Control shortcodes are consumed by the segmentation pass, before the
+    // markdown ever reaches here. Their render() returns a web part definition
+    // rather than HTML, so letting one through would splice "[object Object]"
+    // into the page.
     tags = tags.filter(
       (tag) =>
+        !ShortcodesHelpers.isControl(tag) &&
         ShortcodesHelpers.shortcodes[tag].beforeMarkdown === beforeMarkdown,
     );
 
@@ -124,7 +147,9 @@ export class ShortcodesHelpers {
         `Doctor found ${elms.length} element(s) for "${tag}" shortcode.`,
       );
       if (elms && elms.length > 0) {
-        const shortcode = ShortcodesHelpers.shortcodes[tag];
+        const shortcode = ShortcodesHelpers.shortcodes[
+          tag
+        ] as InlineShortcodeRender;
 
         let tocPostProcessing: string | null = null;
         for (const elm of elms) {
@@ -277,5 +302,34 @@ export class ShortcodesHelpers {
    */
   public static get() {
     return ShortcodesHelpers.shortcodes;
+  }
+
+  /**
+   * Check whether a tag belongs to a shortcode that becomes its own SharePoint
+   * control instead of HTML inside the Markdown web part
+   * @param tag
+   */
+  public static isControl(tag: string): boolean {
+    return ShortcodesHelpers.shortcodes[tag]?.kind === "control";
+  }
+
+  /**
+   * The tags of every registered control shortcode, which is what the
+   * segmentation pass looks for in the raw markdown
+   */
+  public static getControlTags(): string[] {
+    return Object.getOwnPropertyNames(ShortcodesHelpers.shortcodes).filter(
+      (tag) => ShortcodesHelpers.isControl(tag),
+    );
+  }
+
+  /**
+   * Retrieve a control shortcode by tag
+   * @param tag
+   */
+  public static getControl(tag: string): ControlShortcodeRender | undefined {
+    return ShortcodesHelpers.isControl(tag)
+      ? (ShortcodesHelpers.shortcodes[tag] as ControlShortcodeRender)
+      : undefined;
   }
 }
