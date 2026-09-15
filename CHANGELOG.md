@@ -1,5 +1,11 @@
 # Changelog
     
+## [2.3.0]
+
+
+- New: a shortcode can set `kind: "control"` to become a SharePoint web part of its own instead of returning HTML. The page is cut at the tag, so one Markdown file can publish as `[markdown] [web part] [markdown]` — for instance a Highlighted content web part between two pieces of text. Pages without a control shortcode publish exactly as before.
+- A page's controls are now written in one call instead of one per web part, which also means the web parts you added on the SharePoint side keep their place on the page.
+
 ## [2.2.0]
 
 
