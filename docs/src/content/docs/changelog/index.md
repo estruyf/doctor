@@ -6,7 +6,7 @@ description: The changelog of Doctor
 ## [2.3.0]
 
 
-- New: a shortcode can set `kind: "control"` to become a SharePoint web part of its own instead of returning HTML. The page is cut at the tag, so one Markdown file can publish as `[markdown] [web part] [markdown]` — for instance a Highlighted content web part between two pieces of text. Pages without a control shortcode publish exactly as before.
+- New: a shortcode can set `kind: "control"` to become a SharePoint web part of its own instead of returning HTML. The page is cut at the tag, so one Markdown file can publish as `[markdown] [web part] [markdown]` — for instance a Highlighted content web part between two pieces of text. Besides `webPartProperties`, a control shortcode can return `webPartData` for the web parts which keep state outside their properties. Pages without a control shortcode publish exactly as before.
 - A page's controls are now written in one call instead of one per web part, which also means the web parts you added on the SharePoint side keep their place on the page.
 - Fix: managed metadata fields can be set from a term label again. The term lookup called the CLI without a term group, so it never resolved and the field was silently left empty — only an explicit `termGuid` worked. Labels are now resolved against the column's term set through the site term store.
 - Managed metadata: a column pinned to an anchor term only resolves labels inside that sub-tree, a term can be written by any of its labels, and a duplicate label can be written as a path (`Regions > Europe`).
