@@ -155,6 +155,22 @@ Anything added to `Doctor`'s content section on the SharePoint side is removed o
 because that section is rebuilt from the markdown file. Edit the markdown, not the page.
 :::
 
+### Images and other assets
+
+An image a page refers to is uploaded to the asset library (`--library`, `Shared Documents` by
+default) and the reference in the page is rewritten to point at it.
+
+- An image **inside** your content folder keeps the structure it has there. `guides/img/logo.png`
+  is uploaded to `guides/img/logo.png` in the library.
+- An image **outside** it — `../assets/logo.png`, for instance, or anything else reached with `..` —
+  has no structure to mirror, so it goes in a single `assets` folder in the library.
+
+:::note[Shared assets land together]
+Because every asset from outside the content folder shares one `assets` folder, two files with the
+same name from different folders end up as one. Give them distinct names, or keep them inside the
+content folder where their own structure is preserved.
+:::
+
 ### Author
 
 `Doctor` can set the page's author — SharePoint's own `Author` column, which is what the page shows

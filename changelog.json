@@ -33,6 +33,10 @@
       },
       {
         "id": null,
+        "title": "Fix: an image referenced from outside the content folder is uploaded to a shared `assets` folder in the asset library, instead of having the publishing machine's own directory path recreated in SharePoint. A header image at `../assets/logo.png` used to end up under `Users/<name>/repos/.../docs/assets`, which meant nothing on the site and differed per person. Images inside the content folder keep the structure they have there, as before."
+      },
+      {
+        "id": null,
         "title": "Fix: removing the `header` front matter from a page now resets its banner to the default. It used to leave whatever banner the page already had, so the page kept a header its markdown no longer described. Changing a header setting already reset the ones left out. Pages built from a `template` keep the template's banner, as before."
       },
       {

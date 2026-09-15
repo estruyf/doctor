@@ -7,6 +7,7 @@ import {
   FolderHelpers,
   Logger,
 } from "@helpers";
+import { getAssetFolders } from "@utils";
 
 export class HeaderHelper {
   /**
@@ -45,11 +46,7 @@ export class HeaderHelper {
         const imgDirectory = join(dirname(filePath), dirname(header.image));
         const imgPath = join(dirname(filePath), header.image);
 
-        const uniStartPath = startFolder.replace(/\\/g, "/");
-        const folders = imgDirectory
-          .replace(/\\/g, "/")
-          .replace(uniStartPath, "")
-          .split("/");
+        const folders = getAssetFolders(startFolder, imgDirectory);
         let crntFolder = assetLibrary;
 
         // Start folder creation process

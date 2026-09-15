@@ -30,6 +30,7 @@ import {
 import { basename, join, dirname } from "path";
 import {
   existsAsync,
+  getAssetFolders,
   isLanguageFile,
   isMachineTranslatedFile,
   mkdirAsync,
@@ -779,11 +780,7 @@ export class DoctorTranspiler {
       const imgDirectory = join(dirname(filePath), dirname(imgSource));
       const imgPath = join(dirname(filePath), imgSource);
 
-      const uniStartPath = startFolder.replace(/\\/g, "/");
-      const folders = imgDirectory
-        .replace(/\\/g, "/")
-        .replace(uniStartPath, "")
-        .split("/");
+      const folders = getAssetFolders(startFolder, imgDirectory);
       let crntFolder = assetLibrary;
 
       // Start folder creation process
