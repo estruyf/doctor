@@ -154,8 +154,8 @@ A UPN works too, for front matter written by hand:
 author: john@contoso.com
 ```
 
-If the id does not exist on the site, `Doctor` reports it and publishes the page without setting the
-author, rather than leaving it with the wrong one. The warning lists a few ids that do exist.
+If the id does not exist on the site, the page is skipped — see
+[below](#what-happens-when-a-value-cannot-be-set). The warning lists a few ids that do exist.
 
 :::note[Not the same as the header authors]
 `author` is the SharePoint column. The `header.authors` setting is a different thing — the list of
@@ -260,10 +260,9 @@ A few things are worth knowing:
     Region: "Regions > Europe"
   ```
 
-- **An unknown or ambiguous term is reported, and the column is left unset.** The rest of the page is
-  published as normal, and the warning names the term and — when it is ambiguous — the paths it
-  matched. The page is also kept out of the publish state, so the next run tries it again instead of
-  treating it as up to date. Give an explicit `termGuid` to bypass the lookup entirely.
+- **An unknown or ambiguous term skips the page** — see [below](#what-happens-when-a-value-cannot-be-set).
+  The warning names the term and, when it is ambiguous, the paths it matched. Give an explicit
+  `termGuid` to bypass the lookup entirely.
 - **Deprecated terms are ignored**, since SharePoint does not accept them on an item anyway.
 
 ##### User Fields
@@ -375,16 +374,26 @@ Empty strings in arrays are automatically filtered out.
 
 #### What happens when a value cannot be set
 
-`Doctor` never fails a page over its metadata. When a column cannot be set — the column does not
-exist on the Site Pages library, a term is not in the term set, an author is not a user of the site,
-a value is not one its column type accepts — it:
+`Doctor` works out every metadata value **before it writes anything**. If any of them cannot be
+resolved — the column does not exist on the Site Pages library, a term is not in the term set, an
+author is not a user of the site, a value is not one its column type accepts — the page is **skipped
+whole**:
 
-1. reports a warning naming the page, the column and the reason;
-2. publishes the page without that column;
-3. **leaves the page out of `.doctor/state.json`**, so the next run does not consider it unchanged
-   and tries the column again once you have fixed it.
+1. a warning names the page and every problem found on it;
+2. **nothing on that page is touched** — its content, header and metadata stay exactly as they were,
+   so it is never left with new content and stale metadata;
+3. it stays out of `.doctor/state.json`, so the next run does not consider it unchanged and publishes
+   it once the front matter is fixed;
+4. the run carries on with the next page, and ends successfully.
 
-Warnings are listed at the end of the run, and in the `warnings` array when using `--output json`.
+Skipped pages are counted with the skipped pages in the summary. The warnings are listed at the end
+of the run, and in the `warnings` array when using `--output json`.
+
+:::caution[A typo holds back the whole page]
+Because the page is skipped as a unit, a mistake in one metadata value also stops that page's
+*content* changes from being published. That is deliberate — it keeps the page consistent — but it
+does mean the warnings at the end of a run are worth reading.
+:::
 
 #### Metadata Validation
 

@@ -20,6 +20,7 @@ import {
   MultilingualHelper,
   NavigationHelper,
   PagesHelper,
+  OutputHelper,
   PartialsHelper,
   SegmentsHelper,
   ShortcodesHelpers,
@@ -575,6 +576,24 @@ export class DoctorTranspiler {
         }
 
         if (markup && markup.content) {
+          // Everything the page's metadata needs is worked out before a single
+          // write, so a page whose front matter cannot be resolved is left
+          // exactly as it was instead of ending up with new content and stale
+          // metadata. It also stays out of the publish state, so the next run
+          // picks it up again once the front matter is fixed.
+          setProgress(`Resolving metadata for ${relPath}`);
+          const { values: metadataValues, problems: metadataProblems } =
+            await PagesHelper.resolveMetadata(webUrl, slug, metadata, author);
+
+          if (metadataProblems.length > 0) {
+            OutputHelper.warning(
+              `Skipped "${relPath}": ${metadataProblems.join("; ")}. The page was left untouched, and is published on the next run once this is fixed.`,
+            );
+            setProgress(`Skipped (metadata): ${relPath}`);
+            StatusHelper.addPageSkipped();
+            return;
+          }
+
           setProgress(`Checking if page exists: ${slug}`);
 
           // Check if the page already exists
@@ -663,15 +682,9 @@ export class DoctorTranspiler {
             );
 
             // Check if metadata needs to be added to the page
-            let skippedMetadata: string[] = [];
-            if (metadata || typeof author !== "undefined") {
+            if (Object.keys(metadataValues).length > 0) {
               setProgress(`Setting metadata for ${relPath}`);
-              skippedMetadata = await PagesHelper.setPageMetadata(
-                webUrl,
-                slug,
-                metadata,
-                author,
-              );
+              await PagesHelper.writeMetadata(webUrl, slug, metadataValues);
             }
 
             // Check if page needs to be published
@@ -692,15 +705,8 @@ export class DoctorTranspiler {
               StatusHelper.addPageCreated();
             }
 
-            // Record hash so future runs can skip unchanged files and resume
-            // reliably. A page which could not get all of its metadata is left
-            // out on purpose: recording it would make every later run consider
-            // it unchanged and never retry the columns that failed.
-            if (skippedMetadata.length > 0) {
-              Logger.debug(
-                `Not recording ${slug} in the publish state, because ${skippedMetadata.join(", ")} could not be set.`,
-              );
-            } else if (!options.disableStatePersistence) {
+            // Record hash so future runs can skip unchanged files and resume reliably
+            if (!options.disableStatePersistence) {
               StateHelper.markPublished(
                 slug,
                 contentHash,

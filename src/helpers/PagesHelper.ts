@@ -21,7 +21,6 @@ import {
   FolderHelpers,
   ListHelpers,
   Logger,
-  OutputHelper,
   MarkdownHelper,
   MetadataHelper,
   ShortcodesHelpers,
@@ -635,81 +634,95 @@ export class PagesHelper {
    * @param metadata
    */
   /**
-   * Write the page's metadata.
+   * Work out what every metadata column should be set to, without touching the
+   * page.
    *
-   * A value doctor cannot work out — a term that is not in the set, an author
-   * who is not a user of this site, a column that does not exist — is reported
-   * and left unset rather than failing the page: the rest of the page is fine
-   * and worth publishing. The names of the columns that were left unset come
-   * back, so the caller can keep the page out of the publish state and have the
-   * next run try it again.
+   * This runs before anything is written, so a page whose front matter names a
+   * term that is not in the set, an author who is not a user of the site, or a
+   * column that does not exist is left exactly as it was rather than ending up
+   * with new content and stale metadata.
    *
-   * @returns the columns which could not be set
+   * @returns the values to write, and the reason for every column that could
+   * not be worked out
    */
-  public static async setPageMetadata(
+  public static async resolveMetadata(
     webUrl: string,
     slug: string,
     metadata: { [fieldName: string]: any } | null = null,
     author: any = undefined
-  ): Promise<string[]> {
+  ): Promise<{ values: { [fieldName: string]: any }; problems: string[] }> {
     const hasMetadata = !!metadata && Object.keys(metadata).length > 0;
     const hasAuthor = typeof author !== "undefined" && author !== null;
 
     if (!hasMetadata && !hasAuthor) {
-      return [];
+      return { values: {}, problems: [] };
     }
 
-    const pageId = await this.getPageId(webUrl, slug);
     const pageList = await ListHelpers.getSitePagesList(webUrl);
-
-    if (!pageId || !pageList) {
-      OutputHelper.warning(
-        `The metadata of "${slug}" was not set, because the page could not be found in the Site Pages library.`
-      );
-      return hasAuthor ? ["Author"] : Object.keys(metadata || {});
+    if (!pageList) {
+      return {
+        values: {},
+        problems: [`the Site Pages library of ${webUrl} could not be read`],
+      };
     }
 
-    const { validated, skipped } = hasMetadata
-      ? await this.getValidatedMetadata(webUrl, slug, pageList, metadata as any)
-      : { validated: {}, skipped: [] as string[] };
+    const { values, problems } = hasMetadata
+      ? await this.getValidatedMetadata(webUrl, pageList, metadata as any)
+      : { values: {}, problems: [] as string[] };
 
     if (hasAuthor) {
       // `Author` is SharePoint's own created-by column, which takes a claim
       // like any other person field — not the site user id the front matter
       // carries, so the id is resolved to its login name first.
       try {
-        validated["Author"] =
+        values["Author"] =
           `[{'Key':'${await this.resolveAuthorClaim(webUrl, author, slug)}'}]`;
       } catch (e: any) {
-        OutputHelper.warning(
-          `${e?.message || e} The page is published without its author, and stays out of the publish state so the next run tries again.`
-        );
-        skipped.push("Author");
+        problems.push(e?.message || `${e}`);
       }
     }
 
-    if (Object.keys(validated).length > 0) {
-      await executeWithRetry(
-        "spo listitem set",
-        {
-          listId: pageList.Id,
-          id: pageId,
-          webUrl,
-          ...validated,
-        },
-        CliCommand.getRetry()
+    return { values, problems };
+  }
+
+  /**
+   * Set the metadata worked out by `resolveMetadata`
+   */
+  public static async writeMetadata(
+    webUrl: string,
+    slug: string,
+    values: { [fieldName: string]: any }
+  ): Promise<void> {
+    if (Object.keys(values).length === 0) {
+      return;
+    }
+
+    const pageId = await this.getPageId(webUrl, slug);
+    const pageList = await ListHelpers.getSitePagesList(webUrl);
+
+    if (!pageId || !pageList) {
+      throw new Error(
+        `The metadata of "${slug}" could not be set, because the page was not found in the Site Pages library.`
       );
     }
 
-    return skipped;
+    await executeWithRetry(
+      "spo listitem set",
+      {
+        listId: pageList.Id,
+        id: pageId,
+        webUrl,
+        ...values,
+      },
+      CliCommand.getRetry()
+    );
   }
 
   private static async getValidatedMetadata(
     webUrl: string,
-    slug: string,
     pageList: any,
     metadata: { [fieldName: string]: any }
-  ): Promise<{ validated: { [fieldName: string]: any }; skipped: string[] }> {
+  ): Promise<{ values: { [fieldName: string]: any }; problems: string[] }> {
     const listId = pageList?.Id;
     let fieldMap = this.listFieldMap[listId];
 
@@ -764,17 +777,16 @@ export class PagesHelper {
       this.listFieldMap[listId] = fieldMap;
     }
 
-    const validated: { [fieldName: string]: any } = {};
-    const skipped: string[] = [];
+    const values: { [fieldName: string]: any } = {};
+    const problems: string[] = [];
 
     for (const [key, value] of Object.entries(metadata)) {
       const fieldInfo = fieldMap.get(key.toLowerCase());
 
       if (!fieldInfo?.internalName) {
-        OutputHelper.warning(
-          `The column '${key}' of "${slug}" does not exist on the Site Pages library, so it was not set.`
+        problems.push(
+          `the column '${key}' does not exist on the Site Pages library`
         );
-        skipped.push(key);
         continue;
       }
 
@@ -786,28 +798,21 @@ export class PagesHelper {
           value
         );
       } catch (e: any) {
-        // A value doctor cannot work out costs the column, not the page
-        OutputHelper.warning(
-          `The column '${key}' of "${slug}" was not set. ${e?.message || e}`
-        );
-        skipped.push(key);
+        problems.push(`the column '${key}' could not be set: ${e?.message || e}`);
         continue;
       }
 
       if (typeof transformed === "undefined") {
-        OutputHelper.warning(
-          `The column '${key}' of "${slug}" was not set, because '${JSON.stringify(
-            value
-          )}' is not a value its type accepts.`
+        problems.push(
+          `the column '${key}' does not accept ${JSON.stringify(value)}`
         );
-        skipped.push(key);
         continue;
       }
 
-      validated[fieldInfo.internalName] = transformed;
+      values[fieldInfo.internalName] = transformed;
     }
 
-    return { validated, skipped };
+    return { values, problems };
   }
 
   private static async transformMetadataValue(

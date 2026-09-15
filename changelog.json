@@ -33,7 +33,7 @@
       },
       {
         "id": null,
-        "title": "A page is no longer published without warning when one of its columns cannot be set. A missing column, a term which is not in the term set, an author who is not a user of the site, or a value its column type does not accept is now reported, the rest of the page is published as usual, and the page is kept out of the publish state so the next run tries that column again instead of treating the page as unchanged."
+        "title": "A page whose metadata cannot be worked out is now skipped whole instead of being published with part of it missing. Every value is resolved before anything is written, so a missing column, a term which is not in the term set, an author who is not a user of the site, or a value its column type does not accept leaves the page untouched, reports what was wrong, and carries on with the next page. The page stays out of the publish state, so the next run publishes it once the front matter is fixed."
       }
     ]
   },
