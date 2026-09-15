@@ -41,6 +41,7 @@ Optional Front Matter properties are:
   - **showPublishDate**: Show the publish date in the header. Default: `false`.
   - **authors**: `string[]` - The UPNs (for example `john@contoso.com`) of the authors to show in the page header.
 - **menu**: `Menu`- Defines where the page gets added to the navigation structure. Check: [menu section](#menu).
+- **author**: `number | string` - Sets the page author (SharePoint's `Author` column). Use the **site user ID** — the id the user has in this site's own user list — or their UPN (for example `john@contoso.com`). Check: [Author section](#author).
 - **metadata**: `Metadata` - With this object you can set extra metadata for your page. Check: [Metadata section](#metadata).
 - **partials**: `boolean | { header?: boolean, footer?: boolean }` - Allows you to skip the partials which are added to every page with the [`partials.header` and `partials.footer`](../partials/#adding-a-partial-to-every-page) options. Use `false` to skip them all, or disable them one by one. Default: all configured partials are added.
 - **localization**: `{ [locale name]: relative path }[]` - Defines the localization pages linked to the current page. Find out more at [how to setup and use localization](../multilingual).
@@ -130,6 +131,37 @@ menu:
 Write here the Doctor page content.
 ```
 
+### Author
+
+`Doctor` can set the page's author — SharePoint's own `Author` column, which is what the page shows
+as its byline and what people filter on in the pages library.
+
+```yaml
+---
+title: Release notes
+author: 12
+---
+```
+
+The value is the user's **site user ID**: the id they have in *this* site's user list. A user only
+has one once they are a member of the site or have visited it, which is why the id means nothing on
+another site. The Doctor Metadata VS Code extension picks one for you, or you
+can look it up at `https://<site>/_api/web/siteusers`.
+
+A UPN works too, for front matter written by hand:
+
+```yaml
+author: john@contoso.com
+```
+
+An id that does not exist on the site stops the publish rather than leaving the page with the wrong
+author.
+
+:::note[Not the same as the header authors]
+`author` is the SharePoint column. The `header.authors` setting is a different thing — the list of
+people shown *inside* the page header — and takes UPNs. You can use both.
+:::
+
 ### Metadata
 
 Adding metadata for a page is done by specifying the `metadata` object with corresponding SharePoint field names and their values.
@@ -212,7 +244,26 @@ metadata:
       termGuid: "660e8400-e29b-41d4-a716-446655440000"
 ```
 
-When a term GUID is omitted, Doctor resolves the label using Graph API against the associated term set. If resolution fails, the field is skipped and a debug message is logged. Resolution results are cached per run to avoid repeated lookups.
+When a term GUID is omitted, `Doctor` resolves the label against the column's term set, reading the
+term store through the site (`_api/v2.1/termStore`). Terms are read once per term set per run.
+
+A few things are worth knowing:
+
+- **Anchored columns.** When the column is pinned to a sub-tree of its term set (an anchor term),
+  only that sub-tree is searched — the same terms the column actually allows.
+- **Synonyms work.** A term can be written by any of its labels, not only the default one.
+- **Duplicate labels.** Term sets often reuse a label in different branches. Write the path to say
+  which one is meant:
+
+  ```yaml
+  metadata:
+    Region: "Regions > Europe"
+  ```
+
+- **An unknown or ambiguous term stops the publish** for that page, naming the term and — when it is
+  ambiguous — the paths it matched. A metadata value that silently does not arrive is worse than a
+  failed publish, so it is not skipped. Give an explicit `termGuid` to bypass the lookup entirely.
+- **Deprecated terms are ignored**, since SharePoint does not accept them on an item anyway.
 
 ##### User Fields
 

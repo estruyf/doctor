@@ -23,6 +23,8 @@ import {
   ShortcodesHelpers,
   StateHelper,
   StatusHelper,
+  TermsHelper,
+  ResolvedTerm,
   WebPartControl,
 } from "@helpers";
 import { executeCommand } from "@pnp/cli-microsoft365";
@@ -33,6 +35,12 @@ interface FieldInfo {
   internalName: string;
   typeAsString: string;
   termSetId?: string;
+  /**
+   * A taxonomy column can be pinned to a sub-tree of its term set. Labels then
+   * have to be resolved inside that sub-tree, which is also the only part of
+   * the set the metadata editor's picker offers.
+   */
+  anchorId?: string;
 }
 
 export class PagesHelper {
@@ -40,7 +48,6 @@ export class PagesHelper {
   private static pages: File[] = [];
   private static processedPages: { [slug: string]: number } = {};
   private static listFieldMap: { [listId: string]: Map<string, FieldInfo> } = {};
-  private static termGuidMap: Map<string, string> = new Map<string, string>();
 
   private static readonly SIMPLE_FIELD_TYPES = new Set<string>([
     "Text",
@@ -58,7 +65,6 @@ export class PagesHelper {
     PagesHelper.pages = [];
     PagesHelper.processedPages = {};
     PagesHelper.listFieldMap = {};
-    PagesHelper.termGuidMap = new Map<string, string>();
   }
 
   /**
@@ -637,16 +643,30 @@ export class PagesHelper {
   public static async setPageMetadata(
     webUrl: string,
     slug: string,
-    metadata: { [fieldName: string]: any } | null = null
+    metadata: { [fieldName: string]: any } | null = null,
+    author: any = undefined
   ) {
+    const hasMetadata = !!metadata && Object.keys(metadata).length > 0;
+    const hasAuthor = typeof author !== "undefined" && author !== null;
+
+    if (!hasMetadata && !hasAuthor) {
+      return;
+    }
+
     const pageId = await this.getPageId(webUrl, slug);
     const pageList = await ListHelpers.getSitePagesList(webUrl);
-    if (pageId && pageList && metadata && Object.keys(metadata).length > 0) {
-      const validatedMetadata = await this.getValidatedMetadata(
-        webUrl,
-        pageList,
-        metadata
-      );
+    if (pageId && pageList) {
+      const validatedMetadata = hasMetadata
+        ? await this.getValidatedMetadata(webUrl, pageList, metadata as any)
+        : {};
+
+      if (hasAuthor) {
+        // `Author` is SharePoint's own created-by column, which takes a claim
+        // like any other person field — not the site user id the front matter
+        // carries, so the id is resolved to its login name first.
+        validatedMetadata["Author"] =
+          `[{'Key':'${await this.resolveAuthorClaim(webUrl, author)}'}]`;
+      }
 
       if (Object.keys(validatedMetadata).length === 0) {
         Logger.debug(
@@ -693,10 +713,18 @@ export class PagesHelper {
       fieldMap = new Map<string, FieldInfo>();
 
       for (const field of fields) {
+        // An unset anchor comes back as the empty guid rather than absent
+        const anchorId =
+          field.AnchorId &&
+          field.AnchorId !== "00000000-0000-0000-0000-000000000000"
+            ? field.AnchorId
+            : undefined;
+
         const fieldInfo: FieldInfo = {
           internalName: field.InternalName || field.StaticName || field.Title,
           typeAsString: field.TypeAsString || "",
           termSetId: field.TermSetId,
+          ...(anchorId ? { anchorId } : {}),
         };
 
         if (!fieldInfo.internalName) {
@@ -795,14 +823,7 @@ export class PagesHelper {
       return undefined;
     }
 
-    const termGuid =
-      term.termGuid ||
-      (await this.resolveTermGuid(webUrl, fieldInfo, term.label || ""));
-    if (!termGuid) {
-      return undefined;
-    }
-
-    return `${term.label}|${termGuid}`;
+    return await this.toTaxonomyValue(webUrl, fieldInfo, term);
   }
 
   private static async transformTaxonomyMulti(
@@ -822,17 +843,28 @@ export class PagesHelper {
         continue;
       }
 
-      const termGuid =
-        term.termGuid ||
-        (await this.resolveTermGuid(webUrl, fieldInfo, term.label || ""));
-      if (!termGuid) {
-        continue;
-      }
-
-      terms.push(`${term.label}|${termGuid}`);
+      terms.push(await this.toTaxonomyValue(webUrl, fieldInfo, term));
     }
 
     return terms.length > 0 ? terms.join(";") : undefined;
+  }
+
+  /**
+   * The `Label|Guid` pair SharePoint stores a term as. The label has to be the
+   * term's own, not what the author wrote — those differ when a term was
+   * addressed by its path or by one of its other labels.
+   */
+  private static async toTaxonomyValue(
+    webUrl: string,
+    fieldInfo: FieldInfo,
+    term: { label: string; termGuid?: string }
+  ): Promise<string> {
+    if (term.termGuid) {
+      return `${term.label}|${term.termGuid}`;
+    }
+
+    const resolved = await this.resolveTerm(webUrl, fieldInfo, term.label);
+    return `${resolved.label}|${resolved.id}`;
   }
 
   private static normalizeTaxonomyTerm(
@@ -858,52 +890,75 @@ export class PagesHelper {
     return { label, ...(termGuid ? { termGuid } : {}) };
   }
 
-  private static async resolveTermGuid(
+  /**
+   * Turn the `author` front matter into the claim SharePoint's Author column
+   * expects. The metadata editor writes the site user id it found in the site's
+   * own user list, which is only meaningful to that site, so it is resolved back
+   * to the user's login name here. A UPN is accepted too, for front matter
+   * written by hand.
+   */
+  private static async resolveAuthorClaim(
     webUrl: string,
-    fieldInfo: FieldInfo,
-    label: string
-  ): Promise<string | undefined> {
-    const termSetId = fieldInfo.termSetId;
-    if (!termSetId) {
-      Logger.debug(
-        `Skipping taxonomy field '${fieldInfo.internalName}' because TermSetId is missing.`
-      );
-      return undefined;
-    }
+    author: any
+  ): Promise<string> {
+    const siteUserId =
+      typeof author === "number"
+        ? author
+        : typeof author === "string" && /^\d+$/.test(author.trim())
+          ? parseInt(author.trim(), 10)
+          : null;
 
-    const cacheKey = `${termSetId}:${label.toLowerCase()}`;
-    if (this.termGuidMap.has(cacheKey)) {
-      return this.termGuidMap.get(cacheKey);
-    }
-
-    try {
+    if (siteUserId !== null) {
       const { stdout } = await executeWithRetry(
-        "spo term get",
+        "spo user get",
         {
           webUrl,
-          termSetId,
-          name: label,
+          id: siteUserId,
           output: "json",
         },
         CliCommand.getRetry()
       );
-      const term = JSON.parse(stdout || "{}");
-      const termGuid = term?.id || term?.Id;
-      if (!termGuid) {
-        Logger.debug(
-          `Could not resolve taxonomy term '${label}' for field '${fieldInfo.internalName}'.`
+
+      const user = JSON.parse(stdout || "{}");
+      const loginName = user?.LoginName || user?.loginName;
+
+      if (!loginName) {
+        throw new Error(
+          `The 'author' site user id ${siteUserId} does not exist on ${webUrl}. A user only has an id on a site they are a member of, or have visited.`
         );
-        return undefined;
       }
 
-      this.termGuidMap.set(cacheKey, termGuid);
-      return termGuid;
-    } catch (error: any) {
-      Logger.debug(
-        `Could not resolve taxonomy term '${label}' for field '${fieldInfo.internalName}': ${error?.message || error}`
-      );
-      return undefined;
+      // The login name already is the claim
+      return loginName;
     }
+
+    if (typeof author === "string" && author.includes("@")) {
+      return `${this.PERSON_CLAIM_PREFIX}${author.trim().toLowerCase()}`;
+    }
+
+    throw new Error(
+      `The 'author' front matter has to be a SharePoint site user id (a number) or a user principal name, but was '${author}'.`
+    );
+  }
+
+  private static async resolveTerm(
+    webUrl: string,
+    fieldInfo: FieldInfo,
+    label: string
+  ): Promise<ResolvedTerm> {
+    const termSetId = fieldInfo.termSetId;
+    if (!termSetId) {
+      throw new Error(
+        `The taxonomy column '${fieldInfo.internalName}' has no TermSetId, so the term "${label}" cannot be resolved.`
+      );
+    }
+
+    return await TermsHelper.resolve(
+      webUrl,
+      termSetId,
+      label,
+      fieldInfo.anchorId
+    );
   }
 
   private static transformUserSingle(value: any): string | undefined {

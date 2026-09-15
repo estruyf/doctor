@@ -2,6 +2,7 @@ import kleur from "kleur";
 import { Command, Init, Publish, Status, Version, Workflow } from "@commands";
 import { CommandArguments } from "@models";
 import {
+  AccessToken,
   CanvasHelper,
   CliCommand,
   FileHelpers,
@@ -16,6 +17,7 @@ import {
   StateHelper,
   ShortcodesHelpers,
   StatusHelper,
+  TermsHelper,
 } from "@helpers";
 import { autocomplete } from "./autocomplete.js";
 
@@ -108,6 +110,8 @@ export class Commands {
     FileHelpers.reset();
     PagesHelper.reset();
     CanvasHelper.reset();
+    TermsHelper.reset();
+    AccessToken.reset();
     ListHelpers.reset();
     FolderHelpers.reset();
   }

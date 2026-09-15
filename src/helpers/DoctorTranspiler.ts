@@ -480,8 +480,16 @@ export class DoctorTranspiler {
           }
         }
 
-        let { title, description, draft, layout, header, template, metadata } =
-          markup.data as PageFrontMatter;
+        let {
+          title,
+          description,
+          draft,
+          layout,
+          header,
+          template,
+          metadata,
+          author,
+        } = markup.data as PageFrontMatter;
         let slug =
           languagePageSlug ||
           FrontMatterHelper.getSlug(
@@ -655,9 +663,14 @@ export class DoctorTranspiler {
             );
 
             // Check if metadata needs to be added to the page
-            if (metadata) {
+            if (metadata || typeof author !== "undefined") {
               setProgress(`Setting metadata for ${relPath}`);
-              await PagesHelper.setPageMetadata(webUrl, slug, metadata);
+              await PagesHelper.setPageMetadata(
+                webUrl,
+                slug,
+                metadata,
+                author,
+              );
             }
 
             // Check if page needs to be published

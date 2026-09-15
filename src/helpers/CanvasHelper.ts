@@ -75,23 +75,12 @@ const pageApiUrl = (webUrl: string, slug: string): string =>
     slug,
   )}')`;
 
-/**
- * Every page needs a token for its read and its write, and fetching one runs
- * two CLI commands. Holding on to it for a while keeps a publish of hundreds of
- * pages from paying that twice per page, while the window stays far short of
- * the token's own lifetime so a long run cannot end up using an expired one.
- */
-const TOKEN_LIFETIME = 10 * 60 * 1000;
-
 export class CanvasHelper {
   /** The available web parts per site, which never change during a run */
   private static definitions: { [webUrl: string]: any[] } = {};
-  private static tokens: { [webUrl: string]: { token: string; at: number } } =
-    {};
 
   public static reset(): void {
     CanvasHelper.definitions = {};
-    CanvasHelper.tokens = {};
   }
 
   /**
@@ -460,18 +449,8 @@ export class CanvasHelper {
   }
 
   private static async getHeaders(webUrl: string): Promise<any> {
-    const key = trimUrl(webUrl).toLowerCase();
-    const cached = CanvasHelper.tokens[key];
-
-    if (!cached || Date.now() - cached.at > TOKEN_LIFETIME) {
-      CanvasHelper.tokens[key] = {
-        token: (await AccessToken.get(webUrl)).trim(),
-        at: Date.now(),
-      };
-    }
-
     return {
-      Authorization: `Bearer ${CanvasHelper.tokens[key].token}`,
+      Authorization: `Bearer ${(await AccessToken.get(webUrl)).trim()}`,
       accept: "application/json;odata=nometadata",
     };
   }
