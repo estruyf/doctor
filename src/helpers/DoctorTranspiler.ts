@@ -688,16 +688,20 @@ export class DoctorTranspiler {
               await PagesHelper.writeMetadata(webUrl, slug, metadataValues);
             }
 
+            // Set the page its description. This has to happen before the page
+            // is published: a description is normally written with a system
+            // update, which creates no version, but that is not always allowed
+            // and the fallback is an ordinary update — which would leave the
+            // page with unpublished changes if it ran afterwards.
+            if (description) {
+              setProgress(`Setting page description for ${relPath}`);
+              await PagesHelper.setPageDescription(webUrl, slug, description);
+            }
+
             // Check if page needs to be published
             if (typeof draft === "undefined" || !draft) {
               setProgress(`Publishing page: ${title}`);
               await PagesHelper.publishPageIfNeeded(webUrl, slug);
-            }
-
-            // Set the page its description
-            if (description) {
-              setProgress(`Setting page description for ${relPath}`);
-              await PagesHelper.setPageDescription(webUrl, slug, description);
             }
 
             if (existed) {
