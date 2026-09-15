@@ -606,7 +606,7 @@ export class DoctorTranspiler {
             // no markdown left to cut up
             if (
               wasAlreadyParsed &&
-              SegmentsHelper.hasControlTag(markup.content, controlTags)
+              SegmentsHelper.hasTag(markup.content, controlTags)
             ) {
               throw new Error(
                 `The translated page "${relPath}" uses a control shortcode, which doctor cannot place on a machine translated page. Remove it from the source page, or translate that page by hand.`,
@@ -616,6 +616,21 @@ export class DoctorTranspiler {
             const segments: PageSegment[] = wasAlreadyParsed
               ? [{ type: "markdown", content: markup.content }]
               : SegmentsHelper.split(markup.content, controlTags);
+
+            // Every markdown segment is rendered on its own, so a table of
+            // contents would only list the headings of the segment it sits in
+            if (
+              segments.some((segment) => segment.type === "control") &&
+              segments.some(
+                (segment) =>
+                  segment.type === "markdown" &&
+                  SegmentsHelper.hasTag(segment.content, ["toc"]),
+              )
+            ) {
+              throw new Error(
+                `The page "${relPath}" combines a table of contents with a control shortcode. A control shortcode splits the page into separate web parts, each rendered on its own, so the table of contents can only see the headings next to it.`,
+              );
+            }
 
             await PagesHelper.applySegments(
               webPartTitle,

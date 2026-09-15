@@ -80,7 +80,11 @@ export class MarkdownHelper {
    * @param options
    * @returns
    */
-  public static async getHtmlData(markdown: string, options: CommandArguments) {
+  public static async getHtmlData(
+    markdown: string,
+    options: CommandArguments,
+    includeStyles: boolean = true
+  ) {
     const mdOptions = CliCommand.options?.markdown;
     const theme =
       mdOptions && mdOptions.theme ? mdOptions.theme.toLowerCase() : "dark";
@@ -138,6 +142,13 @@ ${markdown}
     htmlMarkup = converter.render(htmlMarkup);
     htmlMarkup = await ShortcodesHelpers.parseAfter(htmlMarkup);
 
+    // A page split by control shortcodes renders one Markdown web part per
+    // segment, but they all end up in the same document — so the stylesheet is
+    // only carried by the first of them instead of being repeated N times.
+    if (!includeStyles) {
+      return htmlMarkup;
+    }
+
     const editorCss = theme === "light" ? hljsLightCss : hljsDarkCss;
     const additionalCss = useExtended
       ? ` ${cleanCss.minify(extendedCss).styles}`
@@ -159,7 +170,8 @@ ${markdown}
     markdown: string,
     mdOptions: MarkdownSettings | null,
     options: CommandArguments,
-    wasAlreadyParsed: boolean = false
+    wasAlreadyParsed: boolean = false,
+    includeStyles: boolean = true
   ): Promise<any> {
     const allowHtml = mdOptions && mdOptions.allowHtml;
     const theme =
@@ -187,7 +199,7 @@ ${markdown}
     if (allowHtml) {
       let htmlMarkup = wasAlreadyParsed
         ? markdown
-        : await this.getHtmlData(markdown, options);
+        : await this.getHtmlData(markdown, options, includeStyles);
 
       if (htmlMarkup) {
         wpData.serverProcessedContent["htmlStrings"] = {

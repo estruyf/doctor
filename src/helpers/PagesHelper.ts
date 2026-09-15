@@ -26,6 +26,7 @@ import {
   WebPartControl,
 } from "@helpers";
 import { executeCommand } from "@pnp/cli-microsoft365";
+import { randomUUID } from "crypto";
 import { basename, dirname } from "path";
 
 interface FieldInfo {
@@ -502,18 +503,18 @@ export class PagesHelper {
       const key = (control.webPartId || "").toLowerCase();
       (reusable[key] = reusable[key] || []).push(control.id);
     }
-    const takeInstanceId = (webPartId: string): string | undefined =>
-      reusable[webPartId.toLowerCase()]?.shift();
+    // Generated here rather than inside compose(), so the ids recorded in the
+    // state file are exactly the ones that end up on the page
+    const takeInstanceId = (webPartId: string): string =>
+      reusable[webPartId.toLowerCase()]?.shift() ?? randomUUID();
 
     const controls: WebPartControl[] = [];
     let markdownSegment = 0;
 
     for (const segment of segments) {
       if (segment.type === "markdown") {
-        const title = PagesHelper.getSegmentTitle(
-          webPartTitle,
-          markdownSegment++
-        );
+        const index = markdownSegment++;
+        const title = PagesHelper.getSegmentTitle(webPartTitle, index);
 
         controls.push({
           webPartId: MARKDOWN_WEB_PART_ID,
@@ -522,7 +523,8 @@ export class PagesHelper {
             segment.content,
             mdOptions,
             options,
-            wasAlreadyParsed
+            wasAlreadyParsed,
+            index === 0
           ),
           instanceId: takeInstanceId(MARKDOWN_WEB_PART_ID),
         });
@@ -547,11 +549,7 @@ export class PagesHelper {
 
     StateHelper.setControls(
       slug,
-      canvas
-        .filter((control: any) =>
-          controls.some((added) => added.webPartData === control.webPartData)
-        )
-        .map((control: any) => control.id)
+      controls.map((control) => control.instanceId as string)
     );
   }
 

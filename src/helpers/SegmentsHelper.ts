@@ -79,17 +79,17 @@ export class SegmentsHelper {
   }
 
   /**
-   * Whether a registered control shortcode is used in the content, ignoring
-   * the ones shown as a code sample
+   * Whether any of the tags is used in the content, ignoring the occurrences
+   * shown as a code sample
    * @param content
-   * @param controlTags
+   * @param tagNames
    */
-  public static hasControlTag(content: string, controlTags: string[]): boolean {
-    if (!content || !controlTags || controlTags.length === 0) {
+  public static hasTag(content: string, tagNames: string[]): boolean {
+    if (!content || !tagNames || tagNames.length === 0) {
       return false;
     }
 
-    const tags = controlTags.map(escapeForRegex).join("|");
+    const tags = tagNames.map(escapeForRegex).join("|");
     return new RegExp(`</?(${tags})(?=[\\s/>])`).test(
       ShortcodesHelpers.maskCode(content, []),
     );

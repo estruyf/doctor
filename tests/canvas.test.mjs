@@ -247,3 +247,25 @@ test("CanvasHelper does not touch the input canvas", () => {
 
   assert.equal(JSON.stringify(existing), before);
 });
+
+test("CanvasHelper honours every instance id it is given", () => {
+  // The caller generates the ids so it can record exactly what was written to
+  // the page; compose must not substitute its own.
+  const canvas = CanvasHelper.compose(null, [
+    { ...markdown("Doctor"), instanceId: "given-1" },
+    {
+      webPartId: ROLLUP_WEBPART,
+      webPartData: { title: "Related" },
+      instanceId: "given-2",
+    },
+  ]);
+
+  assert.deepEqual(
+    canvas.filter((c) => c.webPartData).map((c) => c.id),
+    ["given-1", "given-2"],
+  );
+  assert.deepEqual(
+    canvas.filter((c) => c.webPartData).map((c) => c.webPartData.instanceId),
+    ["given-1", "given-2"],
+  );
+});

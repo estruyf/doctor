@@ -20,6 +20,8 @@ At the moment, `doctor` has the following built-in shortcodes:
 - [Mermaid](./mermaid/)
 - [Table of contents](./toc/)
 
+A shortcode can also become a SharePoint web part of its own instead of returning HTML — see [control shortcodes](./control/).
+
 ## Provide your own shortcodes
 
 You can add custom shortcodes to your project by adding a JavaScript file to the `shortcodes` folder (If you want, you can change this location - [Markdown publishing settings](../../configuration/doctor-json/#markdown-publishing-settings)). The contents of the JavaScript file should contain the following:
@@ -56,3 +58,6 @@ If your project uses `"type": "module"` in `package.json` and you want to keep C
 
 `beforeMarkdown`
 : This is an optional property introduced to specify if you want to parse the shortcode before or after the Markdown gets processed. In case you include your own Markdown code with your shortcode, you can set this property to `true`. Otherwise you keep ot set to `false` or do not include it.
+
+`kind`
+: Optional, `"inline"` by default. Set it to `"control"` to have the shortcode become its own SharePoint web part rather than HTML inside the Markdown web part — see [control shortcodes](./control/). Any other value stops the publish with an error.

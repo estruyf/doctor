@@ -138,3 +138,24 @@ test("SegmentsHelper refuses a control shortcode that is not on its own line", (
     );
   }
 });
+
+test("SegmentsHelper reports which tags a document uses", () => {
+  assert.equal(
+    SegmentsHelper.hasTag(`Text\n\n<related-pages />`, CONTROLS),
+    true,
+  );
+  // Wrapped in a paragraph it is still a use, just not a valid one
+  assert.equal(SegmentsHelper.hasTag(`A <related-pages /> b`, CONTROLS), true);
+  assert.equal(SegmentsHelper.hasTag(`<toc />`, ["toc"]), true);
+  assert.equal(SegmentsHelper.hasTag(`Nothing here`, CONTROLS), false);
+  // A code sample is not a use
+  assert.equal(
+    SegmentsHelper.hasTag("Like `<related-pages />` here", CONTROLS),
+    false,
+  );
+  // A tag that only shares a prefix is a different shortcode
+  assert.equal(
+    SegmentsHelper.hasTag(`<related-pages-list />`, CONTROLS),
+    false,
+  );
+});
