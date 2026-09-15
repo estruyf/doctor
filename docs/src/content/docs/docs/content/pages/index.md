@@ -142,7 +142,13 @@ exactly what the file says on every publish.
   is only a banner, for instance — one is created below it.
 - Once a page has content, it stays in the section it is in. Re-publishing never moves it.
 - Every **other** section is left untouched: a vertical section, and anything the `template` front
-  matter brings along.
+  matter brings along. `Doctor` has no way to describe a vertical section's contents in markdown, so
+  it never writes to one.
+
+The **banner** follows the [`header`](#front-matter) front matter the same way. Changing a setting
+applies it and resets the ones you left out, and removing the `header` block altogether puts the
+banner back to the default — a page never keeps a header its markdown no longer describes. The one
+exception is a page built from a `template`, which keeps the template's banner.
 
 :::caution[Do not edit a Doctor page in SharePoint]
 Anything added to `Doctor`'s content section on the SharePoint side is removed on the next publish,

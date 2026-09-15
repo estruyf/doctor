@@ -110,16 +110,27 @@ export class HeaderHelper {
       }
     }
 
-    if (header || (!header && !isCopy)) {
-      // Check if header is changed
-      if (!hasHeaderUpdates) {
-        return;
-      }
-      await executeWithRetry(
-        "spo page header set",
-        headerOptions,
-        CliCommand.getRetry()
-      );
+    // A page copied from a template keeps the template's banner, which is the
+    // reason to use a template in the first place
+    if (!header && isCopy) {
+      return;
     }
+
+    // The front matter is the page. Front matter which names no header settings
+    // means the page has no header, so the banner goes back to the default
+    // instead of keeping whatever it was left with — the same way removing a
+    // header setting resets that one property.
+    if (!hasHeaderUpdates) {
+      Logger.debug(
+        `No header settings for ${slug}, resetting its banner to the default.`
+      );
+      headerOptions.type = "Default";
+    }
+
+    await executeWithRetry(
+      "spo page header set",
+      headerOptions,
+      CliCommand.getRetry()
+    );
   }
 }
