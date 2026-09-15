@@ -32,6 +32,14 @@ export interface ComposeOptions extends ControlPlacement {
   ownedTitlePrefix?: string;
 }
 
+export interface CanvasPosition {
+  zoneIndex: number;
+  sectionIndex: number;
+  sectionFactor: number;
+  layoutIndex: number;
+  controlIndex?: number;
+}
+
 export interface WebPartControl {
   webPartId: string;
   webPartData: any;
@@ -60,6 +68,8 @@ const DEFAULT_SECTION: CanvasControl = {
 
 /** SharePoint's vertical section, which is never the target for page content */
 const VERTICAL_SECTION_LAYOUT = 2;
+/** SharePoint marks a full-width section, which holds one banner web part, this way */
+const FULL_WIDTH_SECTION_FACTOR = 0;
 const PAGE_SETTINGS_CONTROL_TYPE = 0;
 const WEB_PART_CONTROL_TYPE = 3;
 
@@ -105,27 +115,22 @@ export class CanvasHelper {
       canvas.unshift(clone(DEFAULT_SECTION));
     }
 
-    const column = options.column ?? 1;
-    const zoneIndex = CanvasHelper.getZoneIndex(canvas, options.section);
-    const inColumn = (control: CanvasControl) =>
+    const isOwned = CanvasHelper.ownershipTest(options);
+    const target = CanvasHelper.getTargetPosition(canvas, options, isOwned);
+
+    const inTarget = (control: CanvasControl) =>
       !!control.position &&
-      control.position.zoneIndex === zoneIndex &&
-      control.position.sectionIndex === column;
-
-    const target = canvas.find(inColumn);
-    if (!target) {
-      throw new Error(
-        `Column ${column} does not exist in section ${options.section ?? 1} of the page.`,
-      );
-    }
-
-    const isOwned = CanvasHelper.ownershipTest(options, inColumn);
+      control.position.zoneIndex === target.zoneIndex &&
+      control.position.sectionIndex === target.sectionIndex;
 
     // An empty column is a placeholder rather than a control, so the web parts
     // take its place instead of being added next to it
     const placeholder =
-      controls.length > 0 && !target.controlType && !isOwned(target)
-        ? target
+      controls.length > 0
+        ? canvas.find(
+            (control) =>
+              inTarget(control) && !control.controlType && !isOwned(control),
+          ) || null
         : null;
 
     const kept = canvas.filter(
@@ -133,16 +138,96 @@ export class CanvasHelper {
     );
 
     const built = controls.map((control) =>
-      CanvasHelper.buildControl(control, target, zoneIndex, column),
+      CanvasHelper.buildControl(control, target),
     );
 
     kept.splice(
-      CanvasHelper.getAnchor(canvas, kept, isOwned, placeholder, inColumn),
+      CanvasHelper.getAnchor(canvas, kept, isOwned, placeholder, inTarget),
       0,
       ...built,
     );
 
-    return CanvasHelper.normalize(kept, inColumn);
+    return CanvasHelper.normalize(kept, inTarget);
+  }
+
+  /**
+   * Where doctor's controls belong.
+   *
+   * In order: the section its own controls are already in, so re-publishing
+   * never moves a page's content; otherwise the first ordinary content section;
+   * otherwise a new one-column section after everything else.
+   *
+   * The full-width and vertical sections are deliberately never chosen. A
+   * full-width section holds a single banner web part — dropping the markdown
+   * in beside it is not a layout SharePoint offers.
+   */
+  private static getTargetPosition(
+    canvas: CanvasControl[],
+    options: ComposeOptions,
+    isOwned: (control: CanvasControl) => boolean,
+  ): CanvasPosition {
+    // An explicit section/column wins, for a caller that knows where it wants to be
+    if (options.section || options.column) {
+      const zoneIndex = CanvasHelper.getZoneIndex(canvas, options.section);
+      const sectionIndex = options.column ?? 1;
+      const control = canvas.find(
+        (entry) =>
+          entry.position &&
+          entry.position.zoneIndex === zoneIndex &&
+          entry.position.sectionIndex === sectionIndex,
+      );
+
+      if (!control) {
+        throw new Error(
+          `Column ${sectionIndex} does not exist in section ${options.section ?? 1} of the page.`,
+        );
+      }
+
+      return { ...control.position };
+    }
+
+    const owned = canvas.find((control) => isOwned(control) && control.position);
+    if (owned) {
+      return { ...owned.position };
+    }
+
+    const content =
+      canvas.find((control) => CanvasHelper.isOneColumnSection(control)) ||
+      canvas.find((control) => CanvasHelper.isContentSection(control));
+    if (content) {
+      return { ...content.position };
+    }
+
+    // Only a banner (or nothing usable) on the page: give the content its own
+    // section underneath instead of squeezing it in next to the banner
+    const zones = canvas
+      .filter((control) => control.position)
+      .map((control) => control.position.zoneIndex);
+
+    return {
+      zoneIndex: zones.length > 0 ? Math.max(...zones) + 1 : 1,
+      sectionIndex: 1,
+      sectionFactor: 12,
+      layoutIndex: 1,
+      controlIndex: 1,
+    };
+  }
+
+  /** A section that holds page content, so neither full width nor vertical */
+  private static isContentSection(control: CanvasControl): boolean {
+    return (
+      !!control.position &&
+      control.position.layoutIndex !== VERTICAL_SECTION_LAYOUT &&
+      control.position.sectionFactor !== FULL_WIDTH_SECTION_FACTOR
+    );
+  }
+
+  /** A content section spanning the full grid, which is the usual place for a page's body */
+  private static isOneColumnSection(control: CanvasControl): boolean {
+    return (
+      CanvasHelper.isContentSection(control) &&
+      control.position.sectionFactor === 12
+    );
   }
 
   /**
@@ -158,21 +243,7 @@ export class CanvasHelper {
       return [];
     }
 
-    const column = options.column ?? 1;
-    let zoneIndex: number;
-    try {
-      zoneIndex = CanvasHelper.getZoneIndex(existing, options.section);
-    } catch {
-      // No section to own anything in yet
-      return [];
-    }
-
-    const inColumn = (control: CanvasControl) =>
-      !!control.position &&
-      control.position.zoneIndex === zoneIndex &&
-      control.position.sectionIndex === column;
-
-    return existing.filter(CanvasHelper.ownershipTest(options, inColumn));
+    return existing.filter(CanvasHelper.ownershipTest(options));
   }
 
   /**
@@ -204,12 +275,11 @@ export class CanvasHelper {
 
   /**
    * Recognise the controls doctor put on the page itself. The recorded instance
-   * ids are authoritative; the title is only trusted inside doctor's own column,
-   * because it is a much weaker signal.
+   * ids are authoritative; the title is the fallback when there is no state to
+   * go on.
    */
   private static ownershipTest(
     options: ComposeOptions,
-    inColumn: (control: CanvasControl) => boolean,
   ): (control: CanvasControl) => boolean {
     const instanceIds = new Set(options.ownedInstanceIds ?? []);
     const prefix = options.ownedTitlePrefix;
@@ -227,8 +297,11 @@ export class CanvasHelper {
         return true;
       }
 
+      // Deliberately not restricted to the target section: doctor has to
+      // recognise its own control wherever the page happens to hold it,
+      // otherwise it leaves that one behind and adds a second one elsewhere.
       const title = control.webPartData.title;
-      if (!prefix || typeof title !== "string" || !inColumn(control)) {
+      if (!prefix || typeof title !== "string") {
         return false;
       }
 
@@ -245,7 +318,7 @@ export class CanvasHelper {
     kept: CanvasControl[],
     isOwned: (control: CanvasControl) => boolean,
     placeholder: CanvasControl | null,
-    inColumn: (control: CanvasControl) => boolean,
+    inTarget: (control: CanvasControl) => boolean,
   ): number {
     // The anchor is an index into `kept`, so only what survived counts
     if (placeholder) {
@@ -269,10 +342,10 @@ export class CanvasHelper {
       position++;
     }
 
-    // Nothing of doctor's on the page yet: append after the column's content
+    // Nothing of doctor's on the page yet: append after the section's content
     let last = -1;
     kept.forEach((control, index) => {
-      if (inColumn(control)) {
+      if (inTarget(control)) {
         last = index;
       }
     });
@@ -289,23 +362,15 @@ export class CanvasHelper {
 
   private static buildControl(
     control: WebPartControl,
-    target: CanvasControl,
-    zoneIndex: number,
-    column: number,
+    target: CanvasPosition,
   ): CanvasControl {
     const instanceId = control.instanceId || randomUUID();
 
-    const built: CanvasControl = {
+    return {
       controlType: WEB_PART_CONTROL_TYPE,
       displayMode: 2,
       id: instanceId,
-      position: {
-        zoneIndex,
-        sectionIndex: column,
-        sectionFactor: target.position.sectionFactor,
-        layoutIndex: target.position.layoutIndex,
-        controlIndex: 1,
-      },
+      position: { ...target, controlIndex: 1 },
       webPartId: control.webPartId,
       emphasis: {},
       webPartData: {
@@ -314,25 +379,19 @@ export class CanvasHelper {
         instanceId,
       },
     };
-
-    if (target.zoneGroupMetadata) {
-      built.zoneGroupMetadata = target.zoneGroupMetadata;
-    }
-
-    return built;
   }
 
   /**
-   * Renumber the column so the controls sit in array order without gaps, and
+   * Renumber the section so the controls sit in array order without gaps, and
    * keep the page settings slice last where SharePoint expects it.
    */
   private static normalize(
     canvas: CanvasControl[],
-    inColumn: (control: CanvasControl) => boolean,
+    inTarget: (control: CanvasControl) => boolean,
   ): CanvasControl[] {
     let index = 1;
     for (const control of canvas) {
-      if (inColumn(control)) {
+      if (inTarget(control)) {
         control.position.controlIndex = index++;
       }
     }
@@ -352,10 +411,7 @@ export class CanvasHelper {
     ];
   }
 
-  /**
-   * Read the page and check it out, which is what SharePoint expects before its
-   * canvas is rewritten.
-   */
+
   public static async checkout(webUrl: string, slug: string): Promise<any> {
     const headers = await CanvasHelper.getHeaders(webUrl);
     const url = pageApiUrl(webUrl, slug);

@@ -182,11 +182,14 @@ test("CanvasHelper recognises the numbered controls of a split page", () => {
   assert.deepEqual(titles(canvas), ["Doctor", "Related", "Something else"]);
 });
 
-test("CanvasHelper does not claim a same-titled control in another column", () => {
+test("CanvasHelper claims its own control in whatever section it sits", () => {
+  // The title fallback is deliberately not scoped to one column: a page whose
+  // layout changed still has exactly one doctor control afterwards, instead of
+  // the old one being orphaned and a second one added next to it
   const existing = [
     { position: position(1), emphasis: {}, displayMode: 2 },
     {
-      ...webPart("theirs-1", "Doctor", 1),
+      ...webPart("ours-1", "Doctor", 1),
       position: position(1, { zoneIndex: 2, sectionIndex: 2 }),
     },
     SETTINGS,
@@ -196,9 +199,8 @@ test("CanvasHelper does not claim a same-titled control in another column", () =
     ownedTitlePrefix: "Doctor",
   });
 
-  // The look-alike in the other column survives, doctor's own is added
-  assert.equal(titles(canvas).length, 2);
-  assert.ok(canvas.some((control) => control.id === "theirs-1"));
+  assert.equal(titles(canvas).length, 1);
+  assert.equal(canvas.filter((c) => c.webPartData).length, 1);
 });
 
 test("CanvasHelper replaces an empty column placeholder", () => {
@@ -268,4 +270,156 @@ test("CanvasHelper honours every instance id it is given", () => {
     canvas.filter((c) => c.webPartData).map((c) => c.webPartData.instanceId),
     ["given-1", "given-2"],
   );
+});
+
+//
+// Sections: a banner lives in a full-width section, the content must not
+//
+
+const BANNER_WEBPART = "cbe7b0a9-3504-44dd-a3a3-0e5cacd07788";
+
+const fullWidthSection = (controlIndex) => ({
+  zoneIndex: 1,
+  sectionIndex: 1,
+  sectionFactor: 0,
+  layoutIndex: 1,
+  controlIndex,
+});
+
+const contentSection = (controlIndex, zoneIndex = 2) => ({
+  zoneIndex,
+  sectionIndex: 1,
+  sectionFactor: 12,
+  layoutIndex: 1,
+  controlIndex,
+});
+
+const banner = () => ({
+  controlType: 3,
+  displayMode: 2,
+  id: "banner-1",
+  position: fullWidthSection(1),
+  webPartId: BANNER_WEBPART,
+  emphasis: {},
+  webPartData: { id: BANNER_WEBPART, instanceId: "banner-1", title: "Banner" },
+});
+
+test("CanvasHelper never puts content in the full-width banner section", () => {
+  // The exact page that went wrong: a banner alone in a full-width section,
+  // and doctor's markdown web part in the ordinary section below it
+  const existing = [
+    banner(),
+    { ...webPart("ours-1", "doctor-placeholder", 1), position: contentSection(1) },
+    SETTINGS,
+  ];
+
+  const canvas = CanvasHelper.compose(existing, [markdown("doctor-placeholder")], {
+    ownedTitlePrefix: "doctor-placeholder",
+  });
+
+  // One banner, one markdown web part — no duplicate left behind
+  assert.deepEqual(titles(canvas), ["Banner", "doctor-placeholder"]);
+
+  const content = canvas.find((c) => c.webPartId === MARKDOWN_WEBPART);
+  assert.equal(content.position.zoneIndex, 2, "content stays out of the banner zone");
+  assert.equal(content.position.sectionFactor, 12);
+  // The banner keeps its own full-width section untouched
+  const kept = canvas.find((c) => c.webPartId === BANNER_WEBPART);
+  assert.equal(kept.id, "banner-1");
+  assert.equal(kept.position.sectionFactor, 0);
+});
+
+test("CanvasHelper recognises its control in another section", () => {
+  // Without state to go on, the title is the only signal — and it has to work
+  // wherever the page happens to hold the control
+  const existing = [
+    banner(),
+    { ...webPart("ours-1", "doctor-placeholder", 1), position: contentSection(1) },
+    SETTINGS,
+  ];
+
+  const owned = CanvasHelper.getOwned(existing, {
+    ownedTitlePrefix: "doctor-placeholder",
+  });
+
+  assert.deepEqual(owned.map((c) => c.id), ["ours-1"]);
+});
+
+test("CanvasHelper adds a section when the page only has a banner", () => {
+  const canvas = CanvasHelper.compose([banner(), SETTINGS], [
+    markdown("doctor-placeholder"),
+  ]);
+
+  const content = canvas.find((c) => c.webPartId === MARKDOWN_WEBPART);
+  assert.equal(content.position.zoneIndex, 2, "a section of its own, below the banner");
+  assert.equal(content.position.sectionFactor, 12);
+  assert.equal(content.position.layoutIndex, 1);
+  // The banner is still alone in its full-width section
+  assert.equal(
+    canvas.filter((c) => c.position && c.position.zoneIndex === 1).length,
+    1,
+  );
+});
+
+test("CanvasHelper keeps a page's content where it already is", () => {
+  // Doctor's control sits in the third section; re-publishing must not move it
+  const existing = [
+    banner(),
+    { ...webPart("theirs-1", "Their web part", 1), position: contentSection(1, 2) },
+    { ...webPart("ours-1", "doctor-placeholder", 1), position: contentSection(1, 3) },
+    SETTINGS,
+  ];
+
+  const canvas = CanvasHelper.compose(
+    existing,
+    [{ ...markdown("doctor-placeholder"), instanceId: "ours-1" }],
+    { ownedInstanceIds: ["ours-1"] },
+  );
+
+  const content = canvas.find((c) => c.id === "ours-1");
+  assert.equal(content.position.zoneIndex, 3);
+  assert.deepEqual(titles(canvas), ["Banner", "Their web part", "doctor-placeholder"]);
+});
+
+test("CanvasHelper ignores the vertical section when picking a place", () => {
+  const vertical = {
+    ...webPart("vert-1", "In the sidebar", 1, ROLLUP_WEBPART),
+    position: { zoneIndex: 1, sectionIndex: 1, sectionFactor: 12, layoutIndex: 2, controlIndex: 1 },
+  };
+  const canvas = CanvasHelper.compose(
+    [vertical, banner(), SETTINGS],
+    [markdown("doctor-placeholder")],
+  );
+
+  const content = canvas.find((c) => c.webPartId === MARKDOWN_WEBPART);
+  assert.notEqual(content.position.layoutIndex, 2, "not in the vertical section");
+  assert.notEqual(content.position.sectionFactor, 0, "not in the full-width section");
+});
+
+test("CanvasHelper puts several segments together in the content section", () => {
+  const existing = [
+    banner(),
+    { ...webPart("ours-1", "doctor-placeholder", 1), position: contentSection(1) },
+    SETTINGS,
+  ];
+
+  const canvas = CanvasHelper.compose(
+    existing,
+    [
+      markdown("doctor-placeholder"),
+      { webPartId: ROLLUP_WEBPART, webPartData: { title: "Related" } },
+      markdown("doctor-placeholder (2)"),
+    ],
+    { ownedTitlePrefix: "doctor-placeholder" },
+  );
+
+  const placed = canvas.filter((c) => c.position && c.position.zoneIndex === 2);
+  assert.equal(placed.length, 3);
+  assert.deepEqual(placed.map((c) => c.position.controlIndex), [1, 2, 3]);
+  assert.deepEqual(titles(canvas), [
+    "Banner",
+    "doctor-placeholder",
+    "Related",
+    "doctor-placeholder (2)",
+  ]);
 });

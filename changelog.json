@@ -33,6 +33,10 @@
       },
       {
         "id": null,
+        "title": "Fix: a page's content is written to the right section again. A page whose top section is a full-width banner had the markdown web part added next to the banner — a layout SharePoint does not allow — while the original web part was left behind in the section below, so the page ended up with two. Doctor now keeps its content in the section it was already in, or in the first ordinary one-column section, and creates one below the banner when the page has none. Full-width and vertical sections are never used for page content."
+      },
+      {
+        "id": null,
         "title": "Fix: setting a page description no longer stops the publish on a tenant which does not allow the account to run a system update. Doctor falls back to a normal update — the description is set, at the cost of the page's `Modified` date changing with it — and says so once per run instead of on every page."
       },
       {
