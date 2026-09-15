@@ -663,9 +663,10 @@ export class DoctorTranspiler {
             );
 
             // Check if metadata needs to be added to the page
+            let skippedMetadata: string[] = [];
             if (metadata || typeof author !== "undefined") {
               setProgress(`Setting metadata for ${relPath}`);
-              await PagesHelper.setPageMetadata(
+              skippedMetadata = await PagesHelper.setPageMetadata(
                 webUrl,
                 slug,
                 metadata,
@@ -691,8 +692,15 @@ export class DoctorTranspiler {
               StatusHelper.addPageCreated();
             }
 
-            // Record hash so future runs can skip unchanged files and resume reliably
-            if (!options.disableStatePersistence) {
+            // Record hash so future runs can skip unchanged files and resume
+            // reliably. A page which could not get all of its metadata is left
+            // out on purpose: recording it would make every later run consider
+            // it unchanged and never retry the columns that failed.
+            if (skippedMetadata.length > 0) {
+              Logger.debug(
+                `Not recording ${slug} in the publish state, because ${skippedMetadata.join(", ")} could not be set.`,
+              );
+            } else if (!options.disableStatePersistence) {
               StateHelper.markPublished(
                 slug,
                 contentHash,

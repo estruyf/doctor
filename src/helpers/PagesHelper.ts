@@ -12,6 +12,8 @@ import {
   STANDARD_WEB_PARTS,
 } from "@models";
 import {
+  AccessToken,
+  ApiHelper,
   CanvasHelper,
   CliCommand,
   executeWithRetry,
@@ -19,6 +21,7 @@ import {
   FolderHelpers,
   ListHelpers,
   Logger,
+  OutputHelper,
   MarkdownHelper,
   MetadataHelper,
   ShortcodesHelpers,
@@ -631,59 +634,82 @@ export class PagesHelper {
    * @param slug
    * @param metadata
    */
+  /**
+   * Write the page's metadata.
+   *
+   * A value doctor cannot work out — a term that is not in the set, an author
+   * who is not a user of this site, a column that does not exist — is reported
+   * and left unset rather than failing the page: the rest of the page is fine
+   * and worth publishing. The names of the columns that were left unset come
+   * back, so the caller can keep the page out of the publish state and have the
+   * next run try it again.
+   *
+   * @returns the columns which could not be set
+   */
   public static async setPageMetadata(
     webUrl: string,
     slug: string,
     metadata: { [fieldName: string]: any } | null = null,
     author: any = undefined
-  ) {
+  ): Promise<string[]> {
     const hasMetadata = !!metadata && Object.keys(metadata).length > 0;
     const hasAuthor = typeof author !== "undefined" && author !== null;
 
     if (!hasMetadata && !hasAuthor) {
-      return;
+      return [];
     }
 
     const pageId = await this.getPageId(webUrl, slug);
     const pageList = await ListHelpers.getSitePagesList(webUrl);
-    if (pageId && pageList) {
-      const validatedMetadata = hasMetadata
-        ? await this.getValidatedMetadata(webUrl, pageList, metadata as any)
-        : {};
 
-      if (hasAuthor) {
-        // `Author` is SharePoint's own created-by column, which takes a claim
-        // like any other person field — not the site user id the front matter
-        // carries, so the id is resolved to its login name first.
-        validatedMetadata["Author"] =
-          `[{'Key':'${await this.resolveAuthorClaim(webUrl, author)}'}]`;
-      }
+    if (!pageId || !pageList) {
+      OutputHelper.warning(
+        `The metadata of "${slug}" was not set, because the page could not be found in the Site Pages library.`
+      );
+      return hasAuthor ? ["Author"] : Object.keys(metadata || {});
+    }
 
-      if (Object.keys(validatedMetadata).length === 0) {
-        Logger.debug(
-          `Skipping metadata update for ${slug} because none of the provided fields exist on Site Pages.`
+    const { validated, skipped } = hasMetadata
+      ? await this.getValidatedMetadata(webUrl, slug, pageList, metadata as any)
+      : { validated: {}, skipped: [] as string[] };
+
+    if (hasAuthor) {
+      // `Author` is SharePoint's own created-by column, which takes a claim
+      // like any other person field — not the site user id the front matter
+      // carries, so the id is resolved to its login name first.
+      try {
+        validated["Author"] =
+          `[{'Key':'${await this.resolveAuthorClaim(webUrl, author, slug)}'}]`;
+      } catch (e: any) {
+        OutputHelper.warning(
+          `${e?.message || e} The page is published without its author, and stays out of the publish state so the next run tries again.`
         );
-        return;
+        skipped.push("Author");
       }
+    }
 
+    if (Object.keys(validated).length > 0) {
       await executeWithRetry(
         "spo listitem set",
         {
           listId: pageList.Id,
           id: pageId,
           webUrl,
-          ...validatedMetadata,
+          ...validated,
         },
         CliCommand.getRetry()
       );
     }
+
+    return skipped;
   }
 
   private static async getValidatedMetadata(
     webUrl: string,
+    slug: string,
     pageList: any,
     metadata: { [fieldName: string]: any }
-  ): Promise<{ [fieldName: string]: any }> {
+  ): Promise<{ validated: { [fieldName: string]: any }; skipped: string[] }> {
     const listId = pageList?.Id;
     let fieldMap = this.listFieldMap[listId];
 
@@ -739,31 +765,49 @@ export class PagesHelper {
     }
 
     const validated: { [fieldName: string]: any } = {};
+    const skipped: string[] = [];
 
     for (const [key, value] of Object.entries(metadata)) {
       const fieldInfo = fieldMap.get(key.toLowerCase());
 
       if (!fieldInfo?.internalName) {
-        Logger.debug(
-          `Skipping metadata field '${key}' because it does not exist on list '${listId}'.`
+        OutputHelper.warning(
+          `The column '${key}' of "${slug}" does not exist on the Site Pages library, so it was not set.`
         );
+        skipped.push(key);
         continue;
       }
 
-      const transformed = await this.transformMetadataValue(
-        webUrl,
-        fieldInfo,
-        value
-      );
+      let transformed: any;
+      try {
+        transformed = await this.transformMetadataValue(
+          webUrl,
+          fieldInfo,
+          value
+        );
+      } catch (e: any) {
+        // A value doctor cannot work out costs the column, not the page
+        OutputHelper.warning(
+          `The column '${key}' of "${slug}" was not set. ${e?.message || e}`
+        );
+        skipped.push(key);
+        continue;
+      }
 
       if (typeof transformed === "undefined") {
+        OutputHelper.warning(
+          `The column '${key}' of "${slug}" was not set, because '${JSON.stringify(
+            value
+          )}' is not a value its type accepts.`
+        );
+        skipped.push(key);
         continue;
       }
 
       validated[fieldInfo.internalName] = transformed;
     }
 
-    return validated;
+    return { validated, skipped };
   }
 
   private static async transformMetadataValue(
@@ -869,14 +913,17 @@ export class PagesHelper {
 
   /**
    * Turn the `author` front matter into the claim SharePoint's Author column
-   * expects. The metadata editor writes the site user id it found in the site's
-   * own user list, which is only meaningful to that site, so it is resolved back
-   * to the user's login name here. A UPN is accepted too, for front matter
-   * written by hand.
+   * expects.
+   *
+   * The site user id is read back from `_api/web/siteusers` — the same list the
+   * metadata editor's picker searched to produce it, so both sides agree on
+   * what an id means. That list is per site: a user only has an id on a site
+   * they are a member of or have visited, and the id differs from site to site.
    */
   private static async resolveAuthorClaim(
     webUrl: string,
-    author: any
+    author: any,
+    slug: string
   ): Promise<string> {
     const siteUserId =
       typeof author === "number"
@@ -885,37 +932,71 @@ export class PagesHelper {
           ? parseInt(author.trim(), 10)
           : null;
 
-    if (siteUserId !== null) {
-      const { stdout } = await executeWithRetry(
-        "spo user get",
-        {
-          webUrl,
-          id: siteUserId,
-          output: "json",
-        },
-        CliCommand.getRetry()
-      );
-
-      const user = JSON.parse(stdout || "{}");
-      const loginName = user?.LoginName || user?.loginName;
-
-      if (!loginName) {
-        throw new Error(
-          `The 'author' site user id ${siteUserId} does not exist on ${webUrl}. A user only has an id on a site they are a member of, or have visited.`
-        );
+    if (siteUserId === null) {
+      if (typeof author === "string" && author.includes("@")) {
+        return MetadataHelper.toClaimKey(author) as string;
       }
 
-      // The login name already is the claim
-      return loginName;
+      throw new Error(
+        `The 'author' of "${slug}" has to be a SharePoint site user id (a number) or a user principal name, but was '${author}'.`
+      );
     }
 
-    if (typeof author === "string" && author.includes("@")) {
-      return MetadataHelper.toClaimKey(author) as string;
+    const base = webUrl.replace(/\/+$/, "");
+    const headers = {
+      Authorization: `Bearer ${(await AccessToken.get(webUrl)).trim()}`,
+      accept: "application/json;odata=nometadata",
+    };
+
+    let user: any;
+    try {
+      user = await ApiHelper.getOrThrow(
+        `${base}/_api/web/siteusers/GetById(${siteUserId})`,
+        headers
+      );
+    } catch (e: any) {
+      throw new Error(
+        `The 'author' of "${slug}" is site user id ${siteUserId}, which does not exist on ${base}. ${await PagesHelper.getSiteUserHint(base, headers)}`
+      );
     }
 
-    throw new Error(
-      `The 'author' front matter has to be a SharePoint site user id (a number) or a user principal name, but was '${author}'.`
-    );
+    const loginName = user?.LoginName;
+    if (!loginName) {
+      throw new Error(
+        `Site user ${siteUserId} on ${base} has no login name, so it cannot be used as the 'author' of "${slug}".`
+      );
+    }
+
+    // The login name already is the claim, which keeps guest and group
+    // accounts working — their claims are not the membership shape
+    return loginName;
+  }
+
+  /**
+   * A few of the site's actual users, so a wrong author id says what the right
+   * ones would be instead of only that the lookup failed.
+   */
+  private static async getSiteUserHint(
+    base: string,
+    headers: any
+  ): Promise<string> {
+    try {
+      const response = await ApiHelper.getOrThrow(
+        `${base}/_api/web/siteusers?$select=Id,Title,Email&$filter=PrincipalType eq 1&$top=5`,
+        headers
+      );
+
+      const users: any[] = response?.value || [];
+      if (users.length === 0) {
+        return `The site has no users to pick from — check that you are publishing to the site you picked the author on.`;
+      }
+
+      return `Ids on this site look like: ${users
+        .map((entry) => `${entry.Id} (${entry.Title || entry.Email || "?"})`)
+        .join(", ")}. The full list is at ${base}/_api/web/siteusers. Remember an id is per site, so one picked on another site does not carry over — a user principal name works on any site.`;
+    } catch {
+      return `The full list is at ${base}/_api/web/siteusers. Remember an id is per site, so one picked on another site does not carry over — a user principal name works on any site.`;
+    }
   }
 
   private static async resolveTerm(

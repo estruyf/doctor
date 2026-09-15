@@ -25,11 +25,15 @@
       },
       {
         "id": null,
-        "title": "Managed metadata: a column pinned to an anchor term only resolves labels inside that sub-tree, a term can be written by any of its labels, and a duplicate label can be written as a path (`Regions > Europe`). A term that cannot be resolved, or matches more than one, now stops the page instead of quietly leaving the field empty."
+        "title": "Managed metadata: a column pinned to an anchor term only resolves labels inside that sub-tree, a term can be written by any of its labels, and a duplicate label can be written as a path (`Regions > Europe`)."
       },
       {
         "id": null,
         "title": "New: the `author` front matter sets the page author. Takes the SharePoint site user ID (what the Doctor Metadata VS Code extension writes) or a UPN."
+      },
+      {
+        "id": null,
+        "title": "A page is no longer published without warning when one of its columns cannot be set. A missing column, a term which is not in the term set, an author who is not a user of the site, or a value its column type does not accept is now reported, the rest of the page is published as usual, and the page is kept out of the publish state so the next run tries that column again instead of treating the page as unchanged."
       }
     ]
   },

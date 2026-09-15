@@ -154,8 +154,8 @@ A UPN works too, for front matter written by hand:
 author: john@contoso.com
 ```
 
-An id that does not exist on the site stops the publish rather than leaving the page with the wrong
-author.
+If the id does not exist on the site, `Doctor` reports it and publishes the page without setting the
+author, rather than leaving it with the wrong one. The warning lists a few ids that do exist.
 
 :::note[Not the same as the header authors]
 `author` is the SharePoint column. The `header.authors` setting is a different thing — the list of
@@ -260,9 +260,10 @@ A few things are worth knowing:
     Region: "Regions > Europe"
   ```
 
-- **An unknown or ambiguous term stops the publish** for that page, naming the term and — when it is
-  ambiguous — the paths it matched. A metadata value that silently does not arrive is worse than a
-  failed publish, so it is not skipped. Give an explicit `termGuid` to bypass the lookup entirely.
+- **An unknown or ambiguous term is reported, and the column is left unset.** The rest of the page is
+  published as normal, and the warning names the term and — when it is ambiguous — the paths it
+  matched. The page is also kept out of the publish state, so the next run tries it again instead of
+  treating it as up to date. Give an explicit `termGuid` to bypass the lookup entirely.
 - **Deprecated terms are ignored**, since SharePoint does not accept them on an item anyway.
 
 ##### User Fields
@@ -371,6 +372,19 @@ metadata:
 ```
 
 Empty strings in arrays are automatically filtered out.
+
+#### What happens when a value cannot be set
+
+`Doctor` never fails a page over its metadata. When a column cannot be set — the column does not
+exist on the Site Pages library, a term is not in the term set, an author is not a user of the site,
+a value is not one its column type accepts — it:
+
+1. reports a warning naming the page, the column and the reason;
+2. publishes the page without that column;
+3. **leaves the page out of `.doctor/state.json`**, so the next run does not consider it unchanged
+   and tries the column again once you have fixed it.
+
+Warnings are listed at the end of the run, and in the `warnings` array when using `--output json`.
 
 #### Metadata Validation
 
