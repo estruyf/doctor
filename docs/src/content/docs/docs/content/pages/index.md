@@ -131,6 +131,24 @@ menu:
 Write here the Doctor page content.
 ```
 
+### How the page is built
+
+`Doctor` owns one section of the page: the markdown file is the page, so that section is rewritten to
+exactly what the file says on every publish.
+
+- The **page banner** keeps the full-width section at the top of the page, on its own. A full-width
+  section holds a single web part, so nothing else is ever put there.
+- The **content** goes in the first ordinary one-column section. If the page has none — a page which
+  is only a banner, for instance — one is created below it.
+- Once a page has content, it stays in the section it is in. Re-publishing never moves it.
+- Every **other** section is left untouched: a vertical section, and anything the `template` front
+  matter brings along.
+
+:::caution[Do not edit a Doctor page in SharePoint]
+Anything added to `Doctor`'s content section on the SharePoint side is removed on the next publish,
+because that section is rebuilt from the markdown file. Edit the markdown, not the page.
+:::
+
 ### Author
 
 `Doctor` can set the page's author — SharePoint's own `Author` column, which is what the page shows

@@ -123,26 +123,25 @@ export class CanvasHelper {
       control.position.zoneIndex === target.zoneIndex &&
       control.position.sectionIndex === target.sectionIndex;
 
-    // An empty column is a placeholder rather than a control, so the web parts
-    // take its place instead of being added next to it
-    const placeholder =
-      controls.length > 0
-        ? canvas.find(
-            (control) =>
-              inTarget(control) && !control.controlType && !isOwned(control),
-          ) || null
-        : null;
+    // The markdown file is the page. Doctor's content section is rewritten to
+    // exactly what the file says, so a web part somebody added there by hand,
+    // an empty column placeholder, or a control doctor itself left behind in
+    // an earlier layout all go. Every other section — the full-width banner,
+    // a vertical section, anything a template brought along — is left alone.
+    const replaced = (control: CanvasControl): boolean =>
+      isOwned(control) ||
+      (controls.length > 0 &&
+        inTarget(control) &&
+        control.controlType !== PAGE_SETTINGS_CONTROL_TYPE);
 
-    const kept = canvas.filter(
-      (control) => control !== placeholder && !isOwned(control),
-    );
+    const kept = canvas.filter((control) => !replaced(control));
 
     const built = controls.map((control) =>
       CanvasHelper.buildControl(control, target),
     );
 
     kept.splice(
-      CanvasHelper.getAnchor(canvas, kept, isOwned, placeholder, inTarget),
+      CanvasHelper.getAnchor(canvas, kept, replaced, inTarget),
       0,
       ...built,
     );
@@ -316,33 +315,20 @@ export class CanvasHelper {
   private static getAnchor(
     canvas: CanvasControl[],
     kept: CanvasControl[],
-    isOwned: (control: CanvasControl) => boolean,
-    placeholder: CanvasControl | null,
+    replaced: (control: CanvasControl) => boolean,
     inTarget: (control: CanvasControl) => boolean,
   ): number {
-    // The anchor is an index into `kept`, so only what survived counts
-    if (placeholder) {
-      let position = 0;
-      for (const control of canvas) {
-        if (control === placeholder) {
-          return position;
-        }
-        if (!isOwned(control)) {
-          position++;
-        }
-      }
-      return position;
-    }
-
+    // The anchor is an index into `kept`, so only what survived counts: the new
+    // controls go where the section's old content started
     let position = 0;
     for (const control of canvas) {
-      if (isOwned(control)) {
+      if (replaced(control)) {
         return position;
       }
       position++;
     }
 
-    // Nothing of doctor's on the page yet: append after the section's content
+    // Nothing was replaced, so the section is new or empty
     let last = -1;
     kept.forEach((control, index) => {
       if (inTarget(control)) {

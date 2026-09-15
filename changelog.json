@@ -33,7 +33,7 @@
       },
       {
         "id": null,
-        "title": "Fix: a page's content is written to the right section again. A page whose top section is a full-width banner had the markdown web part added next to the banner — a layout SharePoint does not allow — while the original web part was left behind in the section below, so the page ended up with two. Doctor now keeps its content in the section it was already in, or in the first ordinary one-column section, and creates one below the banner when the page has none. Full-width and vertical sections are never used for page content."
+        "title": "Fix: a page's content is written to the right section again. A page whose top section is a full-width banner had the markdown web part added next to the banner — a layout SharePoint does not allow — while the original web part was left behind in the section below, so the page ended up with two. Doctor now keeps its content in the section it was already in, or in the first ordinary one-column section, and creates one below the banner when the page has none. Full-width and vertical sections are never used for page content. That content section is also rewritten to exactly what the markdown file says — the file is the page, so a web part added there by hand does not survive a publish. Every other section is left alone."
       },
       {
         "id": null,

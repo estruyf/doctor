@@ -82,11 +82,13 @@ test("CanvasHelper reuses the instance id of the control it replaces", () => {
   assert.equal(canvas[0].webPartData.instanceId, "instance-1");
 });
 
-test("CanvasHelper leaves controls it does not own alone", () => {
+test("CanvasHelper clears everything else out of its content section", () => {
+  // The markdown file is the page: whatever else ended up in doctor's section
+  // goes, so the section is exactly what the file says
   const existing = [
-    webPart("theirs-1", "Hand made hero", 1),
+    webPart("theirs-1", "Added by hand", 1),
     webPart("ours-1", "Doctor", 2),
-    webPart("theirs-2", "Their footer", 3),
+    webPart("theirs-2", "Also added by hand", 3),
     SETTINGS,
   ];
 
@@ -94,18 +96,55 @@ test("CanvasHelper leaves controls it does not own alone", () => {
     ownedInstanceIds: ["ours-1"],
   });
 
-  assert.deepEqual(titles(canvas), [
-    "Hand made hero",
-    "Doctor",
-    "Their footer",
-  ]);
-  // The foreign controls keep their own instance ids
-  assert.equal(canvas[0].id, "theirs-1");
-  assert.equal(canvas[2].id, "theirs-2");
-  assert.deepEqual(
-    canvas.filter((c) => c.position).map((c) => c.position.controlIndex),
-    [1, 2, 3],
-  );
+  assert.deepEqual(titles(canvas), ["Doctor"]);
+  assert.equal(canvas[canvas.length - 1].controlType, 0);
+});
+
+test("CanvasHelper leaves the other sections alone", () => {
+  // Only doctor's own section is rewritten — a banner, a vertical section or
+  // whatever a template brought along keeps working
+  const vertical = {
+    ...webPart("vert-1", "In the sidebar", 1, ROLLUP_WEBPART),
+    position: {
+      zoneIndex: 1,
+      sectionIndex: 1,
+      sectionFactor: 12,
+      layoutIndex: 2,
+      controlIndex: 1,
+    },
+  };
+  const existing = [
+    vertical,
+    {
+      ...webPart("theirs-1", "Banner", 1, ROLLUP_WEBPART),
+      position: {
+        zoneIndex: 1,
+        sectionIndex: 1,
+        sectionFactor: 0,
+        layoutIndex: 1,
+        controlIndex: 1,
+      },
+    },
+    {
+      ...webPart("ours-1", "Doctor", 1),
+      position: {
+        zoneIndex: 2,
+        sectionIndex: 1,
+        sectionFactor: 12,
+        layoutIndex: 1,
+        controlIndex: 1,
+      },
+    },
+    SETTINGS,
+  ];
+
+  const canvas = CanvasHelper.compose(existing, [markdown("Doctor")], {
+    ownedInstanceIds: ["ours-1"],
+  });
+
+  assert.ok(canvas.some((c) => c.id === "vert-1"), "vertical section kept");
+  assert.ok(canvas.some((c) => c.id === "theirs-1"), "banner kept");
+  assert.equal(titles(canvas).length, 3);
 });
 
 test("CanvasHelper removes the controls whose segment disappeared", () => {
@@ -113,7 +152,6 @@ test("CanvasHelper removes the controls whose segment disappeared", () => {
     webPart("ours-1", "Doctor", 1),
     webPart("ours-2", "Related", 2, ROLLUP_WEBPART),
     webPart("ours-3", "Doctor (2)", 3),
-    webPart("theirs-1", "Their footer", 4),
     SETTINGS,
   ];
 
@@ -123,14 +161,26 @@ test("CanvasHelper removes the controls whose segment disappeared", () => {
     { ownedInstanceIds: ["ours-1", "ours-2", "ours-3"] },
   );
 
-  assert.deepEqual(titles(canvas), ["Doctor", "Their footer"]);
+  assert.deepEqual(titles(canvas), ["Doctor"]);
 });
 
 test("CanvasHelper reorders doctor's controls without moving the others", () => {
   const existing = [
-    webPart("theirs-1", "Hand made hero", 1),
-    webPart("ours-1", "Doctor", 2),
-    webPart("ours-2", "Related", 3, ROLLUP_WEBPART),
+    {
+      ...webPart("theirs-1", "Hand made hero", 1, ROLLUP_WEBPART),
+      position: {
+        zoneIndex: 1,
+        sectionIndex: 1,
+        sectionFactor: 0,
+        layoutIndex: 1,
+        controlIndex: 1,
+      },
+    },
+    { ...webPart("ours-1", "Doctor", 1), position: position(1, { zoneIndex: 2 }) },
+    {
+      ...webPart("ours-2", "Related", 2, ROLLUP_WEBPART),
+      position: position(2, { zoneIndex: 2 }),
+    },
     SETTINGS,
   ];
 
@@ -169,17 +219,16 @@ test("CanvasHelper recognises the numbered controls of a split page", () => {
     webPart("unknown-1", "Doctor", 1),
     webPart("unknown-2", "Related", 2, ROLLUP_WEBPART),
     webPart("unknown-3", "Doctor (2)", 3),
-    webPart("theirs-1", "Something else", 4),
     SETTINGS,
   ];
 
+  // `Doctor` and `Doctor (2)` are recognised by title; the rollup between them
+  // is not, but it sits in doctor's section and the file no longer asks for it
   const canvas = CanvasHelper.compose(existing, [markdown("Doctor")], {
     ownedTitlePrefix: "Doctor",
   });
 
-  // Both markdown controls are doctor's; the rollup and the foreign one are not
-  // recognisable without state, so they stay put
-  assert.deepEqual(titles(canvas), ["Doctor", "Related", "Something else"]);
+  assert.deepEqual(titles(canvas), ["Doctor"]);
 });
 
 test("CanvasHelper claims its own control in whatever section it sits", () => {
