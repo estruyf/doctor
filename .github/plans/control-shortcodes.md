@@ -1,6 +1,7 @@
 # Plan: control shortcodes — splitting a page into multiple web parts
 
-Status: draft / not started
+Status: draft / not started — revised 2026-09-15 after a review against the code and against
+`@pnp/cli-microsoft365` 11.5.0 (see Change History)
 Author: proposed via AI coding agent session, for @estruyf to review
 Related: enables a real implementation of a "related pages" search web part, currently only a
 documented placeholder shortcode (`<related-pages />`) in a consumer repo
@@ -58,10 +59,24 @@ export default {
 `ctx` gives the shortcode access to page-level facts it may need for its properties (front matter,
 slug, site URL) without every shortcode author having to re-derive them.
 
-`kind: "control"` shortcodes are **only valid in `beforeMarkdown: false` position** (after Markdown
-parsing would produce HTML per element; before that point the tag hasn't even been isolated as its
-own block yet) — validate this in `ShortcodesHelpers.init()` and throw a clear error otherwise,
-same style as the existing "Missing render function" check in `ShortcodesHelpers.parse()`.
+`kind: "control"` shortcodes must be **kept out of the inline shortcode registry entirely** — the
+constraint is not a `beforeMarkdown` position. Segmentation (§2) runs on raw Markdown *before*
+`getHtmlData()`, so a control tag never reaches either parse phase and `beforeMarkdown` is
+meaningless for it. What matters is that `ShortcodesHelpers.parse()` must never receive a control
+tag in its `tags` list: if it did, any occurrence that survived segmentation (nested in a list item,
+a blockquote, a table cell — §2 only finds *top-level* occurrences) would be picked up by
+`parseAfter`, `render()` would return an object, and `$elm.replaceWith(<object>)` would write
+`[object Object]` into the published page. A control tag found below top level must therefore fail
+loudly, in the style of the existing "Missing render function" check.
+
+Two prerequisites in the current code:
+
+- `ShortcodesHelpers.init()` copies only `{ render, beforeMarkdown }` off each loaded module
+  (`ShortcodesHelpers.ts:51-54`), so `kind` is dropped on load today — that line has to change or
+  the feature is inert no matter what else is built.
+- `ShortcodeRender` in `src/models/Shortcode.ts` has no `kind` field, and its `render` signature is
+  typed as returning `Promise<string> | string`. Both need widening, and an unrecognised `kind`
+  value must throw rather than silently falling back to `"inline"`.
 
 ### 2. Segmenting the page before HTML conversion
 
@@ -84,6 +99,12 @@ one-helper-per-concern pattern) that runs on the raw Markdown, before `getHtmlDa
 4. Each `"markdown"` segment goes through the **existing** pipeline unchanged (`getHtmlData()` →
    `markdown-it` → inline shortcodes → HTML). `"control"` segments call the shortcode's `render()`
    to get its `standardWebPart`/`webPartId`/`webPartProperties`, nothing else.
+5. A control-shortcode tag found *below* top level — inside a list item, blockquote or table cell,
+   or pulled in mid-paragraph by a partial — is an error, never a silent inline render (see §1).
+
+Segmentation should be a **pure, exported function** (`markdown + registered control tags →
+PageSegment[]`). It is the only part of this feature testable without a SharePoint tenant, and per
+`AGENTS.md` anything it caches needs a `reset()` wired into `Commands.resetRuntimeState()`.
 
 ### 3. Publishing: one control per segment, in order
 
@@ -92,15 +113,35 @@ the segment list, replacing the single call in `DoctorTranspiler.ts` around line
 
 - Markdown segments: same `spo page clientsidewebpart add` / `page control set` as today, but with
   a per-segment title (`webPartTitle` for the first, `${webPartTitle} (2)`, `${webPartTitle} (3)`, …
-  — needs to stay stable across runs so re-publishing updates in place rather than duplicating) and
-  an explicit `--order` equal to the segment's index, so ordering on the canvas matches source order
-  regardless of section/column placement.
+  — needs to stay stable across runs so re-publishing updates in place rather than duplicating).
+- Canvas order comes from the segment list, but see the two caveats below — `--order` alone does not
+  express it.
 - Control segments: `spo page clientsidewebpart add` with either `--standardWebPart <type>` (OOTB,
   validated against `StandardWebPartUtils.isValidStandardWebPartType`) or `--webPartId <guid>
-  --webPartProperties <json>` (custom/SPFx), plus the same `--order`.
+  --webPartProperties <json>` (custom/SPFx).
 - Single-segment pages (the overwhelming majority, at least initially) take the exact code path used
   today — this should be structured as "loop of 1" rather than a parallel special case, so there is
   only one implementation to maintain.
+
+**`--order` is an insert position, not an absolute index.** In `page-clientsidewebpart-add.js` the
+value indexes into the controls that already exist *in the same zone/column*, and `controlIndex` is
+renormalised across the column afterwards. "`--order` equal to the segment index" therefore only
+holds while adding strictly ascending onto a page doctor fully owns. On a re-publish where only
+segment 3 is new, `--order 3` means "before the 3rd existing control" — the wrong slot as soon as
+the page also carries controls doctor did not create.
+
+**Reordering an existing control is not possible through the CLI.** `spo page control set` accepts
+only `id`, `pageName`, `webUrl`, `webPartData`, `webPartProperties` — there is no move operation.
+If a `<related-pages />` moves from position 2 to position 4 in the source, reconcile has to remove
+and re-add it (new instance ids each run) or PATCH `CanvasContent1` directly.
+
+**Evaluate composing `CanvasContent1` and PATCHing once, instead of looping CLI calls.** A page
+costs 1 CLI call today; with N segments plus reconcile it becomes 2N+ calls, each a full page
+checkout/save under the 120s `CliCommand.getTimeout()` and its single 5s retry. `spo page control
+remove` additionally calls `SavePageAsDraft` and then **republishes** unless `--draft` is passed,
+which will fight `draft: true` front matter. doctor already drops to direct REST through
+`ApiHelper` where the CLI falls short; doing the same here is worth costing out as the primary path
+rather than as a fallback.
 
 ### 4. Reconciling controls across runs (idempotency)
 
@@ -109,16 +150,28 @@ controls per page this needs to become:
 
 - Match existing controls by the same title scheme (`webPartTitle`, `${webPartTitle} (2)`, …) for
   markdown segments.
-- Match existing control-shortcode controls by a stable marker — simplest option: store the
-  shortcode name + a segment index in a property doctor already controls (e.g. a hidden
-  `serverProcessedContent` field, similar to how `searchablePlainTexts.code` is used today) so a
-  later run can tell "this control belongs to control-shortcode X at position 2" apart from a
-  control the page owner added manually on the SharePoint side, which must never be touched.
+- Match existing control-shortcode controls by a marker kept in **`.doctor/state.json`**, not on the
+  control itself. `serverProcessedContent.searchablePlainTexts.code` is *not* a hidden field — it is
+  the Markdown web part's actual source content (`MarkdownHelper.ts:169-175`), which is what
+  SharePoint shows in the page editor, so writing a marker there corrupts page content. And for a
+  control segment the web part belongs to SharePoint or to an SPFx author; doctor cannot safely
+  inject arbitrary `serverProcessedContent` into someone else's web part schema. `StateHelper`
+  already keys by slug, so a `segment → control instanceId` map belongs there, with the title match
+  as the fallback when `--disableStatePersistence` is set. This is also what keeps a control the
+  page owner added manually on the SharePoint side from ever being touched.
 - Reconcile: `page control set` for controls that still match a current segment, `page
-  clientsidewebpart add` for new segments, `page-control-remove` (`--force`, already used
-  elsewhere in the codebase for cleanup flows — check `--removeDeleted`'s implementation for the
-  existing confirm/force pattern) for controls whose segment disappeared (e.g. the control
-  shortcode tag was deleted from the Markdown, or the page went from 3 segments to 1).
+  clientsidewebpart add` for new segments, and `spo page control remove --force` for controls whose
+  segment disappeared (the tag was deleted from the Markdown, or the page went from 3 segments to
+  1). **The remove path is entirely new code with no precedent in this repo** — `grep` finds no
+  control removal anywhere in `src/`, and `--removeDeleted` recycles whole *pages*
+  (`spo page remove --recycle`, `PagesHelper.ts:152`), not controls. There is no existing
+  confirm/force pattern to copy, and this is the only destructive operation in the feature, so it
+  needs gating at least as careful as `--removeDeleted`'s.
+
+**Title-scheme fragility scales with N.** If `--webPartTitle` changes between runs, every title
+match fails and the page duplicates its controls. That is a one-control annoyance today; with N
+segments it is an N-control mess, and the new remove path makes the blast radius destructive rather
+than merely untidy. The state-file marker above is what bounds this.
 
 ### 5. State hash / `doctor status`
 
@@ -128,6 +181,41 @@ correctly when a control shortcode's attributes change. No new hashing logic sho
 but this needs to be verified with a test once implemented, since the segmentation pass reads from
 the same resolved source string the hash is computed from.
 
+Verified against the code: the hash is computed at `DoctorTranspiler.ts:454` from the resolved
+source, *before* rendering — so segmentation does read exactly the string the hash covers.
+
+### 6. Consequences of cutting one Markdown document into pieces
+
+Each markdown segment runs `getHtmlData()` independently. That is not free, and it is the largest
+unaddressed risk in this plan:
+
+- **Duplicated CSS.** `getHtmlData()` appends the full minified hljs theme plus the shortcodes and
+  extended `<style>` block to whatever it renders (`MarkdownHelper.ts:141-146`). N segments means N
+  copies of that CSS in the page payload. It has to be emitted once — on the first segment only, or
+  hoisted out of `getHtmlData()`.
+- **`<toc />` breaks.** markdown-it runs per segment, so a table of contents in segment 1 only sees
+  the headings in segment 1. The left/right post-processing in `ShortcodesHelpers.parse()` also
+  targets `.doctor__container`, which now exists once per segment. For v1, `toc` together with a
+  control shortcode is probably a hard incompatibility and should error rather than render wrongly.
+- **Anchor slugs, footnotes and reference links.** markdown-it-anchor de-duplicates slugs per
+  render, so two `## Overview` headings in different segments both become `#overview`. Footnote
+  numbering restarts per segment, and reference-style link definitions collected at the bottom of a
+  file stop resolving for the segments above them.
+
+At minimum these ship as documented limits; better, segmentation refuses to split a document that
+uses the affected features.
+
+### 7. Interactions with existing features
+
+- **`markdown.allowHtml` gates the whole feature.** `ShortcodesHelpers.init()` only runs when
+  `allowHtml` is true (`main.ts:50-56`); without it the registry holds only the built-ins and a
+  control-shortcode tag ends up as a literal string in the published page. That is a convenient
+  safety property, but it has to fail loudly rather than silently no-op.
+- **Multilingual.** For `*.machinetranslated.md`, `markup.content` is already HTML by the time it
+  reaches the publish call (`wasAlreadyParsed`, `DoctorTranspiler.ts:454-461`), so a segmentation
+  pass that assumes raw Markdown does not apply. Either segment before translation, or explicitly
+  reject control shortcodes on machine-translated pages.
+
 ## Scope check against `AGENTS.md`
 
 This is a real feature, not a one-file patch. Per "Definition of done", the following move together
@@ -135,35 +223,45 @@ in the same change:
 
 - `src/models/Shortcode.ts` (or wherever the `Shortcode` type lives) — add `kind` and the
   `ControlShortcodeResult` return shape.
-- `src/helpers/ShortcodesHelpers.ts` — validate `kind: "control"` only applies to
-  `beforeMarkdown: false`, expose a way to ask "is this tag a control shortcode".
+- `src/helpers/ShortcodesHelpers.ts` — carry `kind` through `init()` (it is dropped today), keep
+  control tags out of the `tags` list `parse()` walks, and expose a way to ask "is this tag a
+  control shortcode".
 - `src/helpers/MarkdownHelper.ts` (or new `SegmentsHelper.ts`, exported from `src/helpers/index.ts`)
   — the segmentation pass.
 - `src/helpers/PagesHelper.ts` — loop + reconcile instead of single insert/update.
+- `src/helpers/StateHelper.ts` — the per-slug `segment → control instanceId` map from §4.
 - `src/helpers/DoctorTranspiler.ts` — call the new loop instead of the single
   `insertOrCreateControl()` call.
 - `docs/src/content/docs/docs/content/shortcodes/index.md` — document the `kind` field and the
   control-shortcode contract, with a sidebar entry per "new shortcode" in the definition-of-done
   table.
-- `schema/<current>.json` — only if this introduces a new `doctor.json` setting (e.g. an opt-in
-  flag, if one turns out to be needed for a transition period).
+- `schema/<current>.json` — only if this introduces a new `doctor.json` setting. Note the highest
+  schema file is `schema/2.1.0.json` while `package.json` is already at 2.2.0; worth confirming
+  whether a 2.2.0 schema should exist before this lands.
 - `changelog.json` — new entry.
-- `tests/` — at minimum: a page with zero control shortcodes still produces one segment/one control
-  (regression guard), a page with one control shortcode produces three segments in the right order,
-  and a re-publish reconciles correctly (update in place, no duplicate controls).
+- `tests/` — tests import compiled helpers from `dist/` with no SharePoint available, so the
+  testable surface is segmentation plus reconcile planning (given a segment list and a prior state,
+  which adds/sets/removes are emitted — without executing them). At minimum: a page with zero
+  control shortcodes still produces one segment/one control (regression guard), a page with one
+  control shortcode produces three segments in the right order, a control tag below top level
+  throws, and a re-publish plans an update in place rather than a duplicate.
 
 ## Open questions for @estruyf
 
-1. Should `kind: "control"` be opt-in per `doctor.json` (a `markdown.allowControlShortcodes` flag)
-   for a transition period, or ship straight as a shortcode-module-level opt-in (safe by
-   construction since it requires a new shortcode file to use)?
-2. Multi-column pages: today everything lands in `section: 1, column: 1`. Should control-shortcode
-   segments support an optional `column`/`section` attribute on the tag itself (e.g.
-   `<related-pages column="2" />`), or always flow into the same single column as the surrounding
-   markdown segments for v1?
-3. Confirm the reconciliation marker approach in step 4 — is there a cleaner existing mechanism
-   (e.g. something already used by the translation pipeline to tag "this control belongs to
-   doctor") that should be reused instead of inventing a new one?
+Proposed answers from the review; @estruyf to confirm or overrule.
+
+1. **Should `kind: "control"` be opt-in per `doctor.json`?** — Proposed: **no flag.**
+   `markdown.allowHtml` already gates the entire shortcode system (§7), and using the feature
+   requires authoring a module with `kind: "control"`, so it is safe by construction. A flag would
+   add a fourth place to keep in sync (args → `doctor.json` → `CommandArguments` → schema) for no
+   real safety gain. Instead, validate that an unrecognised `kind` throws (§1).
+2. **Multi-column pages** — Proposed: **same section/column for v1.** `--order` is already scoped per
+   zone/column, so a `column=`/`section=` attribute would mean creating sections during publish (the
+   `spo page section add` fallback in `insertOrCreateControl` exists) *and* reconciling across them.
+   Defer it.
+3. **Is there an existing "this control belongs to doctor" mechanism to reuse?** — Answered: **no.**
+   The title match is all there is; the translation pipeline tags nothing. Use `StateHelper`, per the
+   revised §4.
 
 ## Downstream motivation (context, not part of this repo's implementation)
 
@@ -173,8 +271,13 @@ hand-curated link list. That only becomes possible once control shortcodes exist
 documented there as an inert placeholder shortcode with a "Status: placeholder, not yet implemented
 in Doctor" note, pending this feature.
 
+For the record, that use case needs no SPFx: the web part is the OOTB Highlighted Content one,
+`standardWebPart: "ContentRollup"` (`daf0b71c-6de8-4ef7-b511-faae7c388708`), so it is reachable
+through the `--standardWebPart` branch of §3.
+
 ## Change History
 
 | Date | Change |
 |---|---|
 | 2026-09-10 | Initial draft |
+| 2026-09-15 | Revised after review against the code and `@pnp/cli-microsoft365` 11.5.0. Corrected three claims: the `beforeMarkdown` constraint in §1 (control tags must be kept out of the inline registry, not positioned within it), the reconciliation marker in §4 (`searchablePlainTexts.code` is page content, not hidden metadata — use `StateHelper`), and "`page control remove` is already used elsewhere" in §4 (it is not; `--removeDeleted` recycles pages). Added: `--order` insert-position semantics and the impossibility of reordering via `page control set` (§3), the `CanvasContent1` PATCH alternative (§3), title-scheme fragility (§4), new §6 on CSS duplication / `toc` / anchor-slug breakage when splitting a document, new §7 on the `allowHtml` gate and multilingual, `StateHelper` and the schema-version note in the scope list, and proposed answers to all three open questions. |
