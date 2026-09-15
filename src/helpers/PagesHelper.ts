@@ -554,8 +554,34 @@ export class PagesHelper {
       }
     }
 
-    const canvas = CanvasHelper.compose(existing, controls, ownership);
-    await CanvasHelper.save(webUrl, slug, canvas);
+    // Compose from the page as it stands at the moment of writing. A save that
+    // is refused because the page moved on is worth one more attempt from a
+    // fresh checkout — the controls are already built, so only the canvas they
+    // are placed into is read again.
+    const writeCanvas = async (current: any[]) => {
+      await CanvasHelper.save(
+        webUrl,
+        slug,
+        CanvasHelper.compose(current, controls, ownership)
+      );
+    };
+
+    try {
+      await writeCanvas(existing);
+    } catch (e: any) {
+      if (!CanvasHelper.isSaveConflict(e)) {
+        throw e;
+      }
+
+      Logger.debug(
+        `SharePoint refused the canvas of ${slug} as a conflict, retrying from a fresh checkout.`
+      );
+
+      const retry = await CanvasHelper.checkout(webUrl, slug);
+      await writeCanvas(
+        retry?.CanvasContent1 ? JSON.parse(retry.CanvasContent1) : []
+      );
+    }
 
     StateHelper.setControls(
       slug,

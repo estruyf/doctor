@@ -529,3 +529,23 @@ test("CanvasHelper moves its control out of a vertical section", () => {
   assert.equal(content.position.layoutIndex, 1, "not the vertical section");
   assert.equal(content.position.sectionFactor, 12);
 });
+
+test("CanvasHelper recognises a save conflict", () => {
+  // SharePoint refuses the save when the page moved on since it was read,
+  // which is what a checkout left behind by an interrupted run looks like
+  assert.equal(
+    CanvasHelper.isSaveConflict(
+      new Error(
+        "POST https://x/_api/sitepages/pages/GetByUrl('sitepages/y.aspx')/SavePageAsDraft failed with status 409 (Conflict). Save Conflict",
+      ),
+    ),
+    true,
+  );
+  assert.equal(CanvasHelper.isSaveConflict("Save Conflict"), true);
+  assert.equal(
+    CanvasHelper.isSaveConflict(new Error("failed with status 404")),
+    false,
+  );
+  assert.equal(CanvasHelper.isSaveConflict(new Error("nope")), false);
+  assert.equal(CanvasHelper.isSaveConflict(undefined), false);
+});

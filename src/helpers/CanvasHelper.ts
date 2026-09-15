@@ -408,13 +408,30 @@ export class CanvasHelper {
     const headers = await CanvasHelper.getHeaders(webUrl);
     const url = pageApiUrl(webUrl, slug);
 
-    const page = await ApiHelper.getOrThrow(url, headers);
-    if (page && page.IsPageCheckedOutToCurrentUser) {
-      return page;
-    }
-
+    // Always taken, never assumed. Reading the page instead when it is already
+    // checked out hands back the published version, and composing on that makes
+    // SharePoint reject the save as a conflict with "changes made concurrently"
+    // — which is what a checkout left behind by an interrupted run looks like.
     Logger.debug(`Checking out the page ${slug} before rewriting its canvas.`);
     return await ApiHelper.postOrThrow(`${url}/checkoutpage`, headers);
+  }
+
+  /**
+   * SharePoint refuses a save when the page moved on since it was read. It is
+   * worth one more attempt from the page as it now stands, rather than failing
+   * a page over a draft an earlier run left behind.
+   */
+  public static isSaveConflict(error: unknown): boolean {
+    const message =
+      typeof error === "string"
+        ? error
+        : (error as any)?.message || JSON.stringify(error);
+
+    return (
+      !!message &&
+      (message.includes("status 409") ||
+        message.toLowerCase().includes("save conflict"))
+    );
   }
 
   /**

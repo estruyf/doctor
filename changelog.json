@@ -49,6 +49,10 @@
       },
       {
         "id": null,
+        "title": "Fix: a page whose checkout was left behind by an interrupted run no longer fails with a 409 save conflict. Doctor takes a fresh checkout before writing rather than reading the published page, and a refused save is retried once from the page as it then stands."
+      },
+      {
+        "id": null,
         "title": "Fix: a page's content is written to the right section again. A page whose top section is a full-width banner had the markdown web part added next to the banner — a layout SharePoint does not allow — while the original web part was left behind in the section below, so the page ended up with two. Doctor now keeps its content in the section it was already in — as long as that is an ordinary content section — otherwise the first ordinary one-column section, and otherwise a new one-column section of its own below the banner. A control an earlier run left in the banner's section is moved out rather than kept there. Full-width and vertical sections are never used for page content. That content section is also rewritten to exactly what the markdown file says — the file is the page, so a web part added there by hand does not survive a publish. Every other section is left alone."
       },
       {
