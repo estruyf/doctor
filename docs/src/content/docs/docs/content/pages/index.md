@@ -196,6 +196,13 @@ site to see what it has:
 m365 spo page template list --webUrl https://<tenant>.sharepoint.com/sites/<site> --output json
 ```
 
+:::caution[A template is applied when the page is created]
+`Doctor` builds a page from its template the first time it creates it. A page which already exists on
+the site keeps the layout it has, even if you add `template` to its front matter afterwards — the
+setting is not re-applied on later publishes. To rebuild an existing page from a template, delete it
+in SharePoint and publish again. `Doctor` reports this once per run when it happens.
+:::
+
 :::caution[A name that does not match does not fail the publish]
 If nothing matches, `Doctor` warns — naming the templates the site does have — and creates an
 ordinary page instead. The publish still succeeds, so it is worth reading the warnings at the end of

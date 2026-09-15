@@ -29,7 +29,7 @@
       },
       {
         "id": null,
-        "title": "The `template` front matter and the `pageTemplate` option now accept a template's file name or page id as well as its page title, so the name you read off the URL works. A template name which matches nothing is reported as a warning naming the templates the site does have, instead of a line written straight to stdout that corrupted `--output json`."
+        "title": "The `template` front matter and the `pageTemplate` option now accept a template's file name or page id as well as its page title, so the name you read off the URL works. Doctor also reports when a template is named for a page which already exists, since a template is only applied to pages it creates and that is easy to mistake for a wrong name. A template name which matches nothing is reported as a warning naming the templates the site does have, instead of a line written straight to stdout that corrupted `--output json`."
       },
       {
         "id": null,

@@ -53,6 +53,8 @@ export class PagesHelper {
   private static listFieldMap: { [listId: string]: Map<string, FieldInfo> } = {};
   /** Set once the tenant refuses a CSOM system update, see setPageDescription */
   private static systemUpdateRefused = false;
+  /** Set once a template was named for a page which already existed */
+  private static templateSkipReported = false;
 
   /**
    * Reset all static state
@@ -62,6 +64,7 @@ export class PagesHelper {
     PagesHelper.processedPages = {};
     PagesHelper.listFieldMap = {};
     PagesHelper.systemUpdateRefused = false;
+    PagesHelper.templateSkipReported = false;
   }
 
   /**
@@ -280,6 +283,16 @@ export class PagesHelper {
           "spo page set",
           setOptions,
           CliCommand.getRetry()
+        );
+      }
+
+      // A template is applied when doctor creates the page. Reaching here means
+      // the page already existed, so it keeps the layout it has — which is easy
+      // to mistake for the template name being wrong.
+      if (template && !PagesHelper.templateSkipReported) {
+        PagesHelper.templateSkipReported = true;
+        OutputHelper.warning(
+          `The page template "${template}" is only applied to pages doctor creates, and "${slug}" already exists — it keeps the layout it has. Delete the page in SharePoint and publish again to build it from the template. Pages created from here on do use it.`
         );
       }
 
