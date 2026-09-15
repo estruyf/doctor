@@ -27,7 +27,7 @@ Optional Front Matter properties are:
 - **description**: `string` - the page description to add. _Be aware_: description is limited to 255 characters.
 - **comments**: `boolean` - with this setting you can enable/disable page commenting. By default comments are enabled, unless you disabled them for the whole site with the [`disableComments`](../../configuration/cli-options/#publish-command-specific-options) option. This page level setting always wins over the global one.
 - **layout**: `Article` | `Home` - defines which page layout you want to use. Default layout type is `Article`.
-- **template**: `string` - specify the title of the page template which you want to use for the current page.
+- **template**: `string` - the name of the page template to use for this page. Check: [Page templates](#page-templates).
 - **header**: `HeaderOptions` - defines how you want to render the header on the page.
   - **type**: Use one of the following values: `None|Default|Custom`. Default: `Default`.
   - **image**: Path to the image file you want to use in your page header.
@@ -154,6 +154,49 @@ exception is a page built from a `template`, which keeps the template's banner.
 Anything added to `Doctor`'s content section on the SharePoint side is removed on the next publish,
 because that section is rebuilt from the markdown file. Edit the markdown, not the page.
 :::
+
+### Page templates
+
+A page can be created from one of the site's own **page templates**, so every page starts with the
+same sections, banner and web parts.
+
+Set it for a single page in its front matter:
+
+```yaml
+---
+title: Extensions
+template: PageTemplate
+---
+```
+
+Or for every page at once, with the [`pageTemplate`](../../configuration/cli-options/#--pagetemplate)
+option in `doctor.json`:
+
+```json
+{
+  "pageTemplate": "PageTemplate"
+}
+```
+
+The value is the template's **page title**, matched exactly — not its file name, and not its id. A
+template saved in SharePoint lives under `SitePages/Templates/`, and its file name is usually not the
+same as its title. List the templates of your site to see the titles you can use:
+
+```bash
+m365 spo page template list --webUrl https://<tenant>.sharepoint.com/sites/<site> --output json
+```
+
+:::caution[A name that does not match is not an error]
+If no template has that title, `Doctor` logs that it was not found and creates an ordinary page
+instead. The publish succeeds, so a typo shows up as pages that quietly look wrong rather than as a
+failure. Run with `--debug` to see the message.
+:::
+
+A page created from a template keeps the template's **banner**: the `header` front matter is not
+applied to it, so the template stays in charge of how the top of the page looks. The page content
+still comes from the markdown as always.
+
+The [`doctor-sample`](https://github.com/estruyf/doctor-sample) repository shows the setting in use.
 
 ### Images and other assets
 

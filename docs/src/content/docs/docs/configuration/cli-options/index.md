@@ -295,7 +295,9 @@ This flag can only be added to the command execution. Using it in the `doctor.js
 : Allows you to specify if you want to remove all the navigation elements defined in the `TopNavigation` navigation before adding the new navigation structure.
 
 `--pageTemplate`
-: Name of the default page template to use for all the pages which will be created.
+: Name of the default page template to use for all the pages which will be created. It is matched
+  against the template's **page title**, exactly. A page can override it with the `template` front
+  matter — see [page templates](../../content/pages/#page-templates).
 
 `--disableComments`
 : Disable comments for all pages. By default the comments are enabled on the pages.

@@ -967,22 +967,29 @@ export class PagesHelper {
       accept: "application/json;odata=nometadata",
     };
 
+    // Filtered rather than GetById(), so the id is looked up in exactly the
+    // collection the site lists — GetById refuses ids that are plainly in it
+    const filter = encodeURIComponent(`Id eq ${siteUserId}`);
     let user: any;
+
     try {
-      user = await ApiHelper.getOrThrow(
-        `${base}/_api/web/siteusers/GetById(${siteUserId})`,
+      const response = await ApiHelper.getOrThrow(
+        `${base}/_api/web/siteusers?$filter=${filter}&$select=Id,Title,LoginName`,
         headers
       );
+      user = response?.value?.[0];
     } catch (e: any) {
+      // Keep what SharePoint said: a failure to read the list is a different
+      // problem from an id that is not in it
       throw new Error(
-        `The 'author' of "${slug}" is site user id ${siteUserId}, which does not exist on ${base}. ${await PagesHelper.getSiteUserHint(base, headers)}`
+        `The 'author' of "${slug}" could not be resolved: the users of ${base} could not be read. ${e?.message || e}`
       );
     }
 
     const loginName = user?.LoginName;
     if (!loginName) {
       throw new Error(
-        `Site user ${siteUserId} on ${base} has no login name, so it cannot be used as the 'author' of "${slug}".`
+        `The 'author' of "${slug}" is site user id ${siteUserId}, which is not a user of ${base}. ${await PagesHelper.getSiteUserHint(base, headers)}`
       );
     }
 

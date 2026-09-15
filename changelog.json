@@ -29,6 +29,10 @@
       },
       {
         "id": null,
+        "title": "Fix: the `author` site user is looked up in the same list the error message quotes, so a valid id is no longer reported as missing. The lookup used `siteusers/GetById()` while the suggestion listed `siteusers`, which could disagree, and the reason SharePoint gave was thrown away — it is now kept when the user list cannot be read at all."
+      },
+      {
+        "id": null,
         "title": "New: the `author` front matter sets the page author. Takes the SharePoint site user ID (what the Doctor Metadata VS Code extension writes) or a UPN."
       },
       {
