@@ -28,7 +28,15 @@ export interface ControlShortcodeContext {
 export interface ControlShortcodeResult {
   standardWebPart?: string;
   webPartId?: string;
+  /** Merged over the web part's own default properties */
   webPartProperties?: any;
+  /**
+   * Merged over the whole web part data, for the web parts which keep state
+   * outside `properties` — `dynamicDataValues` and `containsDynamicDataSource`
+   * on a web part that takes a connection, for instance. `id` and `instanceId`
+   * are always doctor's, so a value for either is ignored.
+   */
+  webPartData?: any;
   title?: string;
 }
 

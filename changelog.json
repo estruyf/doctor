@@ -13,7 +13,7 @@
     "updates": [
       {
         "id": null,
-        "title": "New: a shortcode can set `kind: \"control\"` to become a SharePoint web part of its own instead of returning HTML. The page is cut at the tag, so one Markdown file can publish as `[markdown] [web part] [markdown]` — for instance a Highlighted content web part between two pieces of text. Pages without a control shortcode publish exactly as before."
+        "title": "New: a shortcode can set `kind: \"control\"` to become a SharePoint web part of its own instead of returning HTML. The page is cut at the tag, so one Markdown file can publish as `[markdown] [web part] [markdown]` — for instance a Highlighted content web part between two pieces of text. Besides `webPartProperties`, a control shortcode can return `webPartData` for the web parts which keep state outside their properties. Pages without a control shortcode publish exactly as before."
       },
       {
         "id": null,

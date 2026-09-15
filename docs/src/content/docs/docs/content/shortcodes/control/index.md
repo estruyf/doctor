@@ -52,6 +52,12 @@ module.exports = {
 `title`
 : Optional. Overrides the title SharePoint gives the web part.
 
+`webPartData`
+: Optional, and merged over the whole web part data rather than just its properties. Some web parts
+  keep state outside `properties` — a PnP Modern Search *Search Results* web part sets
+  `containsDynamicDataSource` and `dynamicDataValues` so other web parts can connect to it, for
+  instance. `id` and `instanceId` are always `Doctor`'s, so a value for either is ignored.
+
 `context`
 : The second argument of `render`, holding the page's `frontMatter`, its `slug` and the `webUrl`, so you do not have to re-derive them.
 

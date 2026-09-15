@@ -603,11 +603,21 @@ export class PagesHelper {
       result.webPartProperties ?? null
     );
 
+    // Whatever the shortcode returns wins over the web part's defaults, the
+    // same way the CLI merges its `--webPartData`
+    const merged = result.webPartData
+      ? { ...data, ...result.webPartData }
+      : data;
+
     if (result.title) {
-      data.title = result.title;
+      merged.title = result.title;
     }
 
-    return { id, data };
+    // The instance is doctor's to place, so it cannot be pinned by a shortcode
+    delete merged.id;
+    delete merged.instanceId;
+
+    return { id, data: merged };
   }
 
   /**
