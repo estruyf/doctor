@@ -308,9 +308,7 @@ export class PagesHelper {
 
         Logger.debug(templates);
 
-        const pageTemplate = (templates as PageTemplate[]).find(
-          (t) => t.Title === template
-        );
+        const pageTemplate = PagesHelper.findPageTemplate(templates, template);
         if (pageTemplate) {
           const templateUrl = pageTemplate.Url.toLowerCase().replace(
             "sitepages/",
@@ -345,8 +343,17 @@ export class PagesHelper {
             skipExistingPages
           );
         } else {
-          console.log(
-            `Template "${template}" not found on the site, will create a default page instead.`
+          // Not fatal — the page is still published, just without the
+          // template's sections — but silence would leave every page from this
+          // point quietly looking wrong
+          OutputHelper.warning(
+            `The page template "${template}" does not exist on the site, so "${slug}" was created as an ordinary page. The site has: ${
+              templates.length > 0
+                ? templates
+                    .map((t) => `"${t.Title}"${t.FileName ? ` (${t.FileName})` : ""}`)
+                    .join(", ")
+                : "no page templates"
+            }.`
           );
         }
       }
@@ -928,6 +935,36 @@ export class PagesHelper {
 
     const resolved = await this.resolveTerm(webUrl, fieldInfo, term.label);
     return MetadataHelper.toTaxonomyValue(resolved.label, resolved.id);
+  }
+
+  /**
+   * Find the page template the front matter asks for.
+   *
+   * Its title is what a template is named by, but the title is a display value
+   * that rarely matches the file somebody sees in the URL, so the file name and
+   * the page id are accepted too — `Documentation Template`,
+   * `Documentation-Template`, `Documentation-Template.aspx` and `144` all find
+   * the same template.
+   */
+  public static findPageTemplate(
+    templates: PageTemplate[],
+    wanted: string
+  ): PageTemplate | undefined {
+    const byTitle = templates.find((t) => t.Title === wanted);
+    if (byTitle) {
+      return byTitle;
+    }
+
+    const normalized = wanted.trim().toLowerCase().replace(/\.aspx$/, "");
+    const matches = (value: string | undefined) =>
+      !!value && value.trim().toLowerCase().replace(/\.aspx$/, "") === normalized;
+
+    return templates.find(
+      (t) =>
+        matches(t.Title) ||
+        matches(t.FileName) ||
+        (/^\d+$/.test(normalized) && t.Id === parseInt(normalized, 10))
+    );
   }
 
   /**

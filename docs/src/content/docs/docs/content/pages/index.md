@@ -178,18 +178,28 @@ option in `doctor.json`:
 }
 ```
 
-The value is the template's **page title**, matched exactly — not its file name, and not its id. A
-template saved in SharePoint lives under `SitePages/Templates/`, and its file name is usually not the
-same as its title. List the templates of your site to see the titles you can use:
+The value can be the template's **page title**, its **file name**, or its **page id** — whichever you
+have to hand. A template saved in SharePoint lives under `SitePages/Templates/`, and its file name is
+usually not the same as its title, so all three work:
+
+```yaml
+template: Documentation Template        # the page title
+template: Documentation-Template.aspx   # the file name, as it appears in the URL
+template: Documentation-Template        # the file name without the extension
+template: 144                           # the page id
+```
+
+The page title is matched exactly first, then the rest case-insensitively. List the templates of your
+site to see what it has:
 
 ```bash
 m365 spo page template list --webUrl https://<tenant>.sharepoint.com/sites/<site> --output json
 ```
 
-:::caution[A name that does not match is not an error]
-If no template has that title, `Doctor` logs that it was not found and creates an ordinary page
-instead. The publish succeeds, so a typo shows up as pages that quietly look wrong rather than as a
-failure. Run with `--debug` to see the message.
+:::caution[A name that does not match does not fail the publish]
+If nothing matches, `Doctor` warns — naming the templates the site does have — and creates an
+ordinary page instead. The publish still succeeds, so it is worth reading the warnings at the end of
+a run rather than assuming a template was applied.
 :::
 
 A page created from a template keeps the template's **banner**: the `header` front matter is not
