@@ -35,12 +35,21 @@ The options which got introduced in v2.0.0 can be defined in the `doctor.json` f
   "forceAll": false,
   "skipPrecheck": false,
   "applyTheme": false,
+  "pageTemplate": "",
+  "reapplyTemplates": false,
   "verbose": false,
   "timingDetails": false
 }
 ```
 
 Options which got added in a later version, like `removeDeleted`, work the same way. Point the `$schema` value to the version you are running to get autocompletion for them in your editor.
+
+:::note[Page templates]
+`pageTemplate` names the template every page is created from, which the `template` front matter can
+override per page. `reapplyTemplates` decides whether that template is also applied to pages which
+already exist, instead of only to the ones `doctor` creates. Both are empty/off by default — see
+[page templates](../../content/pages/#page-templates).
+:::
 
 :::note[Info]
 The `output` option can be defined here as well, but it is best passed on the command execution (`--output json`). Setting it in the `doctor.json` file makes every local run report [JSON](../cli-options/#json-output) instead of the readable task list.
@@ -109,7 +118,7 @@ Check out the [multilingual](../../content/multilingual) section to see how the 
 If you want, you can define the site its look and feel. This needs to be done on global level in the `doctor.json` file.
 
 - **siteDesign**: `SiteDesign` - Allows you to set the theme and header/footer chrome
-  - **logo**: `string` - The path to your logo you want to use for the site, relative to the folder defined with `-f, --folder` (`./src` by default). The logo gets uploaded to a `site` folder in the library defined with `--library`. If the value is empty `""` it will be used to unset the site its logo.
+  - **logo**: `string` - The path to the logo you want to use for the site. It is taken relative to the folder defined with `-f, --folder` (`./src` by default), and when it is not found there, relative to the `doctor.json` file itself — which is where `certificate`, `partials.folder` and `markdown.shortcodesFolder` are taken from. The logo gets uploaded to a `site` folder in the library defined with `--library`. If the value is empty `""` it will be used to unset the site its logo.
   - **theme**: `string` - The name of the theme to set
   - **chrome**: `Chrome` - Settings for the header/footer chrome
     - **headerLayout**: `string` - Specifies the header layout to set on the site. Options: `Standard|Compact|Minimal|Extended`.

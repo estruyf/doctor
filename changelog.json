@@ -86,6 +86,10 @@
       {
         "id": null,
         "title": "A page whose metadata cannot be worked out is now skipped whole instead of being published with part of it missing. Every value is resolved before anything is written, so a missing column, a term which is not in the term set, an author who is not a user of the site, or a value its column type does not accept leaves the page untouched, reports what was wrong, and carries on with the next page. The page stays out of the publish state, so the next run publishes it once the front matter is fixed."
+      },
+      {
+        "id": null,
+        "title": "Doctor can run on an app registration scoped to a single site with `Sites.Selected`, instead of `Sites.FullControl.All` across the whole tenant. The publish reports which operations the account is allowed to perform and skips the site-level ones it is not, rather than failing part way through. The documentation now covers how to grant it."
       }
     ]
   },

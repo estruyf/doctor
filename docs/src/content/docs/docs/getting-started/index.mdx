@@ -61,7 +61,7 @@ To quickly get started, we provided a [sample repository](https://github.com/est
 `doctor` does not ship with an application of its own, so before you can publish anything you bring your own **Azure Entra ID app registration** and authenticate with its certificate:
 
 1. Create an app registration in the [Azure Portal](https://portal.azure.com).
-2. Add the **Sites.FullControl.All** application permission from SharePoint, and grant admin consent for your tenant.
+2. Add the **Sites.FullControl.All** application permission from SharePoint, and grant admin consent for your tenant. To scope the app to a single site instead, use **Sites.Selected** and grant it rights on that site — see [scoping the app to a single site](./certificate-authentication/#scoping-the-app-to-a-single-site).
 3. Generate a certificate, upload it to the app registration, and convert it to the `PKCS` format so you can pass it to `doctor`.
 
 The [certificate authentication](./certificate-authentication) section walks you through each of these steps with the required commands and screenshots.

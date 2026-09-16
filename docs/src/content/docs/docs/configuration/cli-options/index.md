@@ -318,7 +318,7 @@ You can override this by specifying the `comments` option on page level.
 
 ### Change detection / publish state
 
-`doctor` keeps track of what it published in a state file which is stored on your SharePoint site. For every page it stores a hash of the source markdown file, together with the timestamp of when it got published.
+`doctor` keeps track of what it published in a state file which is stored on your SharePoint site. For every page it stores a hash of everything the page is built from, the timestamp of when it got published, and the instance ids of the web parts `doctor` put on it — which is how it recognises its own controls on the next run and leaves the ones you added in SharePoint alone. The file also carries a hash of the publish settings and your custom shortcodes, so changing one of those marks every page as changed.
 
 On the next run, `doctor` compares the hash of each local file with the one in the state file:
 
@@ -424,8 +424,12 @@ theme, the header and footer and the site logo need **Manage Web** rights on the
 account that is perfectly able to publish pages often does not have those, which used to surface as a
 failure at the very end of a run, with every page already written.
 
-- The steps the account cannot perform are **skipped**, not attempted and failed. Each one is
-  repeated in the warnings at the end of the run.
+- The **navigation** and the **site design** are skipped outright when the account may not manage the
+  web, rather than attempted and failed. Each skipped step is repeated in the warnings at the end of
+  the run.
+- The other lines are there to tell you what to expect: `doctor` still attempts them, and a refusal
+  surfaces as a failure on the page or asset it happened on. A missing **system update** right is the
+  exception — descriptions fall back to a normal update, at the cost of the page's `Modified` date.
 - Not being able to **create or update pages** stops the run straight away, since that is the whole
   job.
 - Only the steps this run was going to take are listed — no `menu` in your configuration means no

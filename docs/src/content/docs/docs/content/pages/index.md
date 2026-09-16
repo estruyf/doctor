@@ -519,12 +519,18 @@ Because the page is skipped as a unit, a mistake in one metadata value also stop
 does mean the warnings at the end of a run are worth reading.
 :::
 
-#### Metadata Validation
+#### What gets checked
 
-- Invalid field names (not found on the list) are logged as debug messages and skipped.
-- If a field transformation returns `undefined`, that field is skipped and publishing continues.
-- Non-fatal errors (e.g., taxonomy term not found) log debug messages but do not block page publishing.
-- Transformed metadata is validated before being set on the page; SharePoint validation still applies.
+- **The column has to exist** on the Site Pages library. `Doctor` matches on its internal name, its
+  static name or its display name, case insensitively.
+- **The value has to be one its column type accepts** — an item id for a lookup column, a user
+  principal name for a person column, a term which is in the set for a managed metadata one.
+- **Terms are resolved against the column's own term set**, honouring its anchor term, the term's
+  other labels and a `Parent > Child` path. A label which matches more than one term is reported as
+  a problem rather than guessed at.
+- **SharePoint still validates on its side.** A value which passes these checks can still be refused
+  by the library itself — that is a publishing error like any other, and it fails the page rather
+  than skipping it.
 
 #### Example with Multiple Field Types
 
