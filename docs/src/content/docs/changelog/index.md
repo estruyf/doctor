@@ -36,6 +36,7 @@ description: The changelog of Doctor
 - Custom shortcodes can be written as `.mjs` files, alongside the `.js` and `.cjs` files which were already picked up.
 - The permissions report no longer says a step will be skipped when it will be attempted. Only the navigation and the site design are genuinely skipped when the account may not manage the web; the other lines say what a refusal will cost instead.
 - A front matter column whose name is one the underlying CLI uses for its own options is reported instead of quietly redirecting the update somewhere else.
+- The `author` front matter and person columns are now resolved against the tenant before anything is written, so a name which does not exist reports the page and skips it instead of failing it after its content has already changed. Resolving also adds the site user when the site has not seen them before — the same thing setting the column does — and uses the login name SharePoint answers with, which is what makes a guest or a group work: their claim is not the shape a principal name is assembled into. Each name is resolved once per run. An account which may not look users up is told once, and the publish carries on without the check.
 
 ## [2.2.0]
 
