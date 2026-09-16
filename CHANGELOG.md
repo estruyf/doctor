@@ -39,6 +39,8 @@
 - Fix: a page which fails half way through is no longer removed by `--cleanEnd`. The cleanup pass removes what the run did not write, which made a page whose image would not upload, or whose column would not take its value, indistinguishable from one whose markdown file was deleted.
 - Fix: an asset referenced from outside the content folder keeps its own place under the shared `assets` folder, instead of every outside folder collapsing onto it. Two images with the same file name in different folders — `../shared/brand/logo.png` and `../other/brand/logo.png` — became one upload, so whichever was published second overwrote the first or was skipped, and both pages showed the same image.
 - Fix: the permission check reads the asset library by its server relative url rather than by its title. `--library` is a path — `Shared Documents` is the folder, while the list is called `Documents` — so on a default site the check learnt nothing about the library it was asked about, and reported that uploads were allowed without having looked.
+- Fix: images in the content folder keep the structure they have there again. The configured folder keeps whatever was written in `doctor.json` — `./src` by default — while the paths built from it have had the `./` stripped, so the two never matched and every image was treated as one from outside the content folder. With the default configuration that meant all of them landed in the shared `assets` folder instead of alongside the structure they came from.
+- Fix: a content folder written without a leading `./` no longer puts a `./` at the front of every page URL. `"folder": "src"` and `"folder": "./src"` now describe the same folder, as do an absolute path and a relative one.
 
 ## [2.2.0]
 
