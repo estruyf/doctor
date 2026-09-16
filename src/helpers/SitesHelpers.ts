@@ -1,4 +1,5 @@
 import { join } from "path";
+import { isPermissionError } from "@utils";
 import { CommandArguments, TaskOutput } from "@models";
 import {
   CliCommand,
@@ -18,20 +19,6 @@ const getErrorMessage = (error: any): string => {
   }
 
   return error.message || JSON.stringify(error);
-};
-
-const isAuthOrPermissionError = (message: string): boolean => {
-  const normalized = (message || "").toLowerCase();
-
-  return (
-    normalized.includes("status code 401") ||
-    normalized.includes("status code 403") ||
-    normalized.includes("unauthorized") ||
-    normalized.includes("forbidden") ||
-    normalized.includes("access denied") ||
-    normalized.includes("not authorized") ||
-    normalized.includes("insufficient")
-  );
 };
 
 export class SiteHelpers {
@@ -81,7 +68,7 @@ export class SiteHelpers {
         } catch (themeError) {
           const themeErrorMessage = getErrorMessage(themeError);
 
-          if (isAuthOrPermissionError(themeErrorMessage)) {
+          if (isPermissionError(themeErrorMessage)) {
             Logger.debug(
               `Theme application skipped due to insufficient permissions: ${themeErrorMessage}`
             );
@@ -192,7 +179,7 @@ export class SiteHelpers {
       } catch (e) {
         const logoErrorMessage = getErrorMessage(e);
 
-        if (isAuthOrPermissionError(logoErrorMessage)) {
+        if (isPermissionError(logoErrorMessage)) {
           Logger.debug(
             `Site logo update skipped due to insufficient permissions: ${logoErrorMessage}`
           );
