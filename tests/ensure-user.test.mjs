@@ -258,3 +258,83 @@ test("After one refusal the rest of the names are not each sent a doomed request
 
   assert.equal(calls, 1, "asked once, then taken as read");
 });
+
+test("A failure to reach the site is never an answer about the user", async (t) => {
+  // "The remote name could not be resolved" is a DNS failure, not SharePoint
+  // saying the name is unknown — reading it as one was the same mistake in a
+  // narrower form
+  const realPost = ApiHelper.postOrThrow;
+  const realToken = AccessToken.get;
+  t.after(() => {
+    ApiHelper.postOrThrow = realPost;
+    AccessToken.get = realToken;
+    PagesHelper.reset();
+  });
+  AccessToken.get = async () => "token";
+
+  const transport = [
+    "The remote name could not be resolved: 'contoso.sharepoint.com'",
+    "getaddrinfo EAI_AGAIN - DNS lookup failed, host could not be resolved",
+    "getaddrinfo ENOTFOUND contoso.sharepoint.com",
+    "Command failed: socket hang up",
+    "connect ETIMEDOUT",
+    "Request timed out after 120000ms",
+    "429 Too Many Requests",
+    "503 Service Unavailable",
+  ];
+
+  for (const message of transport) {
+    let calls = 0;
+    ApiHelper.postOrThrow = async () => {
+      calls++;
+      throw new Error(message);
+    };
+    PagesHelper.reset();
+
+    await assert.rejects(
+      PagesHelper.ensureUserClaim(WEB_URL, "a@contoso.com"),
+      (error) => {
+        assert.ok(
+          !/is not a user of this tenant/.test(error.message),
+          `reported as a missing user: ${message}`,
+        );
+        return true;
+      },
+    );
+
+    // ...and it is asked again rather than remembered
+    await assert.rejects(PagesHelper.ensureUserClaim(WEB_URL, "a@contoso.com"));
+    assert.equal(calls, 2, `not retried after: ${message}`);
+  }
+});
+
+test("The site saying the name is unknown is still an answer", async (t) => {
+  const realPost = ApiHelper.postOrThrow;
+  const realToken = AccessToken.get;
+  t.after(() => {
+    ApiHelper.postOrThrow = realPost;
+    AccessToken.get = realToken;
+    PagesHelper.reset();
+  });
+  AccessToken.get = async () => "token";
+
+  for (const message of [
+    "The specified user nosuch@contoso.com could not be found.",
+    "No exact match was found for the user",
+    "The user does not exist in the directory",
+  ]) {
+    let calls = 0;
+    ApiHelper.postOrThrow = async () => {
+      calls++;
+      throw new Error(message);
+    };
+    PagesHelper.reset();
+
+    await assert.rejects(
+      PagesHelper.ensureUserClaim(WEB_URL, "nosuch@contoso.com"),
+      /is not a user of this tenant/,
+    );
+    await assert.rejects(PagesHelper.ensureUserClaim(WEB_URL, "nosuch@contoso.com"));
+    assert.equal(calls, 1, `asked twice for: ${message}`);
+  }
+});

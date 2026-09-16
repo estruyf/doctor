@@ -146,6 +146,14 @@
       {
         "id": null,
         "title": "Fix: a page which fails half way through is no longer removed by `--cleanEnd`. The cleanup pass removes what the run did not write, which made a page whose image would not upload, or whose column would not take its value, indistinguishable from one whose markdown file was deleted."
+      },
+      {
+        "id": null,
+        "title": "Fix: an asset referenced from outside the content folder keeps its own place under the shared `assets` folder, instead of every outside folder collapsing onto it. Two images with the same file name in different folders — `../shared/brand/logo.png` and `../other/brand/logo.png` — became one upload, so whichever was published second overwrote the first or was skipped, and both pages showed the same image."
+      },
+      {
+        "id": null,
+        "title": "Fix: the permission check reads the asset library by its server relative url rather than by its title. `--library` is a path — `Shared Documents` is the folder, while the list is called `Documents` — so on a default site the check learnt nothing about the library it was asked about, and reported that uploads were allowed without having looked."
       }
     ]
   },

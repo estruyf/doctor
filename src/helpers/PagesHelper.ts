@@ -1359,9 +1359,14 @@ export class PagesHelper {
 
   /**
    * Whether the site answered that the principal is not there, as opposed to
-   * not answering. SharePoint words this differently per entry point, so the
-   * wording is matched broadly — but only wordings which are about the
-   * principal, never a transport failure.
+   * not answering at all.
+   *
+   * The wordings below are the ones SharePoint uses about a principal. What is
+   * deliberately *not* here is "could not be resolved": that is how a DNS
+   * failure reads too ("The remote name could not be resolved"), and taking it
+   * for an answer about the user is the whole mistake this guard exists to
+   * prevent. A transport failure is checked for first, so a message which
+   * happens to carry one of these phrases still cannot be mistaken for one.
    */
   private static isPrincipalNotFound(error: unknown): boolean {
     const message = (
@@ -1370,17 +1375,50 @@ export class PagesHelper {
         : (error as any)?.message || JSON.stringify(error ?? "")
     ).toLowerCase();
 
+    if (PagesHelper.isTransportFailure(message)) {
+      return false;
+    }
+
     return (
       message.includes("could not be found") ||
       message.includes("cannot be found") ||
       message.includes("can not be found") ||
       message.includes("does not exist") ||
       message.includes("no exact match") ||
-      message.includes("could not be resolved") ||
-      message.includes("not resolved") ||
       message.includes("invalid user") ||
       message.includes("unknown user")
     );
+  }
+
+  /**
+   * A failure to reach the site, rather than anything the site said. None of
+   * these say a thing about what was asked for, so none of them may be
+   * remembered as an answer.
+   */
+  private static isTransportFailure(message: string): boolean {
+    return [
+      "socket hang up",
+      "econnreset",
+      "econnrefused",
+      "etimedout",
+      "enotfound",
+      "eai_again",
+      "ehostunreach",
+      "enetunreach",
+      "epipe",
+      "timed out",
+      "timeout",
+      "network",
+      "dns",
+      "remote name",
+      "too many requests",
+      "status 429",
+      "status 502",
+      "status 503",
+      "status 504",
+      "service unavailable",
+      "gateway",
+    ].some((needle) => message.includes(needle));
   }
 
   /**

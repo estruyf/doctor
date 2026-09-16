@@ -139,9 +139,13 @@ export class CapabilitiesHelper {
     const pages = await read(
       `${base}/_api/web/GetList('${encodeURIComponent(`${site}/SitePages`)}')/EffectiveBasePermissions`,
     );
+    // Addressed by its server relative url, not by title: `--library` is a path
+    // — `Shared Documents` is the folder, while the list is called `Documents`
+    // — so GetByTitle answered 404 on a default site and the probe learnt
+    // nothing about the library it is actually asked about.
     const assets = options.assetLibrary
       ? await read(
-          `${base}/_api/web/lists/GetByTitle('${encodeURIComponent(options.assetLibrary)}')/EffectiveBasePermissions`,
+          `${base}/_api/web/GetList('${encodeURIComponent(`${site}/${options.assetLibrary.replace(/^\/+|\/+$/g, "")}`)}')/EffectiveBasePermissions`,
         )
       : null;
 

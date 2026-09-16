@@ -247,12 +247,16 @@ default) and the reference in the page is rewritten to point at it.
 - An image **inside** your content folder keeps the structure it has there. `guides/img/logo.png`
   is uploaded to `guides/img/logo.png` in the library.
 - An image **outside** it — `../assets/logo.png`, for instance, or anything else reached with `..` —
-  has no structure to mirror, so it goes in a single `assets` folder in the library.
+  goes under a shared `assets` folder in the library, keeping its path relative to the folder you run
+  `doctor` from. `../shared/brand/logo.png` becomes `assets/shared/brand/logo.png`.
 
-:::note[Shared assets land together]
-Because every asset from outside the content folder shares one `assets` folder, two files with the
-same name from different folders end up as one. Give them distinct names, or keep them inside the
-content folder where their own structure is preserved.
+:::note[Why outside assets are not mirrored literally]
+The path of an asset outside the content folder is a path on the machine which ran the publish, so
+taking it literally would upload `../assets/logo.png` to something like
+`Users/<name>/repos/<project>/docs/assets/` — a tree which means nothing on SharePoint and differs
+per person. Keeping it relative to your project gives it somewhere stable instead, and keeps two
+files of the same name in different folders apart. An asset from outside the project altogether has
+nothing left to mirror, so it gets a short digest of its folder for a name.
 :::
 
 ### Author
