@@ -85,6 +85,15 @@ See <related-pages /> below     <!-- inside a paragraph -->
 
 As with every shortcode, an occurrence inside a code fence or inline code is a code sample and is left alone.
 
+Attribute values may contain a `>` as long as they are quoted, which a search query often needs:
+
+```markdown
+<related-pages query="Size>1000" path="/sites/docs" />
+```
+
+Values reach your `render` function exactly as they are written — HTML entities are not decoded, the
+same way they are not for inline shortcodes, so `&gt;` arrives as `&gt;`.
+
 ## What to know before you use one
 
 :::caution[The publish state is required]
@@ -96,3 +105,4 @@ As with every shortcode, an occurrence inside a code fence or inline code is a c
 - **Headings are numbered per part.** Two identical headings in different parts of the same page get the same anchor, and footnotes restart their numbering. Reference-style link definitions only resolve inside the part they sit in.
 - **Machine translated pages cannot use one.** They reach the publish step as HTML, so there is no Markdown left to split.
 - **Web parts you added by hand are left alone.** `doctor` only rewrites the controls it created itself, and keeps everything else on the page where it is.
+- **The web part has to be deployed to the site.** `Doctor` reads its definition from SharePoint to build a new instance from, so a `webPartId` the site does not offer, or one whose definition carries no preconfigured entry, is reported by name. A web part in the latter case can still be used if the shortcode supplies the instance data itself with `webPartData`.

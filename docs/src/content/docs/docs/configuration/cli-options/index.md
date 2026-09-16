@@ -222,7 +222,7 @@ This flag can only be added to the command execution. Using it in the `doctor.js
 :::
 
 `--cleanEnd`
-: Removes the pages which have not been touched during the publishing run. This will happen at the end of the whole process.
+: Removes the pages which the run did not want, at the end of the whole process. A page which was *skipped* — as unchanged, or because its metadata could not be worked out — is still a page `doctor` wants, and is left alone. What gets removed is what has no markdown file behind it any more.
 
 :::caution[Important]
 This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
@@ -325,6 +325,11 @@ On the next run, `doctor` compares the hash of each local file with the one in t
 - Pages which are **new** or **modified** get published.
 - Pages which are **unchanged** get skipped.
 
+A skipped page is still a page on the site, so it keeps everything a published page would have kept:
+its entry in the [site navigation](../../content/pages/#menu), which is rebuilt on every run, and its
+place in the site when [`--cleanEnd`](#--cleanend) removes the pages the run did not want. The same
+goes for a page skipped because [its metadata could not be worked out](../../content/pages/#what-happens-when-a-value-cannot-be-set).
+
 The hash covers everything the published page is built from, not just the file you edited:
 
 | What changed | Effect |
@@ -384,7 +389,7 @@ The removal needs to be confirmed. When you do not pass the `--confirm` flag, `d
 
 Good to know:
 
-- The state file is the source of truth. Pages which were created outside of `doctor`, or before the state file existed, are not touched. Use the `--cleanEnd` flag when you want to remove everything which was not published during the run.
+- The state file is the source of truth. Pages which were created outside of `doctor`, or before the state file existed, are not touched. Use the `--cleanEnd` flag when you want to remove everything `doctor` does not have a markdown file for, whether or not it is in the state.
 - Multilingual pages are removed together with their source page. Translations of a page which still exists are kept.
 - Pages which are already gone from the site are removed from the state as well, so the state keeps matching your site.
 - When a markdown file cannot be resolved to a page (an unreadable file, or one without a `title`), no pages get removed at all. The [pre-process checks](#pre-process-checks) catch these before the publishing run, unless you use `--skipPrecheck`.

@@ -546,7 +546,9 @@ does mean the warnings at the end of a run are worth reading.
 #### What gets checked
 
 - **The column has to exist** on the Site Pages library. `Doctor` matches on its internal name, its
-  static name or its display name, case insensitively.
+  static name or its display name, case insensitively. A handful of internal names cannot be set
+  because the CLI underneath reads them as its own options (`webUrl`, `listId`, `id`,
+  `contentType`, `output` and a few more); one of those is reported rather than sent.
 - **The value has to be one its column type accepts** — an item id for a lookup column, a user
   principal name for a person column, a term which is in the set for a managed metadata one.
 - **People are resolved against the tenant**, which is also what adds the site user when the site has
