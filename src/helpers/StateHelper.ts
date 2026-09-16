@@ -4,6 +4,8 @@ import { CliCommand } from "@helpers";
 import { basename, dirname, join } from "path";
 import { readFileAsync, writeFileAsync } from "@utils";
 import { tmpdir } from "os";
+import { CapabilitiesHelper } from "./CapabilitiesHelper.js";
+import { OutputHelper } from "./OutputHelper.js";
 
 export interface DoctorStateEntry {
   sourceHash: string;
@@ -93,6 +95,8 @@ export class StateHelper {
   private static dirty = false;
   /** Set when the settings differ from the run that wrote the state */
   private static configChanged = false;
+  /** Set once the state turned out not to be writable, see save() */
+  private static saveSkipped = false;
   private static ensuredFolders: string[] = [];
 
   /** Compute a SHA-256 hex digest of the given string content. */
@@ -413,6 +417,21 @@ export class StateHelper {
   ): Promise<void> {
     if (!StateHelper.state) return;
 
+    // The state lives in the asset library. An account which cannot write there
+    // cannot save it, and it is saved after every page — so this would fail the
+    // run once per page rather than once. Said once, and the run goes on: the
+    // pages publish, they are simply all republished next time.
+    if (!CapabilitiesHelper.get().writeAssets) {
+      if (!StateHelper.saveSkipped) {
+        StateHelper.saveSkipped = true;
+        OutputHelper.warning(
+          `This account is not allowed to write to "${assetLibrary}", so the publish state was not saved. Every page is published again on the next run.`,
+        );
+      }
+
+      return;
+    }
+
     const json = JSON.stringify(StateHelper.state, null, 2);
     const tmpPath = join(tmpdir(), `doctor-state-${Date.now()}.json`);
     const target = normalizeStateTarget(assetLibrary, stateFile);
@@ -497,6 +516,7 @@ export class StateHelper {
   /** Reset singleton state (useful for testing or a fresh publish). */
   public static reset(): void {
     StateHelper.configChanged = false;
+    StateHelper.saveSkipped = false;
     StateHelper.state = null;
     StateHelper.loaded = false;
     StateHelper.dirty = false;

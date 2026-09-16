@@ -165,12 +165,12 @@ export class CapabilitiesHelper {
    * One line per operation, saying what the run will and will not do. Pure, and
    * only mentions the steps this run was actually going to take.
    *
-   * Two of these are steps doctor genuinely skips when it may not perform them
-   * — the navigation and the site design, both gated in `publish.ts`. The rest
-   * are told to the reader so a later failure is not a surprise, and their
-   * wording has to stay honest about that: they are still attempted, and a
-   * refusal surfaces wherever it happens. Promising a skip that the publish
-   * path does not implement is worse than saying nothing.
+   * Every line which says something is skipped has to be a step the publish
+   * path really does skip, or the report is telling the reader something that
+   * will not happen. The gates live in `publish.ts` (navigation, site design),
+   * `PagesHelper.resolveMetadata` (columns and author), `DoctorTranspiler`
+   * (pages which reference an image) and `StateHelper.save` (the state file).
+   * Change a line here and change its gate with it.
    */
   public static describe(
     capabilities: Capabilities,
@@ -194,12 +194,12 @@ export class CapabilitiesHelper {
     say(
       capabilities.setMetadata,
       "Set page metadata",
-      "the 'metadata' and 'author' front matter cannot be written",
+      "the 'metadata' and 'author' front matter is skipped",
     );
     say(
       capabilities.writeAssets,
       `Upload assets to "${options.assetLibrary}"`,
-      "the pages that reference an image will fail, and the publish state cannot be saved",
+      "the pages which reference an image are skipped, and the publish state is not saved",
     );
     say(
       capabilities.systemUpdate,

@@ -12,6 +12,7 @@ import {
   PageLocalization,
 } from "@models";
 import {
+  CapabilitiesHelper,
   FileHelpers,
   FolderHelpers,
   DependencyHelper,
@@ -553,6 +554,21 @@ export class DoctorTranspiler {
           `Page comments ${disablePageComments ? "disabled" : "enabled"}`,
         );
 
+        // A page whose images cannot be uploaded would publish with its
+        // pictures pointing at paths that only exist on the machine which ran
+        // the publish. The markdown is the page, so it is skipped whole and
+        // kept out of the state, the same way a metadata problem is handled.
+        const uploadable = this.getUploadableImages($, imgElms);
+        if (uploadable.length > 0 && !CapabilitiesHelper.get().writeAssets) {
+          OutputHelper.warning(
+            `Skipped "${relPath}": this account is not allowed to upload to "${options.assetLibrary}", and the page references ${uploadable.length} image${uploadable.length === 1 ? "" : "s"}. The page was left untouched, and is published on the next run once the account may write there.`,
+          );
+          setProgress(`Skipped (assets): ${relPath}`);
+          StatusHelper.addPageSkipped();
+          this.skipPage(webUrl, output, markup.data as PageFrontMatter, slug, title);
+          return;
+        }
+
         // Image processing
         if (imgElms && imgElms.length > 0) {
           setProgress(
@@ -796,6 +812,25 @@ export class DoctorTranspiler {
    * @param output
    * @param task
    */
+  /**
+   * The images on the page that have a file to upload.
+   *
+   * A `data:` source carries its image with it — shortcodes use those for the
+   * diagrams they draw — and an absolute one already lives somewhere. Shared
+   * with the capability gate, so what is checked is what would be uploaded.
+   */
+  private static getUploadableImages(
+    $: CheerioAPI,
+    imgElms: Element[],
+  ): string[] {
+    return imgElms
+      .filter((i) => {
+        const src = $(i).attr("src");
+        return !!src && !src.startsWith(`http`) && !src.startsWith(`data:`);
+      })
+      .map((img) => $(img).attr("src")!);
+  }
+
   private static async processImages(
     $: CheerioAPI,
     imgElms: Element[],
@@ -807,14 +842,7 @@ export class DoctorTranspiler {
   ) {
     const { startFolder, assetLibrary, webUrl, overwriteImages } = options;
 
-    const imgSources = imgElms
-      .filter((i) => {
-        const src = $(i).attr("src");
-        // A `data:` source carries its image with it, so there is no file to
-        // upload. Shortcodes use those for the diagrams they draw.
-        return !!src && !src.startsWith(`http`) && !src.startsWith(`data:`);
-      })
-      .map((img) => $(img).attr("src")!);
+    const imgSources = DoctorTranspiler.getUploadableImages($, imgElms);
     const uImgSources = [...new Set(imgSources)];
     const total = uImgSources.length;
 

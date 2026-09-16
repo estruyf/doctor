@@ -125,7 +125,7 @@
       },
       {
         "id": null,
-        "title": "The permissions report no longer says a step will be skipped when it will be attempted. Only the navigation and the site design are genuinely skipped when the account may not manage the web; the other lines say what a refusal will cost instead."
+        "title": "Every step the permissions report says will be skipped is now genuinely skipped. Besides the navigation and the site design, an account which may not set columns skips the 'metadata' and 'author' front matter — without walking the term store or looking users up for values that cannot land — and one which may not write to the asset library skips the pages which reference an image, rather than publishing them with their pictures pointing at nothing, and stops saving the publish state instead of failing on it once per page. The one line which is not a skip, the system update, says what it costs instead."
       },
       {
         "id": null,

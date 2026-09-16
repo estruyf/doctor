@@ -31,6 +31,7 @@ import {
   ResolvedTerm,
   WebPartControl,
 } from "@helpers";
+import { CapabilitiesHelper } from "./CapabilitiesHelper.js";
 import { isPermissionError } from "@utils";
 import { executeCommand } from "@pnp/cli-microsoft365";
 import { randomUUID } from "crypto";
@@ -87,6 +88,8 @@ export class PagesHelper {
   private static templateSkipReported = false;
   /** Set once the site refuses to look a user up, see ensureUserClaim */
   private static ensureUserRefused = false;
+  /** Set once the account turned out not to be allowed to set columns */
+  private static metadataSkipReported = false;
   /**
    * The login name each principal resolved to, or the failure it produced, so
    * one author shared by a hundred pages costs one call
@@ -106,6 +109,7 @@ export class PagesHelper {
     PagesHelper.systemUpdateRefused = false;
     PagesHelper.templateSkipReported = false;
     PagesHelper.ensureUserRefused = false;
+    PagesHelper.metadataSkipReported = false;
     PagesHelper.userClaims = {};
     PagesHelper.templateCanvas = {};
   }
@@ -768,6 +772,22 @@ export class PagesHelper {
     const hasAuthor = typeof author !== "undefined" && author !== null;
 
     if (!hasMetadata && !hasAuthor) {
+      return { values: {}, problems: [] };
+    }
+
+    // Nothing here can be written, so none of it is worked out either — the
+    // term store walk and the user lookups would be paid for on every page to
+    // produce values that cannot land. Reported as a skip rather than a
+    // problem: the page itself still publishes, it is the columns that do not.
+    if (!CapabilitiesHelper.get().setMetadata) {
+      if (!PagesHelper.metadataSkipReported) {
+        PagesHelper.metadataSkipReported = true;
+        OutputHelper.warning(
+          `This account is not allowed to set columns on the Site Pages library, so the 'metadata' and 'author' front matter is skipped. The pages themselves are published.`
+        );
+      }
+
+      Logger.debug(`Metadata of ${slug} skipped, the account cannot set columns.`);
       return { values: {}, problems: [] };
     }
 

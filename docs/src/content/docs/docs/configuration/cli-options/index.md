@@ -429,12 +429,17 @@ theme, the header and footer and the site logo need **Manage Web** rights on the
 account that is perfectly able to publish pages often does not have those, which used to surface as a
 failure at the very end of a run, with every page already written.
 
-- The **navigation** and the **site design** are skipped outright when the account may not manage the
-  web, rather than attempted and failed. Each skipped step is repeated in the warnings at the end of
-  the run.
-- The other lines are there to tell you what to expect: `doctor` still attempts them, and a refusal
-  surfaces as a failure on the page or asset it happened on. A missing **system update** right is the
-  exception — descriptions fall back to a normal update, at the cost of the page's `Modified` date.
+- A step the account cannot perform is **skipped**, not attempted and failed. Each one is repeated in
+  the warnings at the end of the run.
+  - Without **Manage Web**, the `menu` and `siteDesign` settings are left alone and the pages still
+    publish.
+  - Without rights to **set columns**, the `metadata` and `author` front matter is skipped — and not
+    even worked out, so the term store and the user lookups are not paid for either.
+  - Without rights to **write to the asset library**, a page which references an image is skipped
+    whole rather than published with its pictures pointing at nothing, and the publish state is not
+    saved — so the next run publishes everything again.
+- A missing **system update** right is the one that is not a skip: descriptions are written with an
+  ordinary update instead, at the cost of the page's `Modified` date and `Modified By`.
 - Not being able to **create or update pages** stops the run straight away, since that is the whole
   job.
 - Only the steps this run was going to take are listed — no `menu` in your configuration means no

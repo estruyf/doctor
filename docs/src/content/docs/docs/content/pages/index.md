@@ -555,6 +555,11 @@ does mean the warnings at the end of a run are worth reading.
   not seen them before. A name the tenant does not have is a problem. If the account is not allowed
   to look users up, `doctor` says so once and carries on without the check — an unknown name then
   fails its page while it is being written, instead of being reported before.
+
+None of this runs when the account is not allowed to set columns on the Site Pages library at all. In
+that case the `metadata` and `author` front matter is skipped for every page, reported once, and the
+pages themselves are published as normal — see
+[available permissions](../../configuration/cli-options/#available-permissions).
 - **Terms are resolved against the column's own term set**, honouring its anchor term, the term's
   other labels and a `Parent > Child` path. A label which matches more than one term is reported as
   a problem rather than guessed at.

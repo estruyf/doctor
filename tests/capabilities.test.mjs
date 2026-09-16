@@ -158,3 +158,55 @@ test("a probe that could not run says so and assumes nothing is blocked", () => 
   assert.match(lines.join(""), /could not read this site's permissions/);
   assert.equal(CapabilitiesHelper.get().manageNavigation, true);
 });
+
+//
+// The gates behind the report
+//
+
+test("the report only promises a skip for a step that is gated", () => {
+  // Every "no" line which says something is skipped has to have a gate behind
+  // it in the publish path, or the report is describing something that will
+  // not happen. These are the four:
+  //   publish.ts                      navigation, site design
+  //   PagesHelper.resolveMetadata     columns and author
+  //   DoctorTranspiler.processFile    pages which reference an image
+  //   StateHelper.save                the state file
+  const lines = CapabilitiesHelper.describe(
+    {
+      determined: true,
+      publishPages: true,
+      setMetadata: false,
+      systemUpdate: false,
+      manageNavigation: false,
+      manageSiteDesign: false,
+      writeAssets: false,
+      readTermStore: false,
+      readSiteUsers: false,
+    },
+    {
+      webUrl: "https://contoso.sharepoint.com/sites/docs",
+      assetLibrary: "Shared Documents",
+      menu: { QuickLaunch: {} },
+      siteDesign: { theme: "Red" },
+    },
+  );
+
+  const skips = lines.filter((line) => line.startsWith(" no") && / is skipped| are skipped/.test(line));
+
+  assert.deepEqual(
+    skips.map((line) => line.replace(/^ no\s+/, "").split(" — ")[0]).sort(),
+    [
+      "Change the look of the site",
+      "Manage the site navigation",
+      "Read the site users",
+      "Read the term store",
+      "Set page metadata",
+      `Upload assets to "Shared Documents"`,
+    ],
+  );
+
+  // The one that is not a skip says what it costs instead
+  const systemUpdate = lines.find((line) => line.includes("without changing its history"));
+  assert.match(systemUpdate, /'Modified' and 'Modified By'/);
+  assert.ok(!/ is skipped/.test(systemUpdate));
+});
