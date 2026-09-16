@@ -7,6 +7,7 @@ import {
   FileHelpers,
   FolderHelpers,
   Logger,
+  OutputHelper,
 } from "@helpers";
 
 const getErrorMessage = (error: any): string => {
@@ -22,6 +23,30 @@ const getErrorMessage = (error: any): string => {
 };
 
 export class SiteHelpers {
+  /**
+   * The look of the site is set with calls that need rights on the web, which
+   * an account allowed to publish pages does not necessarily have. None of it
+   * is worth losing a run over — the pages are already written by then — so a
+   * refusal reports what was left alone and the publish carries on. Anything
+   * else is a real failure and still stops the run.
+   */
+  private static skipIfNotAllowed(
+    error: unknown,
+    what: string,
+    action: string
+  ): void {
+    const message = getErrorMessage(error);
+
+    if (!isPermissionError(message)) {
+      throw new Error(`Something failed while ${action}. ${message}`);
+    }
+
+    Logger.debug(`${what} skipped: ${message}`);
+    OutputHelper.warning(
+      `This account is not allowed to ${what.toLowerCase()} on this site, so it was left as it is. The pages themselves were published. Granting it Manage Web rights on the site, or removing the matching 'siteDesign' setting, stops this being reported.`
+    );
+  }
+
   /**
    * Change the look of the site
    * @param task
@@ -66,24 +91,11 @@ export class SiteHelpers {
             CliCommand.getRetry()
           );
         } catch (themeError) {
-          const themeErrorMessage = getErrorMessage(themeError);
-
-          if (isPermissionError(themeErrorMessage)) {
-            Logger.debug(
-              `Theme application skipped due to insufficient permissions: ${themeErrorMessage}`
-            );
-            Logger.debug(
-              `Continuing without applying theme \"${siteDesign.theme}\".`
-            );
-          } else {
-            return Promise.reject(
-              new Error(
-                `Something failed while applying the site theme "${siteDesign.theme}". ${getErrorMessage(
-                  themeError
-                )}`
-              )
-            );
-          }
+          SiteHelpers.skipIfNotAllowed(
+            themeError,
+            "Change the site theme",
+            `applying the site theme "${siteDesign.theme}"`
+          );
         }
       }
     } else if (siteDesign.theme) {
@@ -136,12 +148,10 @@ export class SiteHelpers {
           CliCommand.getRetry()
         );
       } catch (e) {
-        return Promise.reject(
-          new Error(
-            `Something failed while setting site chrome options. ${getErrorMessage(
-              e
-            )}`
-          )
+        SiteHelpers.skipIfNotAllowed(
+          e,
+          "Change the site header and footer",
+          "setting site chrome options"
         );
       }
     }
@@ -177,20 +187,11 @@ export class SiteHelpers {
           CliCommand.getRetry()
         );
       } catch (e) {
-        const logoErrorMessage = getErrorMessage(e);
-
-        if (isPermissionError(logoErrorMessage)) {
-          Logger.debug(
-            `Site logo update skipped due to insufficient permissions: ${logoErrorMessage}`
-          );
-          Logger.debug(`Continuing without updating the site logo.`);
-        } else {
-          return Promise.reject(
-            new Error(
-              `Something failed while setting the site logo. ${logoErrorMessage}`
-            )
-          );
-        }
+        SiteHelpers.skipIfNotAllowed(
+          e,
+          "Change the site logo",
+          "setting the site logo"
+        );
       }
     }
   }

@@ -57,7 +57,7 @@
       },
       {
         "id": null,
-        "title": "Fix: a publish no longer fails when the account is not allowed to change the site navigation. Managing navigation needs rights on the web which an account allowed to edit pages does not necessarily have, and the failure came after every page had already been published. Doctor now reports it and leaves the menu as it is."
+        "title": "Fix: a publish no longer fails when the account is not allowed to change the site navigation, the site theme, the header and footer, or the site logo. All of these need rights on the web which an account allowed to edit pages does not necessarily have, and the failure came after every page had already been published. Doctor now reports what it left alone and finishes the run. The theme and the logo were already skipped this way, but silently, and only if the refusal happened to be worded in one particular way."
       },
       {
         "id": null,
