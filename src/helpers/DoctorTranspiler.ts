@@ -33,6 +33,7 @@ import {
   existsAsync,
   getAssetFolders,
   isLanguageFile,
+  toComparablePath,
   isMachineTranslatedFile,
   mkdirAsync,
   readFileAsync,
@@ -338,11 +339,11 @@ export class DoctorTranspiler {
         );
         // Partials, images, linked pages and the settings are all part of what
         // the page publishes as, so a change to any of them marks it changed
-        const { hash: contentHash } = await DependencyHelper.getPageHash(
+        const { hash: contentHash } = await this.getContentHash(
           file,
           contents,
+          markup.data as PageFrontMatter,
           options,
-          await this.getTemplateHash(markup.data as PageFrontMatter, options),
         );
 
         if (StateHelper.hasChanged(slug, contentHash)) {
@@ -480,14 +481,11 @@ export class DoctorTranspiler {
         // The hash is computed once — used for change detection and state recording
         const { content, hash: contentHash } = isMachineTranslated
           ? { content: markup.content, hash: StateHelper.hashContent(contents) }
-          : await DependencyHelper.getPageHash(
+          : await this.getContentHash(
               file,
               contents,
+              markup.data as PageFrontMatter,
               options,
-              await this.getTemplateHash(
-                markup.data as PageFrontMatter,
-                options,
-              ),
             );
         markup.content = content;
 
@@ -624,9 +622,21 @@ export class DoctorTranspiler {
         // Checks if output needs to be generated
         if (options.outputFolder) {
           const { outputFolder, startFolder } = options;
-          const processedFilePath = file.replace(
-            startFolder,
-            join(process.cwd(), outputFolder),
+          // Cutting the content folder off the front by plain text match only
+          // worked when the two were written the same way: with a folder of
+          // `src` and a file of `./src/guides/page.md` it produced
+          // `.//<cwd>/out/...`, a relative path which built a copy of the
+          // absolute one underneath the working directory.
+          const root = process.cwd().replace(/\\/g, "/");
+          const start = toComparablePath(startFolder, root);
+          const source = toComparablePath(file, root);
+          const withinContent = source.startsWith(`${start}/`)
+            ? source.slice(start.length + 1)
+            : basename(source);
+          const processedFilePath = join(
+            process.cwd(),
+            outputFolder,
+            withinContent,
           );
           const dirPath = dirname(processedFilePath);
           await mkdirAsync(dirPath, { recursive: true });
@@ -942,6 +952,36 @@ export class DoctorTranspiler {
    * @param content
    * @param options
    */
+  /**
+   * The hash a page is tracked by.
+   *
+   * The one entry point for it, because `status` answers the question "would
+   * the next publish do anything?" and can only answer it by asking exactly
+   * what the publish asks. When the publish started folding images, linked
+   * slugs, settings and templates into the hash and `status` did not, `status`
+   * reported a page as unchanged that the publish then republished — and a
+   * pipeline gated on `doctor status --output json` skipped a publish it
+   * needed.
+   *
+   * @param file the markdown file
+   * @param contents its raw contents
+   * @param data its front matter, for the page template it names
+   * @param options the run's options
+   */
+  public static async getContentHash(
+    file: string,
+    contents: string,
+    data: PageFrontMatter | undefined,
+    options: CommandArguments,
+  ): Promise<{ content: string; hash: string }> {
+    return await DependencyHelper.getPageHash(
+      file,
+      contents,
+      options,
+      await this.getTemplateHash(data, options),
+    );
+  }
+
   /**
    * The template a page is laid out from, when it is re-applied on every
    * publish — editing the template then changes what its pages look like, so

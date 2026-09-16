@@ -109,6 +109,13 @@ When state persistence is disabled with `--disableStatePersistence`, no state ge
 The `status` command always reports the real difference with the state. The `forceAll` option is ignored here, as it only influences what `doctor publish` reprocesses.
 :::
 
+`status` works a page out exactly the way `publish` does, through the same code — so everything in
+[change detection](../configuration/cli-options/#change-detection--publish-state) counts here too. A
+page whose image changed, whose linked page was renamed, or which renders through a shortcode or a
+setting you edited is reported as **modified**, and a change to the publish settings is reported as
+every page being modified. That matters most when a pipeline gates on the answer: the report has to
+agree with what the publish would do, or the pipeline skips a run it needed.
+
 ### Gating a pipeline on the status
 
 Pass `--output json` to get the same report as a single JSON document, which lets a pipeline decide whether it has anything to do, or turn the changed pages into a pull request comment:

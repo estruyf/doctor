@@ -162,6 +162,14 @@
       {
         "id": null,
         "title": "Fix: a content folder written without a leading `./` no longer puts a `./` at the front of every page URL. `\"folder\": \"src\"` and `\"folder\": \"./src\"` now describe the same folder, as do an absolute path and a relative one."
+      },
+      {
+        "id": null,
+        "title": "Fix: `doctor status` reports what the next publish would actually do. The publish learnt to treat a changed image, a renamed page you link to, an edited shortcode or a changed setting as a change; `status` kept comparing only the markdown and its partials, so it called a page unchanged that the publish then republished — and a pipeline gated on `doctor status --output json` skipped a publish it needed. Both now compute the hash through one entry point, and `status` reports the settings changing the same way the publish does."
+      },
+      {
+        "id": null,
+        "title": "Fix: `--outputFolder` writes to the folder you named when the content folder is written without a leading `./`. It used to build a copy of the absolute output path underneath the working directory instead."
       }
     ]
   },
