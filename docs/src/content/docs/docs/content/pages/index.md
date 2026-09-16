@@ -198,9 +198,32 @@ m365 spo page template list --webUrl https://<tenant>.sharepoint.com/sites/<site
 
 :::caution[A template is applied when the page is created]
 `Doctor` builds a page from its template the first time it creates it. A page which already exists on
-the site keeps the layout it has, even if you add `template` to its front matter afterwards — the
-setting is not re-applied on later publishes. To rebuild an existing page from a template, delete it
-in SharePoint and publish again. `Doctor` reports this once per run when it happens.
+the site keeps the layout it has, even if you add `template` to its front matter afterwards.
+`Doctor` reports this once per run when it happens.
+
+Use [`--reapplyTemplates`](../../configuration/cli-options/#--reapplytemplates) to apply the template
+to existing pages too — see below.
+:::
+
+#### Re-applying a template to existing pages
+
+`--reapplyTemplates`, or `"reapplyTemplates": true` in `doctor.json`, lays a page out from its
+template on **every** publish instead of only when the page is created:
+
+1. the template's canvas becomes the page's layout — its sections, and any web parts it carries;
+2. the page keeps **its own banner**, so it keeps its own title and header image. A banner stores the
+   page title inside the web part, so taking the template's would put the template's title on every
+   page using it;
+3. the page's content is written into the slot the template reserves for it — the Markdown web part
+   the template itself contains;
+4. the page keeps its id, URL, history, comments and column values. Nothing is recreated.
+
+The template is read once per run, however many pages use it.
+
+:::caution[The page layout is rebuilt every publish]
+With this on, a section somebody added to a templated page in SharePoint is gone the next time that
+page is published. That is the point of the setting — the template plus the markdown file describe
+the page — but it is why it is off by default.
 :::
 
 :::caution[A name that does not match does not fail the publish]

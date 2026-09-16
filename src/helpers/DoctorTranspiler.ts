@@ -607,6 +607,7 @@ export class DoctorTranspiler {
             description,
             template || options.pageTemplate,
             skipExistingPages && !languagePageSlug,
+            options.reapplyTemplates,
           );
 
           Logger.debug(
@@ -660,6 +661,15 @@ export class DoctorTranspiler {
               );
             }
 
+            // With --reapplyTemplates, a page that already exists is laid out
+            // from its template again instead of keeping whatever layout it
+            // has. A page doctor just created already came from the template.
+            const pageTemplate = template || options.pageTemplate;
+            const templateCanvas =
+              options.reapplyTemplates && pageTemplate && existed
+                ? await PagesHelper.getTemplateCanvas(webUrl, pageTemplate)
+                : null;
+
             await PagesHelper.applySegments(
               webPartTitle,
               segments,
@@ -669,6 +679,7 @@ export class DoctorTranspiler {
               options.markdown ?? null,
               wasAlreadyParsed,
               { frontMatter: markup.data ?? {}, slug, webUrl },
+              templateCanvas,
             );
 
             // Apply the page header after the page has content, because the CLI header command

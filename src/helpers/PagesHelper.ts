@@ -55,6 +55,8 @@ export class PagesHelper {
   private static systemUpdateRefused = false;
   /** Set once a template was named for a page which already existed */
   private static templateSkipReported = false;
+  /** The canvas of each page template, which does not change during a run */
+  private static templateCanvas: { [name: string]: any[] | null } = {};
 
   /**
    * Reset all static state
@@ -65,6 +67,7 @@ export class PagesHelper {
     PagesHelper.listFieldMap = {};
     PagesHelper.systemUpdateRefused = false;
     PagesHelper.templateSkipReported = false;
+    PagesHelper.templateCanvas = {};
   }
 
   /**
@@ -215,7 +218,8 @@ export class PagesHelper {
    commentsDisabled: boolean = false,
     description: string = "",
     template: string | null = null,
-    skipExistingPages: boolean = false
+    skipExistingPages: boolean = false,
+    reapplyTemplates: boolean = false
   ): Promise<boolean> {
     try {
       const relativeUrl = FileHelpers.getRelUrl(webUrl, `sitepages/${slug}`);
@@ -289,7 +293,7 @@ export class PagesHelper {
       // A template is applied when doctor creates the page. Reaching here means
       // the page already existed, so it keeps the layout it has — which is easy
       // to mistake for the template name being wrong.
-      if (template && !PagesHelper.templateSkipReported) {
+      if (template && !reapplyTemplates && !PagesHelper.templateSkipReported) {
         PagesHelper.templateSkipReported = true;
         OutputHelper.warning(
           `The page template "${template}" is only applied to pages doctor creates, and "${slug}" already exists — it keeps the layout it has. Delete the page in SharePoint and publish again to build it from the template. Pages created from here on do use it.`
@@ -492,7 +496,8 @@ export class PagesHelper {
     options: CommandArguments,
     mdOptions: MarkdownSettings | null,
     wasAlreadyParsed: boolean = false,
-    context: ControlShortcodeContext | null = null
+    context: ControlShortcodeContext | null = null,
+    templateCanvas: any[] | null = null
   ) {
     const hasControls = segments.some((segment) => segment.type === "control");
 
@@ -571,11 +576,19 @@ export class PagesHelper {
     // is refused because the page moved on is worth one more attempt from a
     // fresh checkout — the controls are already built, so only the canvas they
     // are placed into is read again.
+    //
+    // With a template being re-applied, the layout composed into is the
+    // template's rather than the page's. The page's own controls are still
+    // matched against its real canvas above, so they keep their identity.
     const writeCanvas = async (current: any[]) => {
+      const base = templateCanvas
+        ? CanvasHelper.mergeTemplate(templateCanvas, current)
+        : current;
+
       await CanvasHelper.save(
         webUrl,
         slug,
-        CanvasHelper.compose(current, controls, ownership)
+        CanvasHelper.compose(base, controls, ownership)
       );
     };
 
@@ -974,6 +987,60 @@ export class PagesHelper {
 
     const resolved = await this.resolveTerm(webUrl, fieldInfo, term.label);
     return MetadataHelper.toTaxonomyValue(resolved.label, resolved.id);
+  }
+
+  /**
+   * The canvas of a page template, read once per run.
+   *
+   * Returns null when the template cannot be found or read, which leaves the
+   * page with the layout it has rather than failing over it.
+   */
+  public static async getTemplateCanvas(
+    webUrl: string,
+    template: string
+  ): Promise<any[] | null> {
+    const key = template.toLowerCase();
+
+    if (key in PagesHelper.templateCanvas) {
+      return PagesHelper.templateCanvas[key];
+    }
+
+    PagesHelper.templateCanvas[key] = null;
+
+    try {
+      const { stdout } = await executeWithRetry(
+        "spo page template list",
+        { webUrl, output: "json" },
+        CliCommand.getRetry()
+      );
+
+      const found = PagesHelper.findPageTemplate(
+        JSON.parse(stdout || "[]") as PageTemplate[],
+        template
+      );
+
+      if (!found) {
+        Logger.debug(`Page template "${template}" not found on ${webUrl}.`);
+        return null;
+      }
+
+      const name = found.Url.toLowerCase().replace("sitepages/", "");
+      const page = await CanvasHelper.read(webUrl, name);
+
+      PagesHelper.templateCanvas[key] = page?.CanvasContent1
+        ? JSON.parse(page.CanvasContent1)
+        : null;
+
+      Logger.debug(
+        `Read the canvas of page template "${template}" (${name}).`
+      );
+    } catch (e: any) {
+      Logger.debug(
+        `Could not read the canvas of page template "${template}": ${e?.message || e}`
+      );
+    }
+
+    return PagesHelper.templateCanvas[key];
   }
 
   /**

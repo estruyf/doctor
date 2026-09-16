@@ -299,6 +299,10 @@ This flag can only be added to the command execution. Using it in the `doctor.js
   template's page title, its file name or its page id. A page can override it with the `template`
   front matter — see [page templates](../../content/pages/#page-templates).
 
+`--reapplyTemplates`
+: Applies the page template to pages which already exist, not only to the ones `Doctor` creates. Off
+  by default. Check [page templates](../../content/pages/#page-templates).
+
 `--disableComments`
 : Disable comments for all pages. By default the comments are enabled on the pages.
 

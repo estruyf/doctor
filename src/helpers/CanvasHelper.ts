@@ -71,6 +71,8 @@ const VERTICAL_SECTION_LAYOUT = 2;
 /** SharePoint marks a full-width section, which holds one banner web part, this way */
 const FULL_WIDTH_SECTION_FACTOR = 0;
 const PAGE_SETTINGS_CONTROL_TYPE = 0;
+/** The banner, which carries the page title inside its own properties */
+const PAGE_TITLE_WEB_PART_ID = "cbe7b0a9-3504-44dd-a3a3-0e5cacd07788";
 const WEB_PART_CONTROL_TYPE = 3;
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
@@ -147,6 +149,52 @@ export class CanvasHelper {
     );
 
     return CanvasHelper.normalize(kept, inTarget);
+  }
+
+  /**
+   * The canvas a page should start from when its template is re-applied.
+   *
+   * The template supplies the layout — its sections, and whatever furniture it
+   * carries. The page keeps its own banner, because a banner stores the page
+   * title inside the web part, so taking the template's would stamp the
+   * template's title onto every page that uses it.
+   *
+   * The template's own doctor controls are left in place on purpose: they mark
+   * where the content goes, and `compose()` recognises and replaces them.
+   *
+   * @param template the template page's canvas
+   * @param page the canvas of the page being published
+   */
+  public static mergeTemplate(
+    template: CanvasControl[] | null,
+    page: CanvasControl[] | null,
+  ): CanvasControl[] {
+    if (!template || template.length === 0) {
+      return page ? clone(page) : [];
+    }
+
+    const merged = clone(template);
+    const isBanner = (control: CanvasControl) =>
+      typeof control?.webPartId === "string" &&
+      control.webPartId.toLowerCase() === PAGE_TITLE_WEB_PART_ID;
+
+    const ownBanner = (page || []).find(isBanner);
+    if (!ownBanner) {
+      return merged;
+    }
+
+    const templateBanner = merged.findIndex(isBanner);
+    if (templateBanner >= 0) {
+      // Same slot in the template's layout, the page's own banner in it
+      merged[templateBanner] = {
+        ...clone(ownBanner),
+        position: merged[templateBanner].position,
+      };
+    } else {
+      merged.unshift(clone(ownBanner));
+    }
+
+    return merged;
   }
 
   /**
@@ -431,6 +479,17 @@ export class CanvasHelper {
       !!message &&
       (message.includes("status 409") ||
         message.toLowerCase().includes("save conflict"))
+    );
+  }
+
+  /**
+   * Read a page without checking it out, for pages doctor does not write to —
+   * a page template, for instance.
+   */
+  public static async read(webUrl: string, slug: string): Promise<any> {
+    return await ApiHelper.getOrThrow(
+      pageApiUrl(webUrl, slug),
+      await CanvasHelper.getHeaders(webUrl),
     );
   }
 

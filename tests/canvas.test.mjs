@@ -549,3 +549,121 @@ test("CanvasHelper recognises a save conflict", () => {
   assert.equal(CanvasHelper.isSaveConflict(new Error("nope")), false);
   assert.equal(CanvasHelper.isSaveConflict(undefined), false);
 });
+
+//
+// Re-applying a page template
+//
+
+const PAGE_TITLE_WEBPART = "cbe7b0a9-3504-44dd-a3a3-0e5cacd07788";
+
+const bannerFor = (id, title) => ({
+  controlType: 3,
+  displayMode: 2,
+  id,
+  position: fullWidthSection(1),
+  webPartId: PAGE_TITLE_WEBPART,
+  emphasis: {},
+  webPartData: {
+    id: PAGE_TITLE_WEBPART,
+    instanceId: id,
+    title: "Title Region",
+    properties: { title, htmlTitle: `<h1>${title}</h1>` },
+  },
+});
+
+const TEMPLATE = [
+  bannerFor("tpl-banner", "Documentation Template"),
+  { ...webPart("tpl-doctor", "doctor-placeholder", 1), position: contentSection(1) },
+  {
+    ...webPart("tpl-extra", "Contact us", 2, ROLLUP_WEBPART),
+    position: contentSection(2, 3),
+  },
+  SETTINGS,
+];
+
+test("mergeTemplate takes the template's layout", () => {
+  const page = [bannerFor("page-banner", "Extensions"), SETTINGS];
+
+  const merged = CanvasHelper.mergeTemplate(TEMPLATE, page);
+
+  // The template's furniture comes along
+  assert.ok(merged.some((c) => c.id === "tpl-extra"), "template section kept");
+  assert.ok(merged.some((c) => c.id === "tpl-doctor"), "content slot kept");
+});
+
+test("mergeTemplate keeps the page's own banner, not the template's title", () => {
+  // A banner stores the page title inside the web part, so taking the
+  // template's would put "Documentation Template" on every page
+  const page = [bannerFor("page-banner", "Extensions"), SETTINGS];
+
+  const merged = CanvasHelper.mergeTemplate(TEMPLATE, page);
+  const banner = merged.find((c) => c.webPartId === PAGE_TITLE_WEBPART);
+
+  assert.equal(banner.id, "page-banner");
+  assert.equal(banner.webPartData.properties.title, "Extensions");
+  // ...in the slot the template gave it
+  assert.deepEqual(banner.position, TEMPLATE[0].position);
+  assert.equal(
+    merged.filter((c) => c.webPartId === PAGE_TITLE_WEBPART).length,
+    1,
+  );
+});
+
+test("mergeTemplate uses the template's banner when the page has none", () => {
+  const merged = CanvasHelper.mergeTemplate(TEMPLATE, [SETTINGS]);
+  const banner = merged.find((c) => c.webPartId === PAGE_TITLE_WEBPART);
+
+  assert.equal(banner.id, "tpl-banner");
+});
+
+test("mergeTemplate keeps the page as it is when there is no template", () => {
+  const page = [bannerFor("page-banner", "Extensions"), SETTINGS];
+
+  assert.deepEqual(CanvasHelper.mergeTemplate(null, page), page);
+  assert.deepEqual(CanvasHelper.mergeTemplate([], page), page);
+});
+
+test("mergeTemplate does not touch either input", () => {
+  const page = [bannerFor("page-banner", "Extensions"), SETTINGS];
+  const before = { template: JSON.stringify(TEMPLATE), page: JSON.stringify(page) };
+
+  CanvasHelper.mergeTemplate(TEMPLATE, page);
+
+  assert.equal(JSON.stringify(TEMPLATE), before.template);
+  assert.equal(JSON.stringify(page), before.page);
+});
+
+test("a re-applied template puts the page's content in the template's slot", () => {
+  // What the publish actually does: merge, then compose into the result
+  const page = [
+    bannerFor("page-banner", "Extensions"),
+    { ...webPart("ours-1", "doctor-placeholder", 1), position: contentSection(1, 9) },
+    SETTINGS,
+  ];
+
+  const canvas = CanvasHelper.compose(
+    CanvasHelper.mergeTemplate(TEMPLATE, page),
+    [{ ...markdown("doctor-placeholder"), instanceId: "ours-1" }],
+    { ownedInstanceIds: ["ours-1"], ownedTitlePrefix: "doctor-placeholder" },
+  );
+
+  // The page's own control, in the section the template reserved for content
+  const content = canvas.find((c) => c.id === "ours-1");
+  assert.equal(content.position.zoneIndex, 2);
+  // The template's placeholder is gone, replaced rather than left beside it
+  assert.equal(
+    canvas.filter((c) => c.webPartId === MARKDOWN_WEBPART).length,
+    1,
+  );
+  assert.deepEqual(titles(canvas), [
+    "Title Region",
+    "doctor-placeholder",
+    "Contact us",
+  ]);
+  // And the banner is still the page's own
+  assert.equal(
+    canvas.find((c) => c.webPartId === PAGE_TITLE_WEBPART).webPartData.properties
+      .title,
+    "Extensions",
+  );
+});
