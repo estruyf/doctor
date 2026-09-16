@@ -57,6 +57,10 @@
       },
       {
         "id": null,
+        "title": "Fix: a publish no longer fails when the account is not allowed to change the site navigation. Managing navigation needs rights on the web which an account allowed to edit pages does not necessarily have, and the failure came after every page had already been published. Doctor now reports it and leaves the menu as it is."
+      },
+      {
+        "id": null,
         "title": "Fix: setting a page description no longer stops the publish on a tenant which does not allow the account to run a system update. Doctor falls back to a normal update — the description is set, at the cost of the page's `Modified` date changing with it — and says so once per run instead of on every page. The description is now also written before the page is published, so that fallback cannot leave every page sitting with unpublished changes."
       },
       {
