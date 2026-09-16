@@ -57,6 +57,14 @@
       },
       {
         "id": null,
+        "title": "New: a publish starts by asking the site what the account is allowed to do, and prints what will and will not run before anything is written. The steps it cannot perform — the navigation and the site design — are skipped rather than attempted and failed, and the ones it can are listed so you know what you are getting. Not being able to create or update pages stops the run immediately, since that is the whole job. A site whose permissions cannot be read is published exactly as before. Skipped together with the other checks by `--skipPrecheck`."
+      },
+      {
+        "id": null,
+        "title": "Fix: the site logo is found when its path is relative to `doctor.json` rather than to the content folder, which is where every other path in that file is taken from. Both are accepted, and neither matching now says which paths were tried."
+      },
+      {
+        "id": null,
         "title": "Fix: a publish no longer fails when the account is not allowed to change the site navigation, the site theme, the header and footer, or the site logo. All of these need rights on the web which an account allowed to edit pages does not necessarily have, and the failure came after every page had already been published. Doctor now reports what it left alone and finishes the run. The theme and the logo were already skipped this way, but silently, and only if the refusal happened to be worded in one particular way."
       },
       {

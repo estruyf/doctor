@@ -1,6 +1,6 @@
 # Plan: check what the account may do before publishing anything
 
-Status: draft / not started
+Status: **implemented** (2026-09-16) — see [As built](#as-built)
 Author: proposed via AI coding agent session, for @estruyf to review
 Related: raised after a publish died at the navigation step, having already written 138 pages
 
@@ -120,3 +120,33 @@ proceeds exactly as it does today. `--skipPrecheck` should also skip it, as it d
 | Date | Change |
 |---|---|
 | 2026-09-16 | Initial draft, after a publish failed at the navigation step with every page already written. |
+
+## As built
+
+Built as `CapabilitiesHelper`, as its own task in the `publish` list, before the pre-process checks.
+
+**What is probed**, in at most five reads, none of them a write:
+`_api/web/EffectiveBasePermissions`, the same for the Site Pages library and for `--library`, plus
+one read each of `_api/v2.1/termStore` and `_api/web/siteusers`. The permission masks arrive as two
+32-bit halves and are read with division, not a shift — `manageWeb` is bit 31, and `1 << 31` is
+negative in JavaScript.
+
+**What is gated.** The navigation and site design tasks are skipped through their existing `enabled:`
+predicates. Not being able to create or update pages stops the run immediately. Everything else is
+reported and left to the per-page handling, which already skips a page whose metadata cannot be
+resolved.
+
+**What is reported.** One block before anything is written, listing only the steps this run was going
+to take, and each refusal repeated as a warning at the end where they are read.
+
+**Deviation from the plan:** the per-operation handling was *not* removed. `isPermissionError` still
+catches a refusal at the point of use, because the probe says what the account may do and SharePoint
+can still refuse a call the permissions suggested would work. The probe changes when the author finds
+out, not whether the code copes.
+
+**Not done:** `status` does not run the probe (open question 2), and the capabilities are not in the
+`--output json` document yet. Both are additive.
+
+| Date | Change |
+|---|---|
+| 2026-09-16 | Implemented. |

@@ -1,5 +1,5 @@
 import { join } from "path";
-import { isPermissionError } from "@utils";
+import { existsAsync, isPermissionError } from "@utils";
 import { CommandArguments, TaskOutput } from "@models";
 import {
   CliCommand,
@@ -30,6 +30,35 @@ export class SiteHelpers {
    * refusal reports what was left alone and the publish carries on. Anything
    * else is a real failure and still stops the run.
    */
+  /**
+   * Where the site logo actually is.
+   *
+   * The path used to be taken relative to the content folder, which is not
+   * where the rest of `doctor.json` points — `certificate`, `partials.folder`
+   * and `markdown.shortcodesFolder` are all relative to the file itself. Both
+   * are accepted, content folder first so existing setups keep working, and
+   * neither matching says which paths were tried.
+   */
+  private static async resolveLogoPath(
+    startFolder: string,
+    logo: string
+  ): Promise<string> {
+    const inContent = join(startFolder, logo);
+    if (await existsAsync(inContent)) {
+      return inContent;
+    }
+
+    const besideConfig = join(process.cwd(), logo);
+    if (await existsAsync(besideConfig)) {
+      Logger.debug(`Site logo found next to doctor.json: ${besideConfig}`);
+      return besideConfig;
+    }
+
+    throw new Error(
+      `The site logo "${logo}" does not exist. Doctor looked in "${inContent}" and "${besideConfig}". The path is taken relative to the content folder, or to doctor.json.`
+    );
+  }
+
   private static skipIfNotAllowed(
     error: unknown,
     what: string,
@@ -161,7 +190,10 @@ export class SiteHelpers {
         let imgUrl = siteDesign.logo;
 
         if (imgUrl) {
-          const imgPath = join(options.startFolder, siteDesign.logo);
+          const imgPath = await SiteHelpers.resolveLogoPath(
+            options.startFolder,
+            siteDesign.logo
+          );
 
           Logger.debug(
             `Setting site logo with the following path: "${imgPath}"`

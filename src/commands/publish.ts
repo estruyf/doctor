@@ -2,6 +2,7 @@ import { Listr } from "listr2";
 import kleur from "kleur";
 import { Authenticate, Version } from "@commands";
 import {
+  CapabilitiesHelper,
   DoctorTranspiler,
   FileHelpers,
   Logger,
@@ -109,6 +110,22 @@ export class Publish {
           rendererOptions: { persistentOutput: true },
         },
         {
+          title: `Check what this account may do`,
+          task: async (_, task) => {
+            task.output = `Reading the permissions of ${webUrl}`;
+            const capabilities = await CapabilitiesHelper.probe(webUrl, options);
+            CapabilitiesHelper.report(capabilities, options);
+
+            if (capabilities.determined && !capabilities.publishPages) {
+              throw new Error(
+                `This account cannot create or update pages in the Site Pages library of ${webUrl}, so there is nothing doctor can publish. It needs at least "Add Items" and "Edit Items" there.`
+              );
+            }
+          },
+          enabled: () => !options.skipPrecheck,
+          rendererOptions: { persistentOutput: true },
+        },
+        {
           title: `Pre-process checks`,
           task: async (ctx, task) =>
             await PrecheckHelper.validate(ctx, task, options),
@@ -198,12 +215,17 @@ export class Publish {
           title: `Updating navigation`,
           task: async () =>
             await NavigationHelper.update(webUrl, ouput.navigation ?? undefined),
-          enabled: () => !options.skipNavigation,
+          enabled: () =>
+            !options.skipNavigation &&
+            CapabilitiesHelper.get().manageNavigation,
         },
         {
           title: `Change the look of the site`,
           task: async (ctx, task) => await SiteHelpers.changeLook(task, options),
-          enabled: () => !!options.siteDesign && !options.skipSiteDesign,
+          enabled: () =>
+            !!options.siteDesign &&
+            !options.skipSiteDesign &&
+            CapabilitiesHelper.get().manageSiteDesign,
         },
         {
           title: `Post cleanup`,

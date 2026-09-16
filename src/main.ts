@@ -4,6 +4,7 @@ import { CommandArguments } from "@models";
 import {
   AccessToken,
   CanvasHelper,
+  CapabilitiesHelper,
   CliCommand,
   FileHelpers,
   FolderHelpers,
@@ -110,6 +111,7 @@ export class Commands {
     FileHelpers.reset();
     PagesHelper.reset();
     CanvasHelper.reset();
+    CapabilitiesHelper.reset();
     TermsHelper.reset();
     AccessToken.reset();
     ListHelpers.reset();

@@ -1,3 +1,4 @@
+export * from './Capabilities.js';
 export * from './Chrome.js';
 export * from './CommandArguments.js';
 export * from './CommandResult.js';

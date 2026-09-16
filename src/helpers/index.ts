@@ -2,6 +2,7 @@ export * from './AccessToken.js';
 export * from './ApiHelper.js';
 export * from './ArgumentsHelper.js';
 export * from './CanvasHelper.js';
+export * from './CapabilitiesHelper.js';
 export * from './CliCommand.js';
 export * from './ContextInfo.js';
 export * from './DoctorTranspiler.js';

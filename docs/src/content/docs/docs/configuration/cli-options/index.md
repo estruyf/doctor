@@ -252,7 +252,7 @@ This flag can only be added to the command execution. Using it in the `doctor.js
 : Recycles the pages which `doctor` published before, but whose markdown file no longer exists. Requires the `--confirm` flag, or `doctor` asks you to confirm the removal. Check the [removing deleted pages](#removing-deleted-pages) section for more information.
 
 `--skipPrecheck`
-: Skips the pre-process validation which runs before any SharePoint calls are made. Check the [pre-process checks](#pre-process-checks) section for more information.
+: Skips the checks which run before any page is written: the local front matter and slug validation, and the capability check described below. Check the [pre-process checks](#pre-process-checks) section for more information.
 
 `--timingDetails`
 : Shows additional per-page timing statistics (average, fastest and slowest page) after the publishing run. The total publishing time is always shown, also without this flag.
@@ -380,7 +380,42 @@ Before any call to SharePoint is made, `doctor` validates your markdown files an
 
 When one or more issues are found, the run stops and all issues are listed at once (up to a maximum of 20, followed by the number of remaining issues). Pages of the `translation` type are skipped during this validation.
 
-Use the `--skipPrecheck` flag when you want to skip this validation.
+### What this account can do
+
+`doctor` then asks the site which of its operations the account is actually allowed to perform, and
+prints the answer before anything is written:
+
+```
+ What this account can do on https://contoso.sharepoint.com/sites/docs:
+   yes  Publish pages
+   yes  Set page metadata
+   yes  Upload assets to "Shared Documents"
+    no  Update a page without changing its history — page descriptions will change 'Modified' and 'Modified By'
+    no  Manage the site navigation — the 'menu' setting is skipped
+    no  Change the look of the site — the 'siteDesign' setting is skipped
+   yes  Read the term store
+   yes  Read the site users
+```
+
+Publishing pages and setting metadata need rights on the **Site Pages library**. The navigation, the
+theme, the header and footer and the site logo need **Manage Web** rights on the **site** — an
+account that is perfectly able to publish pages often does not have those, which used to surface as a
+failure at the very end of a run, with every page already written.
+
+- The steps the account cannot perform are **skipped**, not attempted and failed. Each one is
+  repeated in the warnings at the end of the run.
+- Not being able to **create or update pages** stops the run straight away, since that is the whole
+  job.
+- Only the steps this run was going to take are listed — no `menu` in your configuration means no
+  line about navigation.
+- If the site's permissions cannot be read at all, `doctor` says so and attempts everything, exactly
+  as it did before this check existed.
+
+This is a check of what the account may *do*, not of what the site will accept. A term which is not
+in the term set, or an author who is not a member of this site, is still found per page while
+publishing.
+
+Use the `--skipPrecheck` flag when you want to skip this validation and the capability check.
 
 ## Workflow command specific options
 
