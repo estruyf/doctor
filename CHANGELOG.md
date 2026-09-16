@@ -37,6 +37,8 @@
 - Fix: a timeout or a throttle while looking a person up is no longer reported as the name not existing. It was remembered for the rest of the run, so one dropped connection skipped every page naming a perfectly real author, with a warning saying they are not a user of the tenant. Only an answer that says the principal is not there counts as one; anything else fails that page and is asked again on the next. An account which may not look users up is also only asked once now, instead of once per name.
 - Fix: a control shortcode's unquoted attribute value may contain a `/`, so `path=/sites/docs` reads as the path it is.
 - Fix: a page which fails half way through is no longer removed by `--cleanEnd`. The cleanup pass removes what the run did not write, which made a page whose image would not upload, or whose column would not take its value, indistinguishable from one whose markdown file was deleted.
+- Fix: an asset referenced from outside the content folder keeps its own place under the shared `assets` folder, instead of every outside folder collapsing onto it. Two images with the same file name in different folders — `../shared/brand/logo.png` and `../other/brand/logo.png` — became one upload, so whichever was published second overwrote the first or was skipped, and both pages showed the same image.
+- Fix: the permission check reads the asset library by its server relative url rather than by its title. `--library` is a path — `Shared Documents` is the folder, while the list is called `Documents` — so on a default site the check learnt nothing about the library it was asked about, and reported that uploads were allowed without having looked.
 
 ## [2.2.0]
 
