@@ -380,13 +380,13 @@ Before any call to SharePoint is made, `doctor` validates your markdown files an
 
 When one or more issues are found, the run stops and all issues are listed at once (up to a maximum of 20, followed by the number of remaining issues). Pages of the `translation` type are skipped during this validation.
 
-### What this account can do
+### Available permissions
 
 `doctor` then asks the site which of its operations the account is actually allowed to perform, and
 prints the answer before anything is written:
 
 ```
- What this account can do on https://contoso.sharepoint.com/sites/docs:
+ Available permissions on https://contoso.sharepoint.com/sites/docs:
    yes  Publish pages
    yes  Set page metadata
    yes  Upload assets to "Shared Documents"

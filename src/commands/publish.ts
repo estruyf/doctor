@@ -110,7 +110,7 @@ export class Publish {
           rendererOptions: { persistentOutput: true },
         },
         {
-          title: `Check what this account may do`,
+          title: `Check the available permissions`,
           task: async (_, task) => {
             task.output = `Reading the permissions of ${webUrl}`;
             const capabilities = await CapabilitiesHelper.probe(webUrl, options);

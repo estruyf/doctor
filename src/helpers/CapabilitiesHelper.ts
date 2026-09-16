@@ -240,7 +240,7 @@ export class CapabilitiesHelper {
     const lines = CapabilitiesHelper.describe(capabilities, options);
 
     OutputHelper.info(``);
-    OutputHelper.info(` What this account can do on ${options.webUrl}:`);
+    OutputHelper.info(` Available permissions on ${options.webUrl}:`);
     for (const line of lines) {
       OutputHelper.info(`   ${line}`);
     }

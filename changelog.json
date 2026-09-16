@@ -57,7 +57,7 @@
       },
       {
         "id": null,
-        "title": "New: a publish starts by asking the site what the account is allowed to do, and prints what will and will not run before anything is written. The steps it cannot perform — the navigation and the site design — are skipped rather than attempted and failed, and the ones it can are listed so you know what you are getting. Not being able to create or update pages stops the run immediately, since that is the whole job. A site whose permissions cannot be read is published exactly as before. Skipped together with the other checks by `--skipPrecheck`."
+        "title": "New: a publish starts by asking the site which permissions the account has, and prints what will and will not run before anything is written. The steps it cannot perform — the navigation and the site design — are skipped rather than attempted and failed, and the ones it can are listed so you know what you are getting. Not being able to create or update pages stops the run immediately, since that is the whole job. A site whose permissions cannot be read is published exactly as before. Skipped together with the other checks by `--skipPrecheck`."
       },
       {
         "id": null,
