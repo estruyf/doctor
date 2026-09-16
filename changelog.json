@@ -90,6 +90,46 @@
       {
         "id": null,
         "title": "Doctor can run on an app registration scoped to a single site with `Sites.Selected`, instead of `Sites.FullControl.All` across the whole tenant. The publish reports which operations the account is allowed to perform and skips the site-level ones it is not, rather than failing part way through. The documentation now covers how to grant it."
+      },
+      {
+        "id": null,
+        "title": "Fix: a page which is skipped keeps its place in the site navigation. The menu is rebuilt from what a run saw, so a page skipped as unchanged in a translation run, or skipped because its metadata could not be worked out, lost its entry — the page itself was left untouched, but it disappeared from the Quick Launch."
+      },
+      {
+        "id": null,
+        "title": "Fix: `--cleanEnd` no longer recycles pages which were only skipped. The cleanup pass removes every page the run did not write, which made it treat a page skipped as unchanged the same as one whose markdown file was deleted."
+      },
+      {
+        "id": null,
+        "title": "Fix: the whole term set is read, not only its first page. The term store answers in pages, so in a set large enough to be split, a perfectly valid label was reported as not being in the set and its page skipped over a term that was there all along."
+      },
+      {
+        "id": null,
+        "title": "Fix: a page template which carries no banner of its own no longer leaves the page with a section that is full width and twelve columns wide at the same time. Applying such a template with `--reapplyTemplates` put the page's own banner in the same zone as the template's first section."
+      },
+      {
+        "id": null,
+        "title": "Fix: a timeout or a throttle while setting a page description is no longer taken as the tenant refusing a system update. One transient failure used to switch the rest of the run to ordinary updates — changing `Modified` and `Modified By` on every remaining page — and report a permission the account actually had."
+      },
+      {
+        "id": null,
+        "title": "A multi-value column now takes its list as a whole: one entry which cannot be read reports the column and skips the page, instead of writing the entries which could be read and silently leaving the rest out. Empty strings in a Choice array are still filtered out."
+      },
+      {
+        "id": null,
+        "title": "A control shortcode's attribute value can contain a `>` — a search query like `Size>1000`, for instance. The tag used to be read as a shortcode sitting mid-paragraph and reported as an error."
+      },
+      {
+        "id": null,
+        "title": "Custom shortcodes can be written as `.mjs` files, alongside the `.js` and `.cjs` files which were already picked up."
+      },
+      {
+        "id": null,
+        "title": "The permissions report no longer says a step will be skipped when it will be attempted. Only the navigation and the site design are genuinely skipped when the account may not manage the web; the other lines say what a refusal will cost instead."
+      },
+      {
+        "id": null,
+        "title": "A front matter column whose name is one the underlying CLI uses for its own options is reported instead of quietly redirecting the update somewhere else."
       }
     ]
   },

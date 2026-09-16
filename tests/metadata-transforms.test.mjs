@@ -109,10 +109,16 @@ test("UserMulti: a single value does not have to be an array", () => {
   );
 });
 
-test("UserMulti: the invalid entries are dropped, the rest still land", () => {
+test("UserMulti: one unreadable entry rejects the whole column", () => {
+  // Writing only the readable half would put a shorter list of people on the
+  // page than the markdown asks for, without saying so
   assert.equal(
     MetadataHelper.toUserClaims(["user1@contoso.com", "", null, 42]),
-    `[{'Key':'${CLAIM}user1@contoso.com'}]`,
+    undefined,
+  );
+  assert.equal(
+    MetadataHelper.toUserClaims(["user1@contoso.com", 42]),
+    undefined,
   );
 });
 
@@ -187,8 +193,8 @@ test("LookupMulti: several ids are joined with ;#", () => {
   assert.equal(MetadataHelper.transformLookupMulti([1, "2", 3]), "1;#2;#3");
 });
 
-test("LookupMulti: the invalid entries are dropped", () => {
-  assert.equal(MetadataHelper.transformLookupMulti([1, "nope", 3]), "1;#3");
+test("LookupMulti: one entry that is not an id rejects the whole column", () => {
+  assert.equal(MetadataHelper.transformLookupMulti([1, "nope", 3]), undefined);
 });
 
 test("LookupMulti: nothing valid means no value to set", () => {

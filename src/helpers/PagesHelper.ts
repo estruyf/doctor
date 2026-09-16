@@ -31,9 +31,29 @@ import {
   ResolvedTerm,
   WebPartControl,
 } from "@helpers";
+import { isPermissionError } from "@utils";
 import { executeCommand } from "@pnp/cli-microsoft365";
 import { randomUUID } from "crypto";
 import { basename, dirname } from "path";
+
+/**
+ * The option names `spo listitem set` reads for itself. A column value under
+ * one of these would be taken as the option rather than as a column.
+ */
+const RESERVED_LISTITEM_OPTIONS = new Set([
+  "webUrl",
+  "listId",
+  "listTitle",
+  "listUrl",
+  "id",
+  "contentType",
+  "systemUpdate",
+  "output",
+  "debug",
+  "verbose",
+  "query",
+  "help",
+]);
 
 interface FieldInfo {
   internalName: string;
@@ -50,6 +70,16 @@ interface FieldInfo {
 export class PagesHelper {
   private static pages: File[] = [];
   private static processedPages: { [slug: string]: number } = {};
+  /**
+   * The pages this run knows are still wanted, but did not write — skipped as
+   * unchanged, or skipped because their metadata could not be worked out.
+   *
+   * `processedPages` cannot carry these: it maps a slug to its list item id and
+   * is what `getPageId` answers from, so a slug with no id has no business in
+   * it. The cleanup pass needs them all the same, or a page that was merely
+   * skipped is treated as one whose markdown file is gone, and recycled.
+   */
+  private static knownPages: Set<string> = new Set();
   private static listFieldMap: { [listId: string]: Map<string, FieldInfo> } = {};
   /** Set once the tenant refuses a CSOM system update, see setPageDescription */
   private static systemUpdateRefused = false;
@@ -64,6 +94,7 @@ export class PagesHelper {
   public static reset(): void {
     PagesHelper.pages = [];
     PagesHelper.processedPages = {};
+    PagesHelper.knownPages = new Set();
     PagesHelper.listFieldMap = {};
     PagesHelper.systemUpdateRefused = false;
     PagesHelper.templateSkipReported = false;
@@ -779,6 +810,18 @@ export class PagesHelper {
       );
     }
 
+    // The column values are spread into the command's own options, so a column
+    // whose internal name is one of them would silently point the update
+    // somewhere else — at another site, or another list item
+    const reserved = Object.keys(values).filter((name) =>
+      RESERVED_LISTITEM_OPTIONS.has(name)
+    );
+    if (reserved.length > 0) {
+      throw new Error(
+        `The column(s) ${reserved.join(", ")} cannot be set by doctor, because the name is one the CLI uses for its own options.`
+      );
+    }
+
     await executeWithRetry(
       "spo listitem set",
       {
@@ -958,11 +1001,14 @@ export class PagesHelper {
 
     for (const entry of values) {
       const term = MetadataHelper.normalizeTaxonomyTerm(entry);
+
+      // Every entry counts. Dropping the ones that cannot be read and writing
+      // the rest would leave the column holding a list the markdown never
+      // said, which is the one outcome "the file is the page" rules out.
       if (!term) {
-        Logger.debug(
-          `Skipping invalid taxonomy value for field '${fieldInfo.internalName}'.`
+        throw new Error(
+          `${JSON.stringify(entry)} is not a term label or a { label, termGuid } pair`
         );
-        continue;
       }
 
       terms.push(await this.toTaxonomyValue(webUrl, fieldInfo, term));
@@ -1096,7 +1142,7 @@ export class PagesHelper {
 
     if (siteUserId === null) {
       if (typeof author === "string" && author.includes("@")) {
-        return MetadataHelper.toClaimKey(author) as string;
+        return await PagesHelper.resolveUpnClaim(webUrl, author);
       }
 
       throw new Error(
@@ -1139,6 +1185,51 @@ export class PagesHelper {
     // The login name already is the claim, which keeps guest and group
     // accounts working — their claims are not the membership shape
     return loginName;
+  }
+
+  /**
+   * The claim for a user named by principal name.
+   *
+   * The site is asked first, because the login name it already holds is the
+   * claim it will compare against — and for a guest or a group that is not the
+   * `i:0#.f|membership|` shape a principal name is assembled into. A user the
+   * site has never seen has no entry yet and is not an error: SharePoint adds
+   * one when the column is written. That is also why this cannot verify the
+   * name exists, and why an unknown one is a failure on the page rather than a
+   * skip — the difference between "not here yet" and "does not exist" is not
+   * one the site can answer.
+   */
+  private static async resolveUpnClaim(
+    webUrl: string,
+    upn: string
+  ): Promise<string> {
+    const base = webUrl.replace(/\/+$/, "");
+    const wanted = upn.trim();
+
+    try {
+      const filter = encodeURIComponent(
+        `Email eq '${wanted.replace(/'/g, "''")}'`
+      );
+      const response = await ApiHelper.getOrThrow(
+        `${base}/_api/web/siteusers?$filter=${filter}&$select=Id,LoginName`,
+        {
+          Authorization: `Bearer ${(await AccessToken.get(webUrl)).trim()}`,
+          accept: "application/json;odata=nometadata",
+        }
+      );
+
+      const loginName = response?.value?.[0]?.LoginName;
+      if (loginName) {
+        Logger.debug(`Resolved '${wanted}' to the site user ${loginName}.`);
+        return loginName;
+      }
+    } catch (e: any) {
+      Logger.debug(
+        `Could not look up '${wanted}' in the site users: ${e?.message || e}`
+      );
+    }
+
+    return MetadataHelper.toClaimKey(wanted) as string;
   }
 
   /**
@@ -1228,6 +1319,15 @@ export class PagesHelper {
         );
         return;
       } catch (e: any) {
+        // Only a refusal is permanent. A timeout, a throttle or a dropped
+        // connection says nothing about what the account may do, and taking it
+        // as a refusal would change 'Modified' and 'Modified By' on every page
+        // for the rest of the run — while telling the user they lack a
+        // permission they have.
+        if (!isPermissionError(e)) {
+          throw e;
+        }
+
         PagesHelper.systemUpdateRefused = true;
         Logger.debug(
           `System update refused on ${webUrl}: ${e?.message || e}`
@@ -1309,6 +1409,17 @@ export class PagesHelper {
   /**
    * Receive all the pages which have not been touched
    */
+  /**
+   * Record a page this run is keeping but did not write, so the cleanup pass
+   * leaves it alone
+   * @param slug
+   */
+  public static markKnown(slug: string): void {
+    if (slug) {
+      PagesHelper.knownPages.add(slug.toLowerCase());
+    }
+  }
+
   private static getUntouchedPages(): string[] {
     let untouched: string[] = [];
     for (const page of PagesHelper.pages) {
@@ -1317,7 +1428,7 @@ export class PagesHelper {
         continue;
       }
       const slug = url.toLowerCase().split("/sitepages/")[1];
-      if (!PagesHelper.processedPages[slug]) {
+      if (!PagesHelper.processedPages[slug] && !PagesHelper.knownPages.has(slug)) {
         untouched.push(slug);
       }
     }

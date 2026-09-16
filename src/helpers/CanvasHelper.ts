@@ -215,7 +215,31 @@ export class CanvasHelper {
         position: merged[templateBanner].position,
       };
     } else {
-      merged.unshift(clone(ownBanner));
+      // The template reserves no slot for a banner, so the page's own one gets
+      // a full-width section above everything the template brought.
+      //
+      // It cannot keep the position it had on the page: that numbering belongs
+      // to the page's layout, not this one, and a banner landing in the same
+      // zone as one of the template's ordinary sections leaves that zone both
+      // full width and twelve columns wide at once. The template's zones move
+      // up to make room instead, so every zone keeps a single width.
+      for (const control of merged) {
+        if (control.position) {
+          control.position.zoneIndex = (control.position.zoneIndex ?? 1) + 1;
+        }
+      }
+
+      merged.unshift({
+        ...clone(ownBanner),
+        position: {
+          ...(ownBanner.position ?? {}),
+          zoneIndex: 1,
+          sectionIndex: 1,
+          sectionFactor: FULL_WIDTH_SECTION_FACTOR,
+          layoutIndex: 1,
+          controlIndex: 1,
+        },
+      });
     }
 
     return merged;
@@ -595,7 +619,13 @@ export class CanvasHelper {
   ): Promise<any> {
     const definition = await CanvasHelper.getDefinition(webUrl, webPartId);
     const manifest = JSON.parse(definition.Manifest);
-    const preconfigured = manifest.preconfiguredEntries[0];
+    const preconfigured = manifest?.preconfiguredEntries?.[0];
+
+    if (!preconfigured) {
+      throw new Error(
+        `The web part ${webPartId} on ${webUrl} declares no preconfigured entry, so doctor has no defaults to build an instance from. A control shortcode can supply them itself with 'webPartData'.`,
+      );
+    }
 
     return {
       dataVersion: "1.0",

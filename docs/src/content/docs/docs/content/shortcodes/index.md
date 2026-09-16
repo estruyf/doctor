@@ -53,7 +53,7 @@ module.exports = {
 ```
 
 :::note[Note]
-If your project uses `"type": "module"` in `package.json` and you want to keep CommonJS syntax, rename your shortcode file from `.js` to `.cjs`.
+`Doctor` picks up `.js`, `.cjs` and `.mjs` files from the shortcodes folder. If your project uses `"type": "module"` in `package.json` and you want to keep CommonJS syntax, rename your shortcode file from `.js` to `.cjs`; use `.mjs` to keep ESM syntax in a project which does not.
 :::
 
 `beforeMarkdown`

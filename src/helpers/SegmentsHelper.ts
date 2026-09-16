@@ -32,9 +32,14 @@ export class SegmentsHelper {
     const masked = ShortcodesHelpers.maskCode(markdown, snippets);
 
     const tags = controlTags.map(escapeForRegex).join("|");
-    // `<tag />`, `<tag attr="value" />` or `<tag></tag>` — alone on its line
+    // `<tag />`, `<tag attr="value" />` or `<tag></tag>` — alone on its line.
+    // Quoted attribute values are matched as a whole rather than as "anything
+    // but >", so a value which contains one — a KQL query like `Size>1000`,
+    // say — still reads as the tag it is instead of being reported as a
+    // shortcode sitting mid-paragraph.
+    const attributes = `(?:\\s+[^\\s=/>]+(?:\\s*=\\s*(?:"[^"]*"|'[^']*'|[^\\s/>]+))?)*`;
     const tagLine = new RegExp(
-      `^<(${tags})(\\s[^>]*?)?(?:/>|>\\s*</\\1>)\\s*$`,
+      `^<(${tags})(${attributes})\\s*(?:/>|>\\s*</\\1>)\\s*$`,
     );
 
     const segments: PageSegment[] = [];

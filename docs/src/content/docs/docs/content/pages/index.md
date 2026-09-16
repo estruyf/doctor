@@ -494,7 +494,14 @@ metadata:
     - "Feature C"
 ```
 
-Empty strings in arrays are automatically filtered out.
+Empty strings in a **Choice** array are filtered out.
+
+Every other multi-value column takes the list as a whole: if one entry cannot be read — a person
+column entry which is not a user principal name, a lookup entry which is not an item id, a managed
+metadata entry which is neither a label nor a `{ label, termGuid }` pair — the column is reported as
+a problem and the page is skipped. `Doctor` does not write the entries it could read and leave the
+rest out, because that would put a shorter list on the page than the markdown asks for, without
+saying so.
 
 #### What happens when a value cannot be set
 

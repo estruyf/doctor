@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { DoctorTranspiler } from "../dist/helpers/DoctorTranspiler.js";
 import { DependencyHelper } from "../dist/helpers/DependencyHelper.js";
 import { StateHelper } from "../dist/helpers/StateHelper.js";
+import { PagesHelper } from "../dist/helpers/PagesHelper.js";
 
 const WEB_URL = "https://contoso.sharepoint.com/sites/docs";
 
@@ -142,4 +143,51 @@ menu:
 
   assert.equal(plan.skippedUnchanged, 1);
   assert.deepEqual(output.navigation.QuickLaunch.items, []);
+});
+
+test("A page skipped for a metadata problem keeps its menu entry", async (t) => {
+  // The navigation is rebuilt from what the run saw, so a page that is skipped
+  // rather than published still has to contribute its item — otherwise "the
+  // page was left untouched" costs it its place in the menu.
+  t.after(() => PagesHelper.reset());
+  PagesHelper.reset();
+
+  const output = { navigation: { QuickLaunch: { items: [] } } };
+
+  DoctorTranspiler.skipPage(
+    WEB_URL,
+    output,
+    { title: "Codeblocks", menu: { QuickLaunch: { id: "codeblocks", parent: "tests" } } },
+    "tests/codeblocks.aspx",
+    "Codeblocks",
+  );
+
+  const [root] = output.navigation.QuickLaunch.items;
+  assert.equal(root.id, "tests");
+  assert.deepEqual(
+    root.items.map((i) => i.name),
+    ["Codeblocks"],
+  );
+});
+
+test("A skipped page is not treated as one whose markdown file is gone", async (t) => {
+  // `--cleanEnd` recycles every page the run did not touch. A page that was
+  // only skipped is still wanted, and must not be swept up with the ones whose
+  // file was deleted.
+  t.after(() => PagesHelper.reset());
+  PagesHelper.reset();
+
+  PagesHelper.pages = [
+    { FileRef: "/sites/docs/SitePages/tests/codeblocks.aspx" },
+    { FileRef: "/sites/docs/SitePages/tests/gone.aspx" },
+  ];
+
+  assert.deepEqual(PagesHelper.getUntouchedPages(), [
+    "tests/codeblocks.aspx",
+    "tests/gone.aspx",
+  ]);
+
+  PagesHelper.markKnown("tests/codeblocks.aspx");
+
+  assert.deepEqual(PagesHelper.getUntouchedPages(), ["tests/gone.aspx"]);
 });

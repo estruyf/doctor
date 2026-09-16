@@ -349,10 +349,9 @@ export class DoctorTranspiler {
         } else {
           skippedUnchanged++;
 
-          // The navigation is rebuilt from scratch on every publish, so unchanged
-          // pages still need to contribute their menu entry. Without this, skipped
-          // pages would silently disappear from the site navigation.
-          this.addToNavigation(
+          // A skipped page still has to keep its menu entry and stay out of the
+          // cleanup pass — both are rebuilt from what this run saw
+          this.skipPage(
             options.webUrl,
             output,
             markup.data as PageFrontMatter,
@@ -379,6 +378,28 @@ export class DoctorTranspiler {
    * @param slug
    * @param title
    */
+  /**
+   * Everything a page still has to contribute when it is not published on this
+   * run — because it did not change, or because its metadata could not be
+   * worked out.
+   *
+   * A skipped page is still a page on the site, so it keeps its place in two
+   * structures that are rebuilt from what this run saw: the navigation, which
+   * drops any entry it is not given, and the cleanup pass, which recycles every
+   * page it was not told about. Leaving either out turns "the page was left
+   * untouched" into the page losing its menu entry, or being deleted outright.
+   */
+  private static skipPage(
+    webUrl: string,
+    output: PublishOutput,
+    data: PageFrontMatter | undefined,
+    slug: string,
+    title: string,
+  ) {
+    PagesHelper.markKnown(slug);
+    this.addToNavigation(webUrl, output, data, slug, title);
+  }
+
   private static addToNavigation(
     webUrl: string,
     output: PublishOutput,
@@ -518,6 +539,7 @@ export class DoctorTranspiler {
             setProgress(`Skipped (unchanged): ${relPath}`);
             Logger.debug(`Skipping unchanged file: ${relPath}`);
             StatusHelper.addPageSkipped();
+            this.skipPage(webUrl, output, markup.data as PageFrontMatter, slug, title);
             return;
           }
         }
@@ -601,6 +623,7 @@ export class DoctorTranspiler {
             );
             setProgress(`Skipped (metadata): ${relPath}`);
             StatusHelper.addPageSkipped();
+            this.skipPage(webUrl, output, markup.data as PageFrontMatter, slug, title);
             return;
           }
 

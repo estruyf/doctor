@@ -616,6 +616,46 @@ test("mergeTemplate uses the template's banner when the page has none", () => {
   assert.equal(banner.id, "tpl-banner");
 });
 
+test("mergeTemplate gives the page's banner a zone of its own", () => {
+  // A template built from a blank page carries no banner. The page's own one
+  // still has to come along, and it cannot keep the position it had on the
+  // page: that would land a full-width banner in the same zone as one of the
+  // template's ordinary sections, leaving the zone both full width and twelve
+  // columns wide at once.
+  const template = TEMPLATE.filter((c) => c.webPartId !== PAGE_TITLE_WEBPART);
+  const page = [bannerFor("page-banner", "Extensions"), SETTINGS];
+
+  const merged = CanvasHelper.mergeTemplate(template, page);
+  const banner = merged.find((c) => c.webPartId === PAGE_TITLE_WEBPART);
+
+  assert.equal(banner.id, "page-banner", "the page's banner, not the template's");
+  assert.equal(banner.position.sectionFactor, 0, "still full width");
+
+  // Every zone has exactly one width
+  const widths = new Map();
+  for (const control of merged) {
+    if (!control.position) {
+      continue;
+    }
+    const { zoneIndex, sectionFactor } = control.position;
+    const seen = widths.get(zoneIndex);
+    assert.ok(
+      seen === undefined || seen === sectionFactor,
+      `zone ${zoneIndex} is both ${seen} and ${sectionFactor} wide`,
+    );
+    widths.set(zoneIndex, sectionFactor);
+  }
+
+  // ...and the banner sits above everything the template brought
+  const others = merged
+    .filter((c) => c.position && c.webPartId !== PAGE_TITLE_WEBPART)
+    .map((c) => c.position.zoneIndex);
+  assert.ok(
+    others.every((zone) => zone > banner.position.zoneIndex),
+    "the banner is the top zone",
+  );
+});
+
 test("mergeTemplate keeps the page as it is when there is no template", () => {
   const page = [bannerFor("page-banner", "Extensions"), SETTINGS];
 

@@ -159,3 +159,25 @@ test("SegmentsHelper reports which tags a document uses", () => {
     false,
   );
 });
+
+test("SegmentsHelper reads an attribute value containing a > as part of the tag", () => {
+  // A KQL query is the realistic case: `Size>1000` is a perfectly good value,
+  // and the tag is still alone on its line — it used to be reported as a
+  // shortcode sitting mid-paragraph instead
+  const markdown = `Intro\n\n<related-pages query="Size>1000" path="/sites/docs" />\n\nOutro`;
+  const segments = SegmentsHelper.split(markdown, CONTROLS);
+
+  assert.deepEqual(
+    segments.map((s) => s.type),
+    ["markdown", "control", "markdown"],
+  );
+  assert.equal(segments[1].attributes.path, "/sites/docs");
+});
+
+test("SegmentsHelper reads an unquoted and a valueless attribute", () => {
+  const segments = SegmentsHelper.split(`<related-pages count=5 compact />`, CONTROLS);
+
+  assert.equal(segments.length, 1);
+  assert.equal(segments[0].type, "control");
+  assert.equal(segments[0].attributes.count, "5");
+});

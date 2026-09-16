@@ -40,9 +40,11 @@ export class CapabilitiesHelper {
   /**
    * Whether a permission is in a `{ High, Low }` mask.
    *
-   * The mask is 64 bits split over two 32-bit halves. The bit is read with
-   * division rather than a shift because `1 << 31` is negative in JavaScript,
-   * and `manageWeb` is bit 31.
+   * The mask is 64 bits split over two 32-bit halves, and the permissions are
+   * numbered from 1, so the bit to read is one below the number. It is read
+   * with division rather than a shift: JavaScript's bitwise operators work on
+   * signed 32-bit integers, which is the wrong shape for a mask whose halves
+   * run to 2^32 - 1.
    */
   public static hasPermission(
     mask: PermissionMask | null | undefined,
@@ -162,6 +164,13 @@ export class CapabilitiesHelper {
   /**
    * One line per operation, saying what the run will and will not do. Pure, and
    * only mentions the steps this run was actually going to take.
+   *
+   * Two of these are steps doctor genuinely skips when it may not perform them
+   * — the navigation and the site design, both gated in `publish.ts`. The rest
+   * are told to the reader so a later failure is not a surprise, and their
+   * wording has to stay honest about that: they are still attempted, and a
+   * refusal surfaces wherever it happens. Promising a skip that the publish
+   * path does not implement is worse than saying nothing.
    */
   public static describe(
     capabilities: Capabilities,
@@ -185,12 +194,12 @@ export class CapabilitiesHelper {
     say(
       capabilities.setMetadata,
       "Set page metadata",
-      "the 'metadata' and 'author' front matter is skipped",
+      "the 'metadata' and 'author' front matter cannot be written",
     );
     say(
       capabilities.writeAssets,
       `Upload assets to "${options.assetLibrary}"`,
-      "images and the publish state cannot be written",
+      "the pages that reference an image will fail, and the publish state cannot be saved",
     );
     say(
       capabilities.systemUpdate,

@@ -53,3 +53,17 @@ test("a missing or odd error is not mistaken for one", () => {
   assert.equal(isPermissionError({}), false);
   assert.equal(isPermissionError(""), false);
 });
+
+test("a timeout or a throttle is not a refusal", () => {
+  // setPageDescription turns a refusal into a run-long fallback that changes
+  // 'Modified' on every page. A transient failure must not trigger that.
+  for (const message of [
+    "Command failed: spo listitem set. socket hang up",
+    "Command failed: spo listitem set. Request timed out after 120000ms",
+    "Command failed: spo listitem set. 429 Too Many Requests",
+    "Command failed: spo listitem set. read ECONNRESET",
+    "Command failed: spo listitem set. status 503",
+  ]) {
+    assert.equal(isPermissionError(message), false, message);
+  }
+});

@@ -99,9 +99,13 @@ export class MetadataHelper {
 
     for (const entry of values) {
       const claim = MetadataHelper.toClaimKey(entry);
+
+      // One unreadable entry rejects the whole column. Writing the rest would
+      // put a shorter list of people on the page than the markdown asks for,
+      // and say nothing about it — the page is skipped instead.
       if (!claim) {
-        Logger.debug(`Skipping invalid UserMulti value '${entry}'.`);
-        continue;
+        Logger.debug(`UserMulti value '${entry}' is not a user principal name.`);
+        return undefined;
       }
 
       claims.push(`{'Key':'${claim}'}`);
@@ -199,9 +203,14 @@ export class MetadataHelper {
         entry,
         fieldName,
       );
-      if (typeof transformed === "number") {
-        ids.push(transformed);
+
+      // As with the other multi-value columns: a list that is partly readable
+      // is not written as the readable part, it is reported
+      if (typeof transformed !== "number") {
+        return undefined;
       }
+
+      ids.push(transformed);
     }
 
     return ids.length > 0 ? ids.join(";#") : undefined;

@@ -136,16 +136,29 @@ export class TermsHelper {
   ): Promise<ResolvedTerm[]> {
     const base = trimUrl(webUrl);
     const set = encodeURIComponent(termSetId);
-    const url = parentId
+    const first = parentId
       ? `${base}/_api/v2.1/termStore/sets/${set}/terms/${encodeURIComponent(parentId)}/children?$select=id,labels,isDeprecated`
       : `${base}/_api/v2.1/termStore/sets/${set}/children?$select=id,labels,isDeprecated`;
 
-    const response = await ApiHelper.getOrThrow(url, {
-      Authorization: `Bearer ${(await AccessToken.get(webUrl)).trim()}`,
-      accept: "application/json",
-    });
+    // The term store answers in pages. Reading only the first one used to make
+    // every term past it invisible, so a perfectly valid label in a large set
+    // was reported as not existing in it — and the page skipped over a term
+    // that was there all along.
+    const children: TermStoreTerm[] = [];
+    let url: string | null = first;
 
-    const children: TermStoreTerm[] = response?.value || [];
+    while (url) {
+      const response: any = await ApiHelper.getOrThrow(url, {
+        Authorization: `Bearer ${(await AccessToken.get(webUrl)).trim()}`,
+        accept: "application/json",
+      });
+
+      children.push(...((response?.value as TermStoreTerm[]) || []));
+
+      const next = response?.["@odata.nextLink"] || response?.["odata.nextLink"];
+      url = typeof next === "string" && next !== url ? next : null;
+    }
+
     const resolved: ResolvedTerm[] = [];
 
     for (const child of children) {
