@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { DoctorTranspiler } from "../dist/helpers/DoctorTranspiler.js";
+import { DependencyHelper } from "../dist/helpers/DependencyHelper.js";
 import { StateHelper } from "../dist/helpers/StateHelper.js";
 
 const WEB_URL = "https://contoso.sharepoint.com/sites/docs";
@@ -58,7 +59,11 @@ const createContentFolder = async () => {
     version: 1,
     pages: {
       "tests/codeblocks.aspx": {
-        sourceHash: StateHelper.hashContent(unchangedContents),
+        sourceHash: (
+          await DependencyHelper.getPageHash(unchangedFile, unchangedContents, {
+            startFolder,
+          })
+        ).hash,
         publishedAt: "2026-01-01T00:00:00.000Z",
       },
     },
@@ -116,7 +121,11 @@ menu:
     version: 1,
     pages: {
       "draft.aspx": {
-        sourceHash: StateHelper.hashContent(contents),
+        sourceHash: (
+          await DependencyHelper.getPageHash(draftFile, contents, {
+            startFolder,
+          })
+        ).hash,
         publishedAt: "2026-01-01T00:00:00.000Z",
       },
     },

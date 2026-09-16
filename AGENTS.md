@@ -96,8 +96,11 @@ rather than falling back, so a typo can't hand a pipeline human output to parse.
 
 [StateHelper](src/helpers/StateHelper.ts) stores `.doctor/state.json` **in the SharePoint asset library, not
 on disk** (path relative to `--library`, configurable with `--stateFile`). It holds a SHA-256 hash per slug
-of the resolved page source (front matter + content + partials), plus the instance ids of the controls
-doctor put on the page. This drives three behaviours: skipping
+of everything the page is built from — front matter, content, partials, the images it references, the
+slugs of the pages it links to, and (with `--reapplyTemplates`) its page template — plus the instance
+ids of the controls doctor put on the page and a `configHash` of the publish settings and the custom
+shortcodes, which marks every page changed when it moves.
+[DependencyHelper](src/helpers/DependencyHelper.ts) works those inputs out, once per run per file. This drives three behaviours: skipping
 unchanged pages, the `status` command's new/modified/unchanged/deleted/orphaned report, and `--removeDeleted`
 (recycles pages present in state but absent locally — only with `--confirm`, and never when slugs cannot be
 resolved for every file). `--forceAll` bypasses the hash check; `--disableStatePersistence` turns the whole

@@ -5,6 +5,7 @@ export * from './CanvasHelper.js';
 export * from './CapabilitiesHelper.js';
 export * from './CliCommand.js';
 export * from './ContextInfo.js';
+export * from './DependencyHelper.js';
 export * from './DoctorTranspiler.js';
 export * from './FileHelpers.js';
 export * from './FolderHelpers.js';

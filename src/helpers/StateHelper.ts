@@ -91,6 +91,8 @@ export class StateHelper {
   private static state: DoctorState | null = null;
   private static loaded = false;
   private static dirty = false;
+  /** Set when the settings differ from the run that wrote the state */
+  private static configChanged = false;
   private static ensuredFolders: string[] = [];
 
   /** Compute a SHA-256 hex digest of the given string content. */
@@ -233,7 +235,34 @@ export class StateHelper {
   /**
    * Always returns true when state has not been loaded.
    */
+  /**
+   * Record the hash of the settings and shortcodes every page renders through.
+   * When it differs from the last run, every page counts as changed: the pages
+   * themselves did not move, but what they publish as did.
+   *
+   * @returns whether it differs from the state that was loaded
+   */
+  public static setConfigHash(configHash: string): boolean {
+    if (!StateHelper.state) {
+      return false;
+    }
+
+    const previous = StateHelper.state.configHash;
+    StateHelper.configChanged = !!previous && previous !== configHash;
+
+    if (previous !== configHash) {
+      StateHelper.state.configHash = configHash;
+      StateHelper.dirty = true;
+    }
+
+    return StateHelper.configChanged;
+  }
+
   public static hasChanged(slug: string, contentHash: string): boolean {
+    if (StateHelper.configChanged) {
+      return true;
+    }
+
     if (!StateHelper.loaded || !StateHelper.state) {
       return true;
     }
@@ -467,6 +496,7 @@ export class StateHelper {
 
   /** Reset singleton state (useful for testing or a fresh publish). */
   public static reset(): void {
+    StateHelper.configChanged = false;
     StateHelper.state = null;
     StateHelper.loaded = false;
     StateHelper.dirty = false;

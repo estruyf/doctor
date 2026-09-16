@@ -5,6 +5,7 @@ import {
   AccessToken,
   CanvasHelper,
   CapabilitiesHelper,
+  DependencyHelper,
   CliCommand,
   FileHelpers,
   FolderHelpers,
@@ -112,6 +113,7 @@ export class Commands {
     PagesHelper.reset();
     CanvasHelper.reset();
     CapabilitiesHelper.reset();
+    DependencyHelper.reset();
     TermsHelper.reset();
     AccessToken.reset();
     ListHelpers.reset();

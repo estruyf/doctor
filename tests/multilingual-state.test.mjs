@@ -4,6 +4,7 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { DependencyHelper } from "../dist/helpers/DependencyHelper.js";
 import { DoctorTranspiler } from "../dist/helpers/DoctorTranspiler.js";
 import { MarkdownHelper } from "../dist/helpers/MarkdownHelper.js";
 import { MultilingualHelper } from "../dist/helpers/MultilingualHelper.js";
@@ -118,7 +119,11 @@ test("The translation phase runs for a source page which was skipped as unchange
     version: 1,
     pages: {
       "home.aspx": {
-        sourceHash: StateHelper.hashContent(SOURCE),
+        sourceHash: (
+          await DependencyHelper.getPageHash(sourceFile, SOURCE, {
+            startFolder,
+          })
+        ).hash,
         publishedAt: "2026-01-01T00:00:00.000Z",
       },
     },

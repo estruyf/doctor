@@ -3,6 +3,7 @@ import kleur from "kleur";
 import { Authenticate, Version } from "@commands";
 import {
   CapabilitiesHelper,
+  DependencyHelper,
   DoctorTranspiler,
   FileHelpers,
   Logger,
@@ -93,8 +94,26 @@ export class Publish {
         },
         {
           title: `Load publish state`,
-          task: async () =>
-            await StateHelper.load(webUrl, options.assetLibrary, options.stateFile),
+          task: async (_, task) => {
+            await StateHelper.load(
+              webUrl,
+              options.assetLibrary,
+              options.stateFile
+            );
+
+            // The settings and the shortcodes decide what every page publishes
+            // as, so a change to them counts as a change to all of them
+            const changed = StateHelper.setConfigHash(
+              await DependencyHelper.getConfigHash(options)
+            );
+
+            if (changed) {
+              task.output = `The settings changed since the last run, so every page is published again`;
+              OutputHelper.warning(
+                `The publish settings or the shortcodes changed since the last run, so every page is published again.`
+              );
+            }
+          },
           enabled: () => !options.disableStatePersistence && !options.skipPages,
         },
         {

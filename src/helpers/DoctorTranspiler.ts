@@ -14,6 +14,7 @@ import {
 import {
   FileHelpers,
   FolderHelpers,
+  DependencyHelper,
   FrontMatterHelper,
   HeaderHelper,
   Logger,
@@ -21,7 +22,6 @@ import {
   NavigationHelper,
   PagesHelper,
   OutputHelper,
-  PartialsHelper,
   SegmentsHelper,
   ShortcodesHelpers,
   StateHelper,
@@ -335,12 +335,13 @@ export class DoctorTranspiler {
           options.startFolder,
           file,
         );
-        // Partials are part of the page, so a changed partial has to mark every
-        // page using it as changed
-        const { hash: contentHash } = await PartialsHelper.process(
+        // Partials, images, linked pages and the settings are all part of what
+        // the page publishes as, so a change to any of them marks it changed
+        const { hash: contentHash } = await DependencyHelper.getPageHash(
           file,
           contents,
           options,
+          await this.getTemplateHash(markup.data as PageFrontMatter, options),
         );
 
         if (StateHelper.hasChanged(slug, contentHash)) {
@@ -457,7 +458,15 @@ export class DoctorTranspiler {
         // The hash is computed once — used for change detection and state recording
         const { content, hash: contentHash } = isMachineTranslated
           ? { content: markup.content, hash: StateHelper.hashContent(contents) }
-          : await PartialsHelper.process(file, contents, options);
+          : await DependencyHelper.getPageHash(
+              file,
+              contents,
+              options,
+              await this.getTemplateHash(
+                markup.data as PageFrontMatter,
+                options,
+              ),
+            );
         markup.content = content;
 
         const htmlMarkup = isMachineTranslated
@@ -832,6 +841,30 @@ export class DoctorTranspiler {
    * @param content
    * @param options
    */
+  /**
+   * The template a page is laid out from, when it is re-applied on every
+   * publish — editing the template then changes what its pages look like, so
+   * it has to mark them as changed.
+   */
+  private static async getTemplateHash(
+    data: PageFrontMatter | undefined,
+    options: CommandArguments,
+  ): Promise<string> {
+    const template = data?.template || options.pageTemplate;
+    if (!options.reapplyTemplates || !template) {
+      return "";
+    }
+
+    const canvas = await PagesHelper.getTemplateCanvas(
+      options.webUrl,
+      template,
+    );
+
+    return `template:${template}:${
+      canvas ? StateHelper.hashContent(JSON.stringify(canvas)) : "none"
+    }`;
+  }
+
   private static async processLinks(
     $: CheerioAPI,
     linkElms: Element[],

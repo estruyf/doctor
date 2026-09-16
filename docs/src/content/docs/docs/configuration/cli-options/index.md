@@ -325,7 +325,25 @@ On the next run, `doctor` compares the hash of each local file with the one in t
 - Pages which are **new** or **modified** get published.
 - Pages which are **unchanged** get skipped.
 
-The hash covers the markdown file together with the [partials](../doctor-json/#reusable-content-partials) it uses, so a changed partial marks every page using it as modified.
+The hash covers everything the published page is built from, not just the file you edited:
+
+| What changed | Effect |
+| --- | --- |
+| The markdown file | that page is modified |
+| A [partial](../doctor-json/#reusable-content-partials) it uses | every page using that partial is modified |
+| An **image** it references | every page referencing that image is modified, and the image is re-uploaded |
+| The **slug of a page it links to** | every page linking to it is modified, so its links keep pointing at the right page |
+| A **custom shortcode's** code | every page is modified — a shortcode decides what its pages render |
+| A publish **setting** in `doctor.json` (`markdown.*`, `webPartTitle`, `partials.*`, `library`, the template options) | every page is modified |
+| The **page template**, with [`--reapplyTemplates`](#--reapplytemplates) | every page using that template is modified |
+
+Images and linked pages are read once per run, however many pages refer to them.
+
+:::note[The first run after upgrading publishes everything]
+`Doctor` 2.3.0 folds images, links, shortcodes and settings into the hash, so every hash recorded by
+an earlier version now differs. The first run after upgrading therefore republishes the whole site,
+once. Runs after that behave as normal.
+:::
 
 Localized pages are tracked the same way, under the URL SharePoint issued for them. They are published in their own phase which runs after the normal pages, so a changed `.lang.md` file gets published even when its source page did not change.
 
