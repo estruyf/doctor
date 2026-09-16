@@ -61,6 +61,10 @@
       },
       {
         "id": null,
+        "title": "Fix: the site logo is set with a site scoped call instead of `spo site set`, which reaches the tenant admin site before it gets to the logo. An app registration scoped to one site with `Sites.Selected` cannot do that, and it failed with \"Cannot read properties of undefined (reading 'replace')\" — nothing to do with the logo."
+      },
+      {
+        "id": null,
         "title": "Fix: the site logo is found when its path is relative to `doctor.json` rather than to the content folder, which is where every other path in that file is taken from. Both are accepted, and neither matching now says which paths were tried."
       },
       {

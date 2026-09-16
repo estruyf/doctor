@@ -2,6 +2,8 @@ import { join } from "path";
 import { existsAsync, isPermissionError } from "@utils";
 import { CommandArguments, TaskOutput } from "@models";
 import {
+  AccessToken,
+  ApiHelper,
   CliCommand,
   executeWithRetry,
   FileHelpers,
@@ -56,6 +58,50 @@ export class SiteHelpers {
 
     throw new Error(
       `The site logo "${logo}" does not exist. Doctor looked in "${inContent}" and "${besideConfig}". The path is taken relative to the content folder, or to doctor.json.`
+    );
+  }
+
+  /**
+   * Point the site at its logo.
+   *
+   * Done directly rather than with `spo site set`, which reaches the tenant
+   * admin site before it gets to the logo: it derives the admin URL from the
+   * SharePoint root, and falls back to a Microsoft Graph call to find it. An
+   * app scoped to a single site with `Sites.Selected` cannot make that call,
+   * and the failure surfaces as "Cannot read properties of undefined (reading
+   * 'replace')" rather than anything to do with the logo.
+   *
+   * Setting the logo itself is a site-scoped call, which is all that is needed.
+   */
+  private static async setSiteLogo(
+    webUrl: string,
+    logoUrl: string
+  ): Promise<void> {
+    const base = webUrl.replace(/\/+$/, "");
+
+    // The endpoint takes a server relative path, not the absolute URL the
+    // upload hands back
+    let relativeLogoUrl = logoUrl;
+    try {
+      relativeLogoUrl = new URL(logoUrl).pathname;
+    } catch {
+      // Already relative
+    }
+
+    Logger.debug(`Setting the site logo to ${relativeLogoUrl}`);
+
+    await ApiHelper.postOrThrow(
+      `${base}/_api/siteiconmanager/setsitelogo`,
+      {
+        Authorization: `Bearer ${(await AccessToken.get(webUrl)).trim()}`,
+        accept: "application/json;odata=nometadata",
+        "content-type": "application/json;odata=nometadata",
+      },
+      {
+        aspect: 1,
+        relativeLogoUrl,
+        type: 0,
+      }
     );
   }
 
@@ -210,14 +256,7 @@ export class SiteHelpers {
           );
         }
 
-        await executeWithRetry(
-          "spo site set",
-          {
-            url: webUrl,
-            siteLogoUrl: imgUrl,
-          },
-          CliCommand.getRetry()
-        );
+        await SiteHelpers.setSiteLogo(webUrl, imgUrl);
       } catch (e) {
         SiteHelpers.skipIfNotAllowed(
           e,
