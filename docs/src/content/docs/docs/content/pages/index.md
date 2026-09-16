@@ -245,7 +245,8 @@ An image a page refers to is uploaded to the asset library (`--library`, `Shared
 default) and the reference in the page is rewritten to point at it.
 
 - An image **inside** your content folder keeps the structure it has there. `guides/img/logo.png`
-  is uploaded to `guides/img/logo.png` in the library.
+  is uploaded to `guides/img/logo.png` in the library. It makes no difference whether `--folder` is
+  written as `./src`, `src` or an absolute path.
 - An image **outside** it — `../assets/logo.png`, for instance, or anything else reached with `..` —
   goes under a shared `assets` folder in the library, keeping its path relative to the folder you run
   `doctor` from. `../shared/brand/logo.png` becomes `assets/shared/brand/logo.png`.

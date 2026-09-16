@@ -89,3 +89,65 @@ test("a trailing separator on the content folder changes nothing", () => {
 test("no content folder means no folders to mirror", () => {
   assert.deepEqual(getAssetFolders("", `${START}/img`, ROOT), []);
 });
+
+//
+// The shapes the publish actually produces
+//
+// Every case above uses absolute paths, which is why a mismatch between the
+// two sides went unnoticed: `--folder` keeps what was configured (`./src` by
+// default) while `path.join` strips the `./` off the paths built from it, so
+// `./src` was never a prefix of `src/guides/img` and every image in the content
+// folder was treated as one from outside it.
+//
+
+const PROJECT = "/Users/dmitriy/repos/project";
+
+test("the default configuration mirrors the content structure", () => {
+  // startFolder: "./src" — what `doctor init` writes
+  // assetDirectory: join(dirname("./src/guides/page.md"), "./img") => "src/guides/img"
+  assert.deepEqual(getAssetFolders("./src", "src/guides/img", PROJECT), [
+    "guides",
+    "img",
+  ]);
+});
+
+test("a configured content folder mirrors the same way", () => {
+  assert.deepEqual(
+    getAssetFolders("./docs/content", "docs/content/guides/img", PROJECT),
+    ["guides", "img"],
+  );
+  assert.deepEqual(
+    getAssetFolders("docs/content", "docs/content/img", PROJECT),
+    ["img"],
+  );
+});
+
+test("a relative and an absolute side still mean the same folder", () => {
+  assert.deepEqual(
+    getAssetFolders("./src", `${PROJECT}/src/guides/img`, PROJECT),
+    ["guides", "img"],
+  );
+  assert.deepEqual(
+    getAssetFolders(`${PROJECT}/src`, "src/guides/img", PROJECT),
+    ["guides", "img"],
+  );
+});
+
+test("an image next to its page gets no folders, whichever way the path is written", () => {
+  assert.deepEqual(getAssetFolders("./src", "src", PROJECT), []);
+  assert.deepEqual(getAssetFolders("./src", "./src", PROJECT), []);
+  assert.deepEqual(getAssetFolders("./src", `${PROJECT}/src`, PROJECT), []);
+});
+
+test("relative outside folders stay apart from each other", () => {
+  assert.deepEqual(getAssetFolders("./src", "shared/brand", PROJECT), [
+    ASSETS_FALLBACK_FOLDER,
+    "shared",
+    "brand",
+  ]);
+  assert.deepEqual(getAssetFolders("./src", "other/brand", PROJECT), [
+    ASSETS_FALLBACK_FOLDER,
+    "other",
+    "brand",
+  ]);
+});

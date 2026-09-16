@@ -1,4 +1,5 @@
 import { createHash } from "crypto";
+import { toComparablePath } from "./toComparablePath.js";
 
 /**
  * Where an asset from outside the content folder is uploaded. It has no place
@@ -7,11 +8,7 @@ import { createHash } from "crypto";
  */
 export const ASSETS_FALLBACK_FOLDER = "assets";
 
-const normalize = (value: string): string =>
-  value.replace(/\\/g, "/").replace(/\/+$/, "");
-
-const segments = (value: string): string[] =>
-  value.split("/").filter(Boolean);
+const segments = (value: string): string[] => value.split("/").filter(Boolean);
 
 /** Enough of a digest to tell two folders apart, short enough to read */
 const shortHash = (value: string): string =>
@@ -45,8 +42,10 @@ export const getAssetFolders = (
   assetDirectory: string,
   root: string = process.cwd(),
 ): string[] => {
-  const start = normalize(startFolder);
-  const directory = normalize(assetDirectory);
+  const base = toComparablePath(root || "");
+  // An empty content folder is not something to mirror against
+  const start = startFolder ? toComparablePath(startFolder, base) : "";
+  const directory = toComparablePath(assetDirectory, base);
 
   if (!start || directory === start) {
     return [];
@@ -55,8 +54,6 @@ export const getAssetFolders = (
   if (directory.startsWith(`${start}/`)) {
     return segments(directory.slice(start.length + 1));
   }
-
-  const base = normalize(root || "");
 
   if (base && directory === base) {
     return [ASSETS_FALLBACK_FOLDER];
