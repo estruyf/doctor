@@ -75,43 +75,20 @@ export class MetadataHelper {
   }
 
   /**
-   * A person column takes a claim rather than a user name
-   * @param value a UPN
+   * The value a person column takes: the claims of the people on it.
+   *
+   * The claims come from `PagesHelper`, which asks the site to resolve each
+   * name first — a guest or a group does not use the shape a principal name is
+   * assembled into, so the login name the site holds is the only one it will
+   * compare against.
+   * @param loginNames one claim per person, in the order they were written
    */
-  public static toUserClaim(value: any): string | undefined {
-    const claim = MetadataHelper.toClaimKey(value);
-
-    if (!claim) {
-      Logger.debug(`Skipping User field because value '${value}' is invalid.`);
+  public static toPersonValue(loginNames: string[]): string | undefined {
+    if (loginNames.length === 0) {
       return undefined;
     }
 
-    return `[{'Key':'${claim}'}]`;
-  }
-
-  /**
-   * Several people on one column
-   * @param value a UPN or an array of them
-   */
-  public static toUserClaims(value: any): string | undefined {
-    const values = Array.isArray(value) ? value : [value];
-    const claims: string[] = [];
-
-    for (const entry of values) {
-      const claim = MetadataHelper.toClaimKey(entry);
-
-      // One unreadable entry rejects the whole column. Writing the rest would
-      // put a shorter list of people on the page than the markdown asks for,
-      // and say nothing about it — the page is skipped instead.
-      if (!claim) {
-        Logger.debug(`UserMulti value '${entry}' is not a user principal name.`);
-        return undefined;
-      }
-
-      claims.push(`{'Key':'${claim}'}`);
-    }
-
-    return claims.length > 0 ? `[${claims.join(",")}]` : undefined;
+    return `[${loginNames.map((name) => `{'Key':'${name}'}`).join(",")}]`;
   }
 
   /**

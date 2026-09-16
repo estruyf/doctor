@@ -85,6 +85,13 @@ export class PagesHelper {
   private static systemUpdateRefused = false;
   /** Set once a template was named for a page which already existed */
   private static templateSkipReported = false;
+  /** Set once the site refuses to look a user up, see ensureUserClaim */
+  private static ensureUserRefused = false;
+  /**
+   * The login name each principal resolved to, or the failure it produced, so
+   * one author shared by a hundred pages costs one call
+   */
+  private static userClaims: { [key: string]: string | Error } = {};
   /** The canvas of each page template, which does not change during a run */
   private static templateCanvas: { [name: string]: any[] | null } = {};
 
@@ -98,6 +105,8 @@ export class PagesHelper {
     PagesHelper.listFieldMap = {};
     PagesHelper.systemUpdateRefused = false;
     PagesHelper.templateSkipReported = false;
+    PagesHelper.ensureUserRefused = false;
+    PagesHelper.userClaims = {};
     PagesHelper.templateCanvas = {};
   }
 
@@ -779,8 +788,9 @@ export class PagesHelper {
       // like any other person field — not the site user id the front matter
       // carries, so the id is resolved to its login name first.
       try {
-        values["Author"] =
-          `[{'Key':'${await this.resolveAuthorClaim(webUrl, author, slug)}'}]`;
+        values["Author"] = MetadataHelper.toPersonValue([
+          await this.resolveAuthorClaim(webUrl, author, slug),
+        ]) as string;
       } catch (e: any) {
         problems.push(e?.message || `${e}`);
       }
@@ -951,9 +961,9 @@ export class PagesHelper {
       case "TaxonomyFieldTypeMulti":
         return await this.transformTaxonomyMulti(webUrl, fieldInfo, value);
       case "User":
-        return MetadataHelper.toUserClaim(value);
+        return await PagesHelper.transformUserSingle(webUrl, value);
       case "UserMulti":
-        return MetadataHelper.toUserClaims(value);
+        return await PagesHelper.transformUserMulti(webUrl, value);
       case "DateTime":
         return MetadataHelper.transformDateTime(value);
       case "Lookup":
@@ -973,6 +983,40 @@ export class PagesHelper {
       default:
         return value;
     }
+  }
+
+  /**
+   * A person column takes the claim of a user the tenant actually has. The name
+   * is verified — and the site user added, if it was not there — before the
+   * page is written, so an author who does not exist skips the page instead of
+   * failing it after its content has already changed.
+   */
+  private static async transformUserSingle(
+    webUrl: string,
+    value: any
+  ): Promise<string | undefined> {
+    return MetadataHelper.toPersonValue([
+      await PagesHelper.ensureUserClaim(webUrl, value),
+    ]);
+  }
+
+  /**
+   * Several people on one column. Every one of them has to resolve: a column
+   * written with the names that happened to work would hold a shorter list than
+   * the markdown asks for, and say nothing about it.
+   */
+  private static async transformUserMulti(
+    webUrl: string,
+    value: any
+  ): Promise<string | undefined> {
+    const values = Array.isArray(value) ? value : [value];
+    const claims: string[] = [];
+
+    for (const entry of values) {
+      claims.push(await PagesHelper.ensureUserClaim(webUrl, entry));
+    }
+
+    return MetadataHelper.toPersonValue(claims);
   }
 
   private static async transformTaxonomySingle(
@@ -1142,7 +1186,7 @@ export class PagesHelper {
 
     if (siteUserId === null) {
       if (typeof author === "string" && author.includes("@")) {
-        return await PagesHelper.resolveUpnClaim(webUrl, author);
+        return await PagesHelper.ensureUserClaim(webUrl, author);
       }
 
       throw new Error(
@@ -1188,48 +1232,90 @@ export class PagesHelper {
   }
 
   /**
-   * The claim for a user named by principal name.
+   * The claim for a user named by principal name, verified against the tenant.
    *
-   * The site is asked first, because the login name it already holds is the
-   * claim it will compare against — and for a guest or a group that is not the
-   * `i:0#.f|membership|` shape a principal name is assembled into. A user the
-   * site has never seen has no entry yet and is not an error: SharePoint adds
-   * one when the column is written. That is also why this cannot verify the
-   * name exists, and why an unknown one is a failure on the page rather than a
-   * skip — the difference between "not here yet" and "does not exist" is not
-   * one the site can answer.
+   * `ensureuser` is what SharePoint itself runs when a person column is set: it
+   * resolves the name against the directory, adds the site user when the site
+   * has not seen them before, and answers with the login name it stored. That
+   * login name *is* the claim it will compare against later — which matters for
+   * guests and groups, whose claims are not the `i:0#.f|membership|` shape a
+   * principal name is assembled into.
+   *
+   * Asking it here, while the metadata is being worked out, is what lets a name
+   * that does not exist skip the page instead of failing it half way through.
+   * The site user it adds is the one setting the column would have added
+   * anyway, so nothing is created that the publish was not going to create.
+   *
+   * Answered once per name per run: a site with one author does not pay for
+   * this on every page.
    */
-  private static async resolveUpnClaim(
+  private static async ensureUserClaim(
     webUrl: string,
-    upn: string
+    value: any
   ): Promise<string> {
-    const base = webUrl.replace(/\/+$/, "");
-    const wanted = upn.trim();
+    const wanted = typeof value === "string" ? value.trim() : "";
 
-    try {
-      const filter = encodeURIComponent(
-        `Email eq '${wanted.replace(/'/g, "''")}'`
-      );
-      const response = await ApiHelper.getOrThrow(
-        `${base}/_api/web/siteusers?$filter=${filter}&$select=Id,LoginName`,
-        {
-          Authorization: `Bearer ${(await AccessToken.get(webUrl)).trim()}`,
-          accept: "application/json;odata=nometadata",
-        }
-      );
-
-      const loginName = response?.value?.[0]?.LoginName;
-      if (loginName) {
-        Logger.debug(`Resolved '${wanted}' to the site user ${loginName}.`);
-        return loginName;
-      }
-    } catch (e: any) {
-      Logger.debug(
-        `Could not look up '${wanted}' in the site users: ${e?.message || e}`
+    if (!wanted) {
+      throw new Error(
+        `${JSON.stringify(value)} is not a user principal name`
       );
     }
 
-    return MetadataHelper.toClaimKey(wanted) as string;
+    const key = `${webUrl.toLowerCase()}|${wanted.toLowerCase()}`;
+    if (key in PagesHelper.userClaims) {
+      const cached = PagesHelper.userClaims[key];
+      if (cached instanceof Error) {
+        throw cached;
+      }
+      return cached;
+    }
+
+    const base = webUrl.replace(/\/+$/, "");
+
+    try {
+      const response = await ApiHelper.postOrThrow(
+        `${base}/_api/web/ensureuser`,
+        {
+          Authorization: `Bearer ${(await AccessToken.get(webUrl)).trim()}`,
+          accept: "application/json;odata=nometadata",
+          "content-type": "application/json;odata=nometadata",
+        },
+        { logonName: wanted }
+      );
+
+      const loginName = response?.LoginName;
+      if (!loginName) {
+        throw new Error(`the site did not return a login name for it`);
+      }
+
+      Logger.debug(`Ensured '${wanted}' as the site user ${loginName}.`);
+      PagesHelper.userClaims[key] = loginName;
+      return loginName;
+    } catch (e: any) {
+      // Not being allowed to add a site user says nothing about whether the
+      // user exists, and skipping every page which names one would be a worse
+      // answer than the assembled claim doctor used before it asked. Reported
+      // once, then the run carries on the way it used to.
+      if (isPermissionError(e)) {
+        if (!PagesHelper.ensureUserRefused) {
+          PagesHelper.ensureUserRefused = true;
+          OutputHelper.warning(
+            `This account is not allowed to look users up on this site, so the 'author' and person columns are set without checking the name first. A name which does not exist then fails its page while it is being written, instead of being reported before. Granting the account permission to read and add site users avoids that.`
+          );
+        }
+
+        Logger.debug(`ensureuser refused for '${wanted}': ${e?.message || e}`);
+        const claim = MetadataHelper.toClaimKey(wanted) as string;
+        PagesHelper.userClaims[key] = claim;
+        return claim;
+      }
+
+      const failure = new Error(
+        `'${wanted}' is not a user of this tenant (${e?.message || e})`
+      );
+      PagesHelper.userClaims[key] = failure;
+      throw failure;
+    }
   }
 
   /**

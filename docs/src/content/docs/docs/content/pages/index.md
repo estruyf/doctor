@@ -278,8 +278,15 @@ A UPN works too, for front matter written by hand:
 author: john@contoso.com
 ```
 
-If the id does not exist on the site, the page is skipped — see
-[below](#what-happens-when-a-value-cannot-be-set). The warning lists a few ids that do exist.
+A UPN does **not** have to belong to the site already. `Doctor` asks SharePoint to resolve it against
+the tenant before it writes anything, which adds the site user when the site has not seen them
+before — the same thing setting the column would have done. What it gets back is the login name
+SharePoint stored, which is what ends up on the page: that matters for guests and groups, whose
+claims are not the `i:0#.f|membership|` shape a UPN is assembled into.
+
+If the id does not exist on the site, or the name does not exist in the tenant, the page is skipped —
+see [below](#what-happens-when-a-value-cannot-be-set). For an id, the warning lists a few that do
+exist.
 
 :::note[Not the same as the header authors]
 `author` is the SharePoint column. The `header.authors` setting is a different thing — the list of
@@ -415,6 +422,16 @@ metadata:
 
 Outputs: `[{'Key':'i:0#.f|membership|john.doe@contoso.com'},{'Key':'i:0#.f|membership|jane.smith@contoso.com'}]`
 
+Every name on a person column is resolved against the tenant before the page is written, and the
+login name SharePoint answers with is the one that ends up on the page — so a guest or a group gets
+the claim SharePoint actually matches on, rather than one assembled from the name. A name the tenant
+does not have is reported and its page is skipped, and that goes for the whole column: if one of the
+`Approvers` cannot be resolved, none of them are written.
+
+Resolving a name also adds the site user when the site has not seen them before, which is what
+setting the column would have done anyway. Each name costs one lookup per run however many pages use
+it.
+
 ##### DateTime Fields
 
 Input accepts multiple formats:
@@ -532,6 +549,10 @@ does mean the warnings at the end of a run are worth reading.
   static name or its display name, case insensitively.
 - **The value has to be one its column type accepts** — an item id for a lookup column, a user
   principal name for a person column, a term which is in the set for a managed metadata one.
+- **People are resolved against the tenant**, which is also what adds the site user when the site has
+  not seen them before. A name the tenant does not have is a problem. If the account is not allowed
+  to look users up, `doctor` says so once and carries on without the check — an unknown name then
+  fails its page while it is being written, instead of being reported before.
 - **Terms are resolved against the column's own term set**, honouring its anchor term, the term's
   other labels and a `Parent > Child` path. A label which matches more than one term is reported as
   a problem rather than guessed at.

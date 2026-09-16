@@ -130,6 +130,10 @@
       {
         "id": null,
         "title": "A front matter column whose name is one the underlying CLI uses for its own options is reported instead of quietly redirecting the update somewhere else."
+      },
+      {
+        "id": null,
+        "title": "The `author` front matter and person columns are now resolved against the tenant before anything is written, so a name which does not exist reports the page and skips it instead of failing it after its content has already changed. Resolving also adds the site user when the site has not seen them before — the same thing setting the column does — and uses the login name SharePoint answers with, which is what makes a guest or a group work: their claim is not the shape a principal name is assembled into. Each name is resolved once per run. An account which may not look users up is told once, and the publish carries on without the check."
       }
     ]
   },

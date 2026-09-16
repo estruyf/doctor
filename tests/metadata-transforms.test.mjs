@@ -71,60 +71,38 @@ test("Taxonomy: no terms means no value to set", () => {
 // People
 //
 
-test("User: a UPN becomes a person claim", () => {
+test("Person: a claim becomes the value the column takes", () => {
   assert.equal(
-    MetadataHelper.toUserClaim("john.doe@contoso.com"),
-    `[{'Key':'${CLAIM}john.doe@contoso.com'}]`,
+    MetadataHelper.toPersonValue([`${CLAIM}user@contoso.com`]),
+    `[{'Key':'${CLAIM}user@contoso.com'}]`,
   );
 });
 
-test("User: the claim is lower cased, the way SharePoint stores it", () => {
+test("Person: several claims keep the order they were written in", () => {
   assert.equal(
-    MetadataHelper.toUserClaim("  John.Doe@Contoso.COM  "),
-    `[{'Key':'${CLAIM}john.doe@contoso.com'}]`,
+    MetadataHelper.toPersonValue([`${CLAIM}a@contoso.com`, `${CLAIM}b@contoso.com`]),
+    `[{'Key':'${CLAIM}a@contoso.com'},{'Key':'${CLAIM}b@contoso.com'}]`,
   );
 });
 
-test("User: a value that is not a name is skipped", () => {
-  for (const value of [null, undefined, "", "   ", 123, false, {}]) {
-    assert.equal(
-      MetadataHelper.toUserClaim(value),
-      undefined,
-      `expected undefined for ${JSON.stringify(value)}`,
-    );
-  }
+test("Person: a claim is taken as given, not reassembled", () => {
+  // A guest or a group does not use the membership shape, so whatever the site
+  // handed back has to survive untouched
+  const guest = "i:0#.f|membership|guest_contoso.com#ext#@fabrikam.onmicrosoft.com";
+  assert.equal(MetadataHelper.toPersonValue([guest]), `[{'Key':'${guest}'}]`);
 });
 
-test("UserMulti: several UPNs become an array of claims", () => {
-  assert.equal(
-    MetadataHelper.toUserClaims(["user1@contoso.com", "user2@contoso.com"]),
-    `[{'Key':'${CLAIM}user1@contoso.com'},{'Key':'${CLAIM}user2@contoso.com'}]`,
-  );
+test("Person: nobody means no value to set", () => {
+  assert.equal(MetadataHelper.toPersonValue([]), undefined);
 });
 
-test("UserMulti: a single value does not have to be an array", () => {
+test("The claim for a UPN is lower cased, the way SharePoint stores it", () => {
   assert.equal(
-    MetadataHelper.toUserClaims("user1@contoso.com"),
-    `[{'Key':'${CLAIM}user1@contoso.com'}]`,
+    MetadataHelper.toClaimKey("  User@Contoso.com  "),
+    `${CLAIM}user@contoso.com`,
   );
-});
-
-test("UserMulti: one unreadable entry rejects the whole column", () => {
-  // Writing only the readable half would put a shorter list of people on the
-  // page than the markdown asks for, without saying so
-  assert.equal(
-    MetadataHelper.toUserClaims(["user1@contoso.com", "", null, 42]),
-    undefined,
-  );
-  assert.equal(
-    MetadataHelper.toUserClaims(["user1@contoso.com", 42]),
-    undefined,
-  );
-});
-
-test("UserMulti: nothing valid means no value to set", () => {
-  assert.equal(MetadataHelper.toUserClaims([]), undefined);
-  assert.equal(MetadataHelper.toUserClaims([null, "", "   "]), undefined);
+  assert.equal(MetadataHelper.toClaimKey(42), undefined);
+  assert.equal(MetadataHelper.toClaimKey("   "), undefined);
 });
 
 //
