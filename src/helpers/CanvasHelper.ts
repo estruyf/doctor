@@ -168,12 +168,36 @@ export class CanvasHelper {
   public static mergeTemplate(
     template: CanvasControl[] | null,
     page: CanvasControl[] | null,
+    options: ComposeOptions = {},
   ): CanvasControl[] {
     if (!template || template.length === 0) {
       return page ? clone(page) : [];
     }
 
     const merged = clone(template);
+
+    // A template which says nothing about where the content goes gets a
+    // section of its own for it. Without this, doctor would take over the
+    // template's first ordinary section and clear whatever the template put
+    // there — the sections are the reason to use a template at all.
+    const isOwned = CanvasHelper.ownershipTest(options);
+    if (!merged.some((control) => isOwned(control))) {
+      const zones = merged
+        .filter((control) => control.position)
+        .map((control) => control.position.zoneIndex);
+
+      merged.push({
+        position: {
+          zoneIndex: zones.length > 0 ? Math.max(...zones) + 1 : 1,
+          sectionIndex: 1,
+          sectionFactor: 12,
+          layoutIndex: 1,
+          controlIndex: 1,
+        },
+        emphasis: {},
+        displayMode: 2,
+      });
+    }
     const isBanner = (control: CanvasControl) =>
       typeof control?.webPartId === "string" &&
       control.webPartId.toLowerCase() === PAGE_TITLE_WEB_PART_ID;
@@ -241,6 +265,17 @@ export class CanvasHelper {
     );
     if (owned) {
       return { ...owned.position };
+    }
+
+    // An empty column is a slot waiting for content, so it is a better home
+    // than a section which already holds somebody else's web parts — taking
+    // that one would clear it
+    const empty = canvas.find(
+      (control) =>
+        !control.controlType && CanvasHelper.isOneColumnSection(control),
+    );
+    if (empty) {
+      return { ...empty.position };
     }
 
     const content =

@@ -667,3 +667,58 @@ test("a re-applied template puts the page's content in the template's slot", () 
     "Extensions",
   );
 });
+
+test("a template with no content slot keeps its own web parts", () => {
+  // A template need not contain a Markdown web part. Doctor must not take over
+  // the first section it finds and clear whatever the template put there —
+  // those sections are the reason to use a template.
+  const template = [
+    bannerFor("tpl-banner", "Documentation Template"),
+    { ...webPart("tpl-links", "Quick links", 1, ROLLUP_WEBPART), position: contentSection(1) },
+    SETTINGS,
+  ];
+  const page = [
+    bannerFor("page-banner", "Extensions"),
+    { ...webPart("ours-1", "doctor-placeholder", 1), position: contentSection(1) },
+    SETTINGS,
+  ];
+  const ownership = {
+    ownedInstanceIds: ["ours-1"],
+    ownedTitlePrefix: "doctor-placeholder",
+  };
+
+  const canvas = CanvasHelper.compose(
+    CanvasHelper.mergeTemplate(template, page, ownership),
+    [{ ...markdown("doctor-placeholder"), instanceId: "ours-1" }],
+    ownership,
+  );
+
+  assert.deepEqual(titles(canvas), [
+    "Title Region",
+    "Quick links",
+    "doctor-placeholder",
+  ]);
+
+  const links = canvas.find((c) => c.id === "tpl-links");
+  const content = canvas.find((c) => c.id === "ours-1");
+  assert.equal(links.position.zoneIndex, 2, "the template's section is untouched");
+  assert.equal(content.position.zoneIndex, 3, "content gets a section of its own");
+  assert.equal(content.position.sectionFactor, 12);
+});
+
+test("an empty column is preferred over a section that already has content", () => {
+  // Taking the populated one would clear it
+  const existing = [
+    { ...webPart("theirs-1", "Their web part", 1, ROLLUP_WEBPART), position: contentSection(1, 2) },
+    { position: contentSection(1, 3), emphasis: {}, displayMode: 2 },
+    SETTINGS,
+  ];
+
+  const canvas = CanvasHelper.compose(existing, [markdown("Doctor")]);
+
+  assert.deepEqual(titles(canvas), ["Their web part", "Doctor"]);
+  assert.equal(
+    canvas.find((c) => c.webPartId === MARKDOWN_WEBPART).position.zoneIndex,
+    3,
+  );
+});

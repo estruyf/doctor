@@ -215,7 +215,8 @@ template on **every** publish instead of only when the page is created:
    page title inside the web part, so taking the template's would put the template's title on every
    page using it;
 3. the page's content is written into the slot the template reserves for it — the Markdown web part
-   the template itself contains;
+   the template itself contains. A template which has none gets a new section below its own, so the
+   web parts it does carry are never cleared to make room;
 4. the page keeps its id, URL, history, comments and column values. Nothing is recreated.
 
 The template is read once per run, however many pages use it.

@@ -582,7 +582,7 @@ export class PagesHelper {
     // matched against its real canvas above, so they keep their identity.
     const writeCanvas = async (current: any[]) => {
       const base = templateCanvas
-        ? CanvasHelper.mergeTemplate(templateCanvas, current)
+        ? CanvasHelper.mergeTemplate(templateCanvas, current, ownership)
         : current;
 
       await CanvasHelper.save(

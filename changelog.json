@@ -29,7 +29,7 @@
       },
       {
         "id": null,
-        "title": "New `--reapplyTemplates` option, which applies a page template to pages which already exist instead of only to the ones Doctor creates. The template's sections become the page layout on every publish and the page's content is written into the slot the template reserves for it, while the page keeps its own banner — and so its own title — along with its id, URL, history and column values. Off by default, because it also means a section added to a templated page in SharePoint does not survive the next publish."
+        "title": "New `--reapplyTemplates` option, which applies a page template to pages which already exist instead of only to the ones Doctor creates. The template's sections become the page layout on every publish and the page's content is written into the slot the template reserves for it — a Markdown web part in the template itself, or a new section below it when the template has none — while the page keeps its own banner — and so its own title — along with its id, URL, history and column values. Off by default, because it also means a section added to a templated page in SharePoint does not survive the next publish."
       },
       {
         "id": null,
