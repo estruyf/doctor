@@ -1290,6 +1290,12 @@ export class PagesHelper {
       return cached;
     }
 
+    // Once the site has refused to resolve anybody it will refuse the next one
+    // too, so the rest of the names are not each sent a doomed request
+    if (PagesHelper.ensureUserRefused) {
+      return MetadataHelper.toClaimKey(wanted) as string;
+    }
+
     const base = webUrl.replace(/\/+$/, "");
 
     try {
@@ -1305,7 +1311,11 @@ export class PagesHelper {
 
       const loginName = response?.LoginName;
       if (!loginName) {
-        throw new Error(`the site did not return a login name for it`);
+        // The call worked but the answer is not the shape it should be, which
+        // is a different problem from the name not existing
+        throw new Error(
+          `The site answered without a login name for '${wanted}', so doctor cannot tell which account it means.`
+        );
       }
 
       Logger.debug(`Ensured '${wanted}' as the site user ${loginName}.`);
@@ -1330,12 +1340,47 @@ export class PagesHelper {
         return claim;
       }
 
+      // Only an answer that says the principal is not there is an answer about
+      // the principal. A timeout, a throttle or a dropped connection says
+      // nothing — reporting it as "not a user of this tenant" would be a lie,
+      // and caching it would repeat that lie for every page naming them, on a
+      // name that was fine all along.
+      if (!PagesHelper.isPrincipalNotFound(e)) {
+        throw e;
+      }
+
       const failure = new Error(
         `'${wanted}' is not a user of this tenant (${e?.message || e})`
       );
       PagesHelper.userClaims[key] = failure;
       throw failure;
     }
+  }
+
+  /**
+   * Whether the site answered that the principal is not there, as opposed to
+   * not answering. SharePoint words this differently per entry point, so the
+   * wording is matched broadly — but only wordings which are about the
+   * principal, never a transport failure.
+   */
+  private static isPrincipalNotFound(error: unknown): boolean {
+    const message = (
+      typeof error === "string"
+        ? error
+        : (error as any)?.message || JSON.stringify(error ?? "")
+    ).toLowerCase();
+
+    return (
+      message.includes("could not be found") ||
+      message.includes("cannot be found") ||
+      message.includes("can not be found") ||
+      message.includes("does not exist") ||
+      message.includes("no exact match") ||
+      message.includes("could not be resolved") ||
+      message.includes("not resolved") ||
+      message.includes("invalid user") ||
+      message.includes("unknown user")
+    );
   }
 
   /**

@@ -435,9 +435,11 @@ failure at the very end of a run, with every page already written.
     publish.
   - Without rights to **set columns**, the `metadata` and `author` front matter is skipped — and not
     even worked out, so the term store and the user lookups are not paid for either.
-  - Without rights to **write to the asset library**, a page which references an image is skipped
-    whole rather than published with its pictures pointing at nothing, and the publish state is not
-    saved — so the next run publishes everything again.
+  - Without rights to **write to the asset library**, a page which has to upload something is skipped
+    whole rather than published with its pictures pointing at nothing — that means a page with an
+    image, with a `header.image`, or with a Mermaid diagram, since `doctor` draws those during the
+    publish and uploads them like any other image. The publish state is not saved either, so the next
+    run publishes everything again.
 - A missing **system update** right is the one that is not a skip: descriptions are written with an
   ordinary update instead, at the cost of the page's `Modified` date and `Modified By`.
 - Not being able to **create or update pages** stops the run straight away, since that is the whole

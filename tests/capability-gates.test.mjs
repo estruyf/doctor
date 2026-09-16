@@ -5,6 +5,8 @@ import { CapabilitiesHelper } from "../dist/helpers/CapabilitiesHelper.js";
 import { PagesHelper } from "../dist/helpers/PagesHelper.js";
 import { StateHelper } from "../dist/helpers/StateHelper.js";
 import { OutputHelper } from "../dist/helpers/OutputHelper.js";
+import { DoctorTranspiler } from "../dist/helpers/DoctorTranspiler.js";
+import { load } from "cheerio";
 
 const WEB_URL = "https://contoso.sharepoint.com/sites/docs";
 
@@ -91,4 +93,59 @@ test("The publish state is not saved when the asset library is not writable", as
 
   assert.equal(warnings.length, 1, "said once, not per page");
   assert.match(warnings[0], /publish state was not saved/);
+});
+
+//
+// What the asset gate has to know about
+//
+
+test("The asset gate knows every way a page reaches the asset library", () => {
+  // Three ways in, and a gate that misses one lets a page through which then
+  // fails after its canvas has already been written — or, for a diagram,
+  // publishes something nobody can see
+  const gate = (html, data) =>
+    DoctorTranspiler.getAssetNeeds(load(html), load(html)("img").toArray(), html, data);
+
+  assert.deepEqual(gate(`<p>No assets here</p>`, {}), []);
+
+  assert.deepEqual(gate(`<img src="./img/logo.png" />`, {}), [
+    "upload 1 image",
+  ]);
+
+  assert.deepEqual(gate(`<p>text</p>`, { header: { image: "./img/hero.png" } }), [
+    "upload its header image",
+  ]);
+
+  assert.deepEqual(gate(`<mermaid>\nflowchart TD\n A --> B\n</mermaid>`, {}), [
+    "upload the Mermaid diagrams it draws",
+  ]);
+
+  // All three at once, so the warning can say what the page actually needs
+  assert.deepEqual(
+    gate(`<img src="a.png" /><img src="b.png" /><mermaid>x</mermaid>`, {
+      header: { image: "./hero.png" },
+    }),
+    [
+      "upload 2 images",
+      "upload its header image",
+      "upload the Mermaid diagrams it draws",
+    ],
+  );
+});
+
+test("The asset gate ignores what it does not have to upload", () => {
+  const gate = (html, data) =>
+    DoctorTranspiler.getAssetNeeds(load(html), load(html)("img").toArray(), html, data);
+
+  // A data: source carries its image with it, an absolute one already lives
+  // somewhere, and a header image on a URL is not ours to upload
+  assert.deepEqual(gate(`<img src="data:image/svg+xml;base64,abc" />`, {}), []);
+  assert.deepEqual(gate(`<img src="https://contoso.com/a.png" />`, {}), []);
+  assert.deepEqual(
+    gate(`<p>text</p>`, { header: { image: "https://contoso.com/hero.png" } }),
+    [],
+  );
+
+  // A diagram shown as a code sample is not a diagram
+  assert.deepEqual(gate("Write `<mermaid>` to draw one", {}), []);
 });

@@ -166,3 +166,95 @@ test("A person value that is not a name at all is rejected without asking", asyn
 
   assert.equal(calls.length, 0);
 });
+
+test("A dropped connection is not an answer about the user", async (t) => {
+  // Caching a transient failure as "not a user of this tenant" condemned a
+  // real author for the whole run, on a name that was fine all along
+  const realPost = ApiHelper.postOrThrow;
+  const realToken = AccessToken.get;
+  t.after(() => {
+    ApiHelper.postOrThrow = realPost;
+    AccessToken.get = realToken;
+    PagesHelper.reset();
+  });
+  PagesHelper.reset();
+  AccessToken.get = async () => "token";
+
+  let calls = 0;
+  ApiHelper.postOrThrow = async (_url, _headers, body) => {
+    calls++;
+    if (calls === 1) {
+      throw new Error("Command failed: socket hang up");
+    }
+    return { LoginName: `${CLAIM}${body.logonName}` };
+  };
+
+  // The page it happened on fails, with what actually went wrong
+  await assert.rejects(
+    PagesHelper.ensureUserClaim(WEB_URL, "author@contoso.com"),
+    /socket hang up/,
+  );
+
+  // ...and the next page tries again instead of inheriting a verdict
+  assert.equal(
+    await PagesHelper.ensureUserClaim(WEB_URL, "author@contoso.com"),
+    `${CLAIM}author@contoso.com`,
+  );
+});
+
+test("A name the site says is missing is still only asked about once", async (t) => {
+  const realPost = ApiHelper.postOrThrow;
+  const realToken = AccessToken.get;
+  t.after(() => {
+    ApiHelper.postOrThrow = realPost;
+    AccessToken.get = realToken;
+    PagesHelper.reset();
+  });
+  PagesHelper.reset();
+  AccessToken.get = async () => "token";
+
+  let calls = 0;
+  ApiHelper.postOrThrow = async () => {
+    calls++;
+    throw new Error("The specified user nosuch@contoso.com could not be found.");
+  };
+
+  for (let i = 0; i < 3; i++) {
+    await assert.rejects(
+      PagesHelper.ensureUserClaim(WEB_URL, "nosuch@contoso.com"),
+      /is not a user of this tenant/,
+    );
+  }
+
+  assert.equal(calls, 1, "the verdict is cached, the request is not repeated");
+});
+
+test("After one refusal the rest of the names are not each sent a doomed request", async (t) => {
+  const realPost = ApiHelper.postOrThrow;
+  const realToken = AccessToken.get;
+  const realWarning = OutputHelper.warning;
+  t.after(() => {
+    ApiHelper.postOrThrow = realPost;
+    AccessToken.get = realToken;
+    OutputHelper.warning = realWarning;
+    PagesHelper.reset();
+  });
+  PagesHelper.reset();
+  AccessToken.get = async () => "token";
+  OutputHelper.warning = () => {};
+
+  let calls = 0;
+  ApiHelper.postOrThrow = async () => {
+    calls++;
+    throw new Error("Access is denied. (Exception from HRESULT: 0x80070005 (E_ACCESSDENIED))");
+  };
+
+  for (const name of ["a@x.com", "b@x.com", "c@x.com", "d@x.com", "e@x.com"]) {
+    assert.equal(
+      await PagesHelper.ensureUserClaim(WEB_URL, name),
+      `${CLAIM}${name}`,
+    );
+  }
+
+  assert.equal(calls, 1, "asked once, then taken as read");
+});

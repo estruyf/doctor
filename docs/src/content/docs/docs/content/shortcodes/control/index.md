@@ -85,10 +85,12 @@ See <related-pages /> below     <!-- inside a paragraph -->
 
 As with every shortcode, an occurrence inside a code fence or inline code is a code sample and is left alone.
 
-Attribute values may contain a `>` as long as they are quoted, which a search query often needs:
+Attribute values may contain a `>` when they are quoted, which a search query often needs, and an
+unquoted value may contain a `/`, which a server relative path needs:
 
 ```markdown
 <related-pages query="Size>1000" path="/sites/docs" />
+<related-pages path=/sites/docs count=5 />
 ```
 
 Values reach your `render` function exactly as they are written — HTML entities are not decoded, the

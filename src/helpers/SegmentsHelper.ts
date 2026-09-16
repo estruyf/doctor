@@ -37,7 +37,10 @@ export class SegmentsHelper {
     // but >", so a value which contains one — a KQL query like `Size>1000`,
     // say — still reads as the tag it is instead of being reported as a
     // shortcode sitting mid-paragraph.
-    const attributes = `(?:\\s+[^\\s=/>]+(?:\\s*=\\s*(?:"[^"]*"|'[^']*'|[^\\s/>]+))?)*`;
+    // An unquoted value may hold a `/` — `path=/sites/docs` — so only a `/`
+    // that closes the tag ends it
+    const unquoted = `(?:[^\\s"'=<>/]|/(?!>))+`;
+    const attributes = `(?:\\s+[^\\s=/>]+(?:\\s*=\\s*(?:"[^"]*"|'[^']*'|${unquoted}))?)*`;
     const tagLine = new RegExp(
       `^<(${tags})(${attributes})\\s*(?:/>|>\\s*</\\1>)\\s*$`,
     );

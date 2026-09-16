@@ -531,6 +531,13 @@ export class DoctorTranspiler {
             file,
           );
 
+        // From here the page is one this run wants on the site, whatever
+        // happens to it next. The cleanup pass removes every page it was not
+        // told about, so a page that fails half way through — an image that
+        // will not upload, a column that will not take its value — must not be
+        // mistaken for one whose markdown file was deleted and recycled.
+        PagesHelper.markKnown(slug);
+
         // Change detection: skip unchanged files unless --forceAll is set.
         // Language pages take part in this too, keyed by the slug SharePoint
         // issued for them, so the translation phase does not republish every
@@ -554,14 +561,19 @@ export class DoctorTranspiler {
           `Page comments ${disablePageComments ? "disabled" : "enabled"}`,
         );
 
-        // A page whose images cannot be uploaded would publish with its
+        // A page whose assets cannot be uploaded would publish with its
         // pictures pointing at paths that only exist on the machine which ran
         // the publish. The markdown is the page, so it is skipped whole and
         // kept out of the state, the same way a metadata problem is handled.
-        const uploadable = this.getUploadableImages($, imgElms);
-        if (uploadable.length > 0 && !CapabilitiesHelper.get().writeAssets) {
+        const assetNeeds = this.getAssetNeeds(
+          $,
+          imgElms,
+          markup.content,
+          markup.data as PageFrontMatter,
+        );
+        if (assetNeeds.length > 0 && !CapabilitiesHelper.get().writeAssets) {
           OutputHelper.warning(
-            `Skipped "${relPath}": this account is not allowed to upload to "${options.assetLibrary}", and the page references ${uploadable.length} image${uploadable.length === 1 ? "" : "s"}. The page was left untouched, and is published on the next run once the account may write there.`,
+            `Skipped "${relPath}": this account is not allowed to upload to "${options.assetLibrary}", and the page needs to (${assetNeeds.join(", ")}). The page was left untouched, and is published on the next run once the account may write there.`,
           );
           setProgress(`Skipped (assets): ${relPath}`);
           StatusHelper.addPageSkipped();
@@ -819,6 +831,44 @@ export class DoctorTranspiler {
    * diagrams they draw — and an absolute one already lives somewhere. Shared
    * with the capability gate, so what is checked is what would be uploaded.
    */
+  /**
+   * Everything on the page that has to reach the asset library before the page
+   * can be published as its markdown describes it.
+   *
+   * There are three ways in, and the gate has to know all of them or it lets a
+   * page through that then fails, or publishes wrong: the images in the
+   * content, the `header.image` of the banner, and the Mermaid diagrams, which
+   * are drawn during the publish and uploaded like any other image. A diagram
+   * that cannot be uploaded falls back to inline SVG, which SharePoint strips —
+   * so it does not fail, it silently publishes a diagram nobody can see.
+   */
+  private static getAssetNeeds(
+    $: CheerioAPI,
+    imgElms: Element[],
+    content: string,
+    data: PageFrontMatter | undefined,
+  ): string[] {
+    const needs: string[] = [];
+
+    const images = DoctorTranspiler.getUploadableImages($, imgElms);
+    if (images.length > 0) {
+      needs.push(
+        `upload ${images.length} image${images.length === 1 ? "" : "s"}`,
+      );
+    }
+
+    const headerImage = data?.header?.image;
+    if (headerImage && !headerImage.startsWith("http")) {
+      needs.push(`upload its header image`);
+    }
+
+    if (SegmentsHelper.hasTag(content || "", ["mermaid"])) {
+      needs.push(`upload the Mermaid diagrams it draws`);
+    }
+
+    return needs;
+  }
+
   private static getUploadableImages(
     $: CheerioAPI,
     imgElms: Element[],

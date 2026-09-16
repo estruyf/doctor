@@ -181,3 +181,16 @@ test("SegmentsHelper reads an unquoted and a valueless attribute", () => {
   assert.equal(segments[0].type, "control");
   assert.equal(segments[0].attributes.count, "5");
 });
+
+test("SegmentsHelper reads an unquoted attribute value containing a slash", () => {
+  // A server relative path is the realistic case, and it worked before the
+  // quoted-value handling was tightened
+  const segments = SegmentsHelper.split(
+    `<related-pages path=/sites/docs count=5 />`,
+    CONTROLS,
+  );
+
+  assert.equal(segments[0].type, "control");
+  assert.equal(segments[0].attributes.path, "/sites/docs");
+  assert.equal(segments[0].attributes.count, "5");
+});

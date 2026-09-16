@@ -552,9 +552,11 @@ does mean the warnings at the end of a run are worth reading.
 - **The value has to be one its column type accepts** — an item id for a lookup column, a user
   principal name for a person column, a term which is in the set for a managed metadata one.
 - **People are resolved against the tenant**, which is also what adds the site user when the site has
-  not seen them before. A name the tenant does not have is a problem. If the account is not allowed
-  to look users up, `doctor` says so once and carries on without the check — an unknown name then
-  fails its page while it is being written, instead of being reported before.
+  not seen them before. A name the tenant *says* it does not have is a problem, and is remembered for
+  the rest of the run. A lookup that fails for another reason — a timeout, a throttle — is not an
+  answer about the name: it fails that page, and the next page asks again. If the account is not
+  allowed to look users up at all, `doctor` says so once and carries on without the check — an
+  unknown name then fails its page while it is being written, instead of being reported before.
 
 None of this runs when the account is not allowed to set columns on the Site Pages library at all. In
 that case the `metadata` and `author` front matter is skipped for every page, reported once, and the
