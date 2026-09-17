@@ -1,6 +1,7 @@
 export * from "./existsAsync.js";
 export * from "./getAssetFolders.js";
 export * from "./toComparablePath.js";
+export * from "./splitLinkTarget.js";
 export * from "./isPermissionError.js";
 export * from "./isLanguageFile.js";
 export * from "./mkdirAsync.js";

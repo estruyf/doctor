@@ -563,10 +563,13 @@ export class PagesHelper {
       ? JSON.parse(page.CanvasContent1)
       : [];
 
-    const ownership = {
-      ownedInstanceIds: StateHelper.getControls(slug),
-      ownedTitlePrefix: webPartTitle,
-    };
+    const ownership = CanvasHelper.withTemplateControls(
+      {
+        ownedInstanceIds: StateHelper.getControls(slug),
+        ownedTitlePrefix: webPartTitle,
+      },
+      templateCanvas
+    );
 
     // Reuse the instance id of a control of the same type, so SharePoint keeps
     // the control rather than seeing it removed and a new one added
@@ -706,10 +709,20 @@ export class PagesHelper {
       result.webPartProperties ?? null
     );
 
+    // A web part with no preconfigured entry has no defaults to start from, so
+    // the shortcode has to describe the instance itself. That is the documented
+    // way to use one, and it only works if the missing defaults are reported
+    // here rather than before `webPartData` is even looked at.
+    if (!data && !result.webPartData) {
+      throw new Error(
+        `The web part behind "${segment.shortcode}" declares no preconfigured entry, so doctor has no defaults to build an instance from. Return the instance data from the shortcode with 'webPartData'.`
+      );
+    }
+
     // Whatever the shortcode returns wins over the web part's defaults, the
     // same way the CLI merges its `--webPartData`
     const merged = result.webPartData
-      ? { ...data, ...result.webPartData }
+      ? { ...(data ?? {}), ...result.webPartData }
       : data;
 
     if (result.title) {

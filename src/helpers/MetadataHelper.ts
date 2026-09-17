@@ -110,8 +110,17 @@ export class MetadataHelper {
    * @param value
    */
   public static transformDateTime(value: any): any {
+    // A date written without quotes is parsed by YAML itself, so it arrives as
+    // a Date rather than a string. Passed through as it always has been: the
+    // CLI serialises it, and reformatting a UTC midnight in local time would
+    // move `2026-03-15` to the 14th for anyone west of Greenwich.
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? undefined : value;
+    }
+
+    // Anything which is not a date and not text cannot be one
     if (typeof value !== "string") {
-      return value;
+      return undefined;
     }
 
     const trimmed = value.trim();
@@ -134,10 +143,11 @@ export class MetadataHelper {
       )}`;
     }
 
-    Logger.debug(
-      `DateTime value '${value}' is ambiguous or invalid. Passing through without conversion.`,
-    );
-    return value;
+    // Reported rather than passed through. SharePoint rejects it either way,
+    // but it does so after the page canvas has already been written — which
+    // is the one outcome resolving before writing exists to prevent.
+    Logger.debug(`DateTime value '${value}' cannot be read as a date.`);
+    return undefined;
   }
 
   /**
@@ -149,12 +159,17 @@ export class MetadataHelper {
     value: any,
     fieldName: string = "",
   ): number | undefined {
-    if (typeof value === "number" && Number.isInteger(value)) {
+    // A list item id starts at 1, so 0 and negatives are not ids — they would
+    // pass resolution and be refused by SharePoint after the canvas is written
+    if (typeof value === "number" && Number.isInteger(value) && value > 0) {
       return value;
     }
 
     if (typeof value === "string" && /^\d+$/.test(value.trim())) {
-      return parseInt(value.trim(), 10);
+      const id = parseInt(value.trim(), 10);
+      if (id > 0) {
+        return id;
+      }
     }
 
     Logger.debug(

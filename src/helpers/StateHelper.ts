@@ -246,6 +246,12 @@ export class StateHelper {
    *
    * @returns whether it differs from the state that was loaded
    */
+  /**
+   * Note: this is for reporting, not for deciding. The settings are folded into
+   * every page's own hash by `DependencyHelper`, which is what actually makes
+   * them republish — recording the new hash here before the pages have caught
+   * up used to strand every page a failed run never reached.
+   */
   public static setConfigHash(configHash: string): boolean {
     if (!StateHelper.state) {
       return false;

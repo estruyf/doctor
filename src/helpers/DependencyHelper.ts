@@ -5,7 +5,7 @@ import { basename, dirname, join } from "path";
 import matter from "gray-matter";
 import fg from "fast-glob";
 import { CommandArguments, PageFrontMatter } from "@models";
-import { existsAsync, readFileAsync } from "@utils";
+import { existsAsync, readFileAsync, splitLinkTarget } from "@utils";
 import { FrontMatterHelper } from "./FrontMatterHelper.js";
 import { Logger } from "./Logger.js";
 import { PartialsHelper } from "./PartialsHelper.js";
@@ -76,10 +76,17 @@ export class DependencyHelper {
       );
     }
 
+    // The settings are part of every page's own hash, not only a global flag.
+    // The global one is written to the state as soon as it is read, and the
+    // state is saved after every page — so a run which stopped half way left
+    // the new settings recorded while the pages it never reached still matched
+    // their old hashes, and the next run skipped them for good.
+    const config = await DependencyHelper.getConfigHash(options);
+
     return {
       content,
       hash: StateHelper.hashContent(
-        `${hash}\n${DependencyHelper.pages[file]}\n${extra}`,
+        `${hash}\n${DependencyHelper.pages[file]}\n${config}\n${extra}`,
       ),
     };
   }
@@ -160,11 +167,18 @@ export class DependencyHelper {
     file: string,
     options: CommandArguments,
   ): Promise<string | null> {
-    const target = href.endsWith(".md")
-      ? href
-      : href === "."
+    // `./page.md#section` points at `./page.md`; testing the whole string for a
+    // `.md` ending would make it `./page.md#section.md` and resolve to nothing
+    const { path: href_ } = splitLinkTarget(href);
+    if (!href_) {
+      return null;
+    }
+
+    const target = href_.endsWith(".md")
+      ? href_
+      : href_ === "."
         ? basename(file)
-        : `${href}.md`;
+        : `${href_}.md`;
     const path = join(dirname(file), target);
 
     if (path in DependencyHelper.slugs) {
@@ -211,6 +225,9 @@ export class DependencyHelper {
       markdown: options.markdown ?? null,
       pageTemplate: options.pageTemplate ?? null,
       reapplyTemplates: !!options.reapplyTemplates,
+      // Set on the page when it is created, so turning it on or off has to
+      // reach the pages which already exist
+      disableComments: !!options.disableComments,
       partials: {
         header: options.partials?.header ?? null,
         footer: options.partials?.footer ?? null,

@@ -681,10 +681,18 @@ test("a re-applied template puts the page's content in the template's slot", () 
     SETTINGS,
   ];
 
-  const canvas = CanvasHelper.compose(
-    CanvasHelper.mergeTemplate(TEMPLATE, page),
-    [{ ...markdown("doctor-placeholder"), instanceId: "ours-1" }],
+  // The template's own placeholder carries an id belonging to the template, so
+  // it is folded into ownership the way the publish does — `compose` matches by
+  // id once it has any, and never claims a control on title alone
+  const ownership = CanvasHelper.withTemplateControls(
     { ownedInstanceIds: ["ours-1"], ownedTitlePrefix: "doctor-placeholder" },
+    TEMPLATE,
+  );
+
+  const canvas = CanvasHelper.compose(
+    CanvasHelper.mergeTemplate(TEMPLATE, page, ownership),
+    [{ ...markdown("doctor-placeholder"), instanceId: "ours-1" }],
+    ownership,
   );
 
   // The page's own control, in the section the template reserved for content
@@ -760,5 +768,62 @@ test("an empty column is preferred over a section that already has content", () 
   assert.equal(
     canvas.find((c) => c.webPartId === MARKDOWN_WEBPART).position.zoneIndex,
     3,
+  );
+});
+
+test("CanvasHelper does not claim a control on title alone once it knows its ids", () => {
+  // The recorded ids are authoritative. A web part somebody added in SharePoint
+  // and happened to title `doctor-placeholder` is theirs, and moving or
+  // deleting it is the one thing the ownership model promises not to do.
+  const existing = [
+    webPart("ours-1", "doctor-placeholder", 1),
+    {
+      ...webPart("theirs-1", "doctor-placeholder", 1),
+      position: position(1, { zoneIndex: 2 }),
+    },
+    SETTINGS,
+  ];
+
+  const canvas = CanvasHelper.compose(
+    existing,
+    [{ ...markdown("doctor-placeholder"), instanceId: "ours-1" }],
+    { ownedInstanceIds: ["ours-1"], ownedTitlePrefix: "doctor-placeholder" },
+  );
+
+  assert.ok(
+    canvas.some((c) => c.id === "theirs-1"),
+    "the control doctor never recorded is left where it is",
+  );
+  assert.equal(canvas.find((c) => c.id === "theirs-1").position.zoneIndex, 2);
+});
+
+test("CanvasHelper still falls back to the title when it has no ids at all", () => {
+  // A page published before the ids were recorded — the upgrade path
+  const existing = [webPart("unknown-1", "doctor-placeholder", 1), SETTINGS];
+
+  const canvas = CanvasHelper.compose(existing, [markdown("doctor-placeholder")], {
+    ownedInstanceIds: [],
+    ownedTitlePrefix: "doctor-placeholder",
+  });
+
+  assert.equal(titles(canvas).length, 1, "recognised, not duplicated");
+});
+
+test("withTemplateControls hands the template's placeholders over as owned", () => {
+  const ownership = CanvasHelper.withTemplateControls(
+    { ownedInstanceIds: ["ours-1"], ownedTitlePrefix: "doctor-placeholder" },
+    TEMPLATE,
+  );
+
+  assert.ok(ownership.ownedInstanceIds.includes("ours-1"));
+  assert.ok(
+    ownership.ownedInstanceIds.includes("tpl-doctor"),
+    "the template's own placeholder is owned too",
+  );
+  // Nothing to add when there is no template
+  assert.deepEqual(
+    CanvasHelper.withTemplateControls({ ownedInstanceIds: ["ours-1"] }, null)
+      .ownedInstanceIds,
+    ["ours-1"],
   );
 });

@@ -140,9 +140,21 @@ test("DateTime: a UTC value keeps pointing at the same moment", () => {
   );
 });
 
-test("DateTime: something unparseable is passed through untouched", () => {
-  assert.equal(MetadataHelper.transformDateTime("not a date"), "not a date");
-  assert.equal(MetadataHelper.transformDateTime(42), 42);
+test("DateTime: something that is not a date is reported, not passed through", () => {
+  // Passing it through meant SharePoint refused it *after* the page canvas had
+  // been written, which is what resolving before writing exists to prevent
+  assert.equal(MetadataHelper.transformDateTime("not a date"), undefined);
+  assert.equal(MetadataHelper.transformDateTime(42), undefined);
+  assert.equal(MetadataHelper.transformDateTime({}), undefined);
+  assert.equal(MetadataHelper.transformDateTime(new Date("nope")), undefined);
+});
+
+test("DateTime: a date YAML already parsed is left as the Date it is", () => {
+  // `Modified: 2026-03-15` without quotes is a Date by the time it gets here.
+  // Reformatting a UTC midnight in local time would move it to the 14th for
+  // anyone west of Greenwich.
+  const parsed = new Date("2026-03-15T00:00:00.000Z");
+  assert.equal(MetadataHelper.transformDateTime(parsed), parsed);
 });
 
 //

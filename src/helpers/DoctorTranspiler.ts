@@ -33,6 +33,7 @@ import {
   existsAsync,
   getAssetFolders,
   isLanguageFile,
+  splitLinkTarget,
   toComparablePath,
   isMachineTranslatedFile,
   mkdirAsync,
@@ -1028,12 +1029,23 @@ export class DoctorTranspiler {
 
       Logger.debug(`Processing link: ${fileLink} for ${filePath}`);
 
-      if (fileLink.endsWith(`.md`)) {
-        mdFile = fileLink;
-      } else if (fileLink === ".") {
+      // `./page.md#section` is a link to `./page.md`. Testing the whole string
+      // made it `./page.md#section.md`, which resolves to no file — so the link
+      // was left exactly as written and shipped to SharePoint as a relative
+      // markdown path, which is a dead link on the site.
+      const { path: linkPath, suffix: linkSuffix } = splitLinkTarget(fileLink);
+
+      if (!linkPath) {
+        // A link to an anchor on this page; there is nothing to resolve
+        continue;
+      }
+
+      if (linkPath.endsWith(`.md`)) {
+        mdFile = linkPath;
+      } else if (linkPath === ".") {
         mdFile = basename(filePath);
       } else {
-        mdFile = `${fileLink}.md`;
+        mdFile = `${linkPath}.md`;
       }
 
       const mdFilePath = join(dirname(filePath), mdFile);
@@ -1067,9 +1079,11 @@ export class DoctorTranspiler {
           startFolder,
           mdFilePath,
         );
+        // The anchor goes back on: linking to a heading inside a long page is
+        // the reason to write one
         const spUrl = `${webUrl}${
           webUrl.endsWith("/") ? "" : "/"
-        }sitepages/${slug}`;
+        }sitepages/${slug}${linkSuffix}`;
         Logger.debug(`Referenced file slug: ${spUrl}`);
 
         // Update the link in the markdown

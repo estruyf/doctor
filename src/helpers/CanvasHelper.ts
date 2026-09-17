@@ -359,6 +359,43 @@ export class CanvasHelper {
   }
 
   /**
+   * Ownership for a page whose template is being re-applied.
+   *
+   * A template's doctor controls mark where the content goes, but their
+   * instance ids belong to the template rather than to this page, so they are
+   * not in the page's recorded state. They are identified by title here, which
+   * is safe because a template is doctor's own page, and folded in as owned —
+   * so `compose` can go on matching by id alone and never has to guess about a
+   * control somebody added in SharePoint.
+   *
+   * @param options the page's own ownership
+   * @param template the template canvas being merged in, if there is one
+   */
+  public static withTemplateControls(
+    options: ComposeOptions,
+    template: CanvasControl[] | null,
+  ): ComposeOptions {
+    if (!template || template.length === 0) {
+      return options;
+    }
+
+    const fromTemplate = CanvasHelper.getOwned(template, {
+      ownedTitlePrefix: options.ownedTitlePrefix,
+    })
+      .map((control) => control.id)
+      .filter(Boolean);
+
+    if (fromTemplate.length === 0) {
+      return options;
+    }
+
+    return {
+      ...options,
+      ownedInstanceIds: [...(options.ownedInstanceIds ?? []), ...fromTemplate],
+    };
+  }
+
+  /**
    * SharePoint counts sections by their distinct zone, and the vertical section
    * is not one of them.
    */
@@ -394,7 +431,13 @@ export class CanvasHelper {
     options: ComposeOptions,
   ): (control: CanvasControl) => boolean {
     const instanceIds = new Set(options.ownedInstanceIds ?? []);
-    const prefix = options.ownedTitlePrefix;
+    // The ids are authoritative, so the title is what answers when there are
+    // none — a page published before the ids were recorded, or one being
+    // created now. Once doctor knows which controls are its own by id, a
+    // control carrying the same title is somebody else's: claiming it would
+    // move or delete a web part added on the SharePoint side, which is the one
+    // thing the ownership model promises not to do.
+    const prefix = instanceIds.size === 0 ? options.ownedTitlePrefix : undefined;
     // A page split into segments numbers the controls after the first
     const numbered = prefix
       ? new RegExp(`^${escapeForRegex(prefix)} \\(\\d+\\)$`)
@@ -610,21 +653,28 @@ export class CanvasHelper {
   }
 
   /**
-   * Turn a web part definition into the `webPartData` a new instance needs
+   * Turn a web part definition into the `webPartData` a new instance needs.
+   *
+   * Answers `null` when the deployed web part declares no preconfigured entry:
+   * there are no defaults to start from, but that is not fatal on its own,
+   * because a control shortcode is allowed to supply the whole instance itself
+   * through `webPartData`. Whether it did is the caller's to judge. Looking the
+   * definition up still throws when the web part is not deployed at all.
    */
   public static async getWebPartData(
     webUrl: string,
     webPartId: string,
     properties: any = null,
-  ): Promise<any> {
+  ): Promise<any | null> {
     const definition = await CanvasHelper.getDefinition(webUrl, webPartId);
     const manifest = JSON.parse(definition.Manifest);
     const preconfigured = manifest?.preconfiguredEntries?.[0];
 
     if (!preconfigured) {
-      throw new Error(
-        `The web part ${webPartId} on ${webUrl} declares no preconfigured entry, so doctor has no defaults to build an instance from. A control shortcode can supply them itself with 'webPartData'.`,
+      Logger.debug(
+        `The web part ${webPartId} declares no preconfigured entry, so it has no defaults to build from.`,
       );
+      return null;
     }
 
     return {

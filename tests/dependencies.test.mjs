@@ -186,3 +186,46 @@ test("the config hash is stable when nothing relevant moved", async () => {
 
   assert.equal(a, b);
 });
+
+test("a link with an anchor still names the page it points at", async () => {
+  // `./target.md#section` used to be read as an extensionless link and turned
+  // into `./target.md#section.md`, which resolves to nothing — so renaming the
+  // target left every link to it looking unchanged
+  const folder = await mkdtemp(join(tmpdir(), "doctor-anchor-"));
+  await writeFile(
+    join(folder, "target.md"),
+    `---\ntitle: Target\n---\n\nThe target.\n`,
+    "utf-8",
+  );
+
+  const file = join(folder, "page.md");
+  const contents = `---\ntitle: Page\n---\n\nSee [the target](./target.md#section).\n`;
+  await writeFile(file, contents, "utf-8");
+
+  const options = { startFolder: folder, webUrl: "https://contoso.sharepoint.com/sites/d" };
+
+  DependencyHelper.reset();
+  const before = (await DependencyHelper.getPageHash(file, contents, options)).hash;
+
+  await writeFile(
+    join(folder, "target.md"),
+    `---\ntitle: Target\nslug: moved/elsewhere.aspx\n---\n\nThe target.\n`,
+    "utf-8",
+  );
+
+  DependencyHelper.reset();
+  const after = (await DependencyHelper.getPageHash(file, contents, options)).hash;
+
+  assert.notEqual(before, after);
+});
+
+test("the config hash follows disableComments", async () => {
+  // It is written onto the page when it is created, so toggling it has to reach
+  // the pages which already exist
+  DependencyHelper.reset();
+  const off = await DependencyHelper.getConfigHash({ disableComments: false });
+  DependencyHelper.reset();
+  const on = await DependencyHelper.getConfigHash({ disableComments: true });
+
+  assert.notEqual(off, on);
+});

@@ -76,14 +76,21 @@ export class CapabilitiesHelper {
     reads: { termStore: boolean; siteUsers: boolean },
   ): Capabilities {
     const on = CapabilitiesHelper.hasPermission;
-    const writesPages = on(pages, "addListItems") && on(pages, "editListItems");
+
+    // A mask that could not be read says nothing, so it is not a refusal — the
+    // same rule the asset library already followed. Treating an unreadable Site
+    // Pages mask as a denial turned a timeout on one probe request into "this
+    // account cannot publish", which stops the run outright.
+    const writesPages = pages
+      ? on(pages, "addListItems") && on(pages, "editListItems")
+      : true;
 
     return {
       determined: true,
       publishPages: writesPages,
-      setMetadata: on(pages, "editListItems"),
+      setMetadata: pages ? on(pages, "editListItems") : true,
       // A system update is a list-level operation, not an item one
-      systemUpdate: on(pages, "manageLists"),
+      systemUpdate: pages ? on(pages, "manageLists") : true,
       manageNavigation: on(web, "manageWeb"),
       manageSiteDesign: on(web, "manageWeb"),
       writeAssets: assets
@@ -235,7 +242,7 @@ export class CapabilitiesHelper {
     say(
       capabilities.readSiteUsers,
       "Read the site users",
-      "pages with an 'author' are skipped",
+      "an 'author' given as a site user id is skipped; one given as a name is set without checking it exists",
     );
 
     return lines;

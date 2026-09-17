@@ -135,7 +135,14 @@ export class Publish {
             const capabilities = await CapabilitiesHelper.probe(webUrl, options);
             CapabilitiesHelper.report(capabilities, options);
 
-            if (capabilities.determined && !capabilities.publishPages) {
+            // Only fatal for a run which was going to publish pages. With
+            // --skipPages the run is there to set the navigation or the site
+            // design, and has no business needing Site Pages rights.
+            if (
+              capabilities.determined &&
+              !capabilities.publishPages &&
+              !options.skipPages
+            ) {
               throw new Error(
                 `This account cannot create or update pages in the Site Pages library of ${webUrl}, so there is nothing doctor can publish. It needs at least "Add Items" and "Edit Items" there.`
               );
