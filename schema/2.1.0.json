@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema",
-  "$id": "https://raw.githubusercontent.com/estruyf/doctor/dev/schema/2.0.0.json",
+  "$id": "https://raw.githubusercontent.com/estruyf/doctor/dev/schema/2.1.0.json",
   "type": "object",
   "title": "Doctor configuration",
   "description": "The configuration schema for doctor.json.",
@@ -28,7 +28,9 @@
       }
     }
   ],
-  "required": ["url"],
+  "required": [
+    "url"
+  ],
   "definitions": {
     "items": {
       "title": "items",
@@ -66,7 +68,9 @@
       "title": "auth",
       "description": "The authentication type to use. `certificate` is the only supported value.",
       "default": "certificate",
-      "enum": ["certificate"]
+      "enum": [
+        "certificate"
+      ]
     },
     "password": {
       "$id": "#/properties/password",
@@ -95,7 +99,10 @@
       "title": "certificate",
       "description": "The certificate to authenticate with. This can be the path to your certificate file (`.pfx`, `.p12`, or `.pem`), or its base64 encoded contents. Required, unless you pass it with the `--certificate` option.",
       "default": "",
-      "examples": ["./cert.pfx", "MIIJqQIBAzCCCW8GCSqGSIb..."]
+      "examples": [
+        "./cert.pfx",
+        "MIIJqQIBAzCCCW8GCSqGSIb..."
+      ]
     },
     "commandName": {
       "$id": "#/properties/commandName",
@@ -111,7 +118,10 @@
       "description": "The timeout in milliseconds for each CLI for Microsoft 365 command which `doctor` executes. Increase this value when commands time out on large sites or slow connections.",
       "default": 120000,
       "minimum": 1,
-      "examples": [120000, 300000]
+      "examples": [
+        120000,
+        300000
+      ]
     },
     "overwriteImages": {
       "$id": "#/properties/overwriteImages",
@@ -126,7 +136,9 @@
       "title": "url",
       "description": "The URL of the site collection to use.",
       "default": "",
-      "examples": ["https://tenant.sharepoint.com/sites/documentation"]
+      "examples": [
+        "https://tenant.sharepoint.com/sites/documentation"
+      ]
     },
     "folder": {
       "$id": "#/properties/folder",
@@ -134,7 +146,9 @@
       "title": "folder",
       "description": "The folder location in where you will create your markdown files.",
       "default": "./src",
-      "examples": ["./src"]
+      "examples": [
+        "./src"
+      ]
     },
     "library": {
       "$id": "#/properties/library",
@@ -176,7 +190,10 @@
       "type": "string",
       "title": "output",
       "description": "The way a command reports its result. Use `json` to silence the human output and write the result of the `status` and `publish` commands as a single JSON document to stdout, which a CI/CD pipeline can act on.",
-      "enum": ["default", "json"],
+      "enum": [
+        "default",
+        "json"
+      ],
       "default": "default"
     },
     "timingDetails": {
@@ -274,7 +291,9 @@
           "type": "object",
           "title": "QuickLaunch",
           "description": "QuickLaunch navigation element.",
-          "required": ["items"],
+          "required": [
+            "items"
+          ],
           "properties": {
             "items": {
               "$ref": "#/definitions/items"
@@ -286,7 +305,9 @@
           "type": "object",
           "title": "TopNavigationBar",
           "description": "TopNavigationBar navigation element.",
-          "required": ["items"],
+          "required": [
+            "items"
+          ],
           "properties": {
             "items": {
               "$ref": "#/definitions/items"
@@ -328,7 +349,12 @@
               "title": "headerLayout",
               "description": "The layout of the chrome header.",
               "default": "Standard",
-              "enum": ["Standard", "Compact", "Minimal", "Extended"]
+              "enum": [
+                "Standard",
+                "Compact",
+                "Minimal",
+                "Extended"
+              ]
             },
             "headerEmphasis": {
               "$id": "#/properties/siteDesign/properties/chrome/properties/headerEmphasis",
@@ -336,7 +362,12 @@
               "title": "headerEmphasis",
               "description": "The chrome header background.",
               "default": "Lightest",
-              "enum": ["Lightest", "Light", "Dark", "Darkest"]
+              "enum": [
+                "Lightest",
+                "Light",
+                "Dark",
+                "Darkest"
+              ]
             },
             "logoAlignment": {
               "$id": "#/properties/siteDesign/properties/chrome/properties/logoAlignment",
@@ -344,7 +375,11 @@
               "title": "logoAlignment",
               "description": "Specify how to align the logo if `extended` header is used.",
               "default": "Left",
-              "enum": ["Left", "Center", "Right"]
+              "enum": [
+                "Left",
+                "Center",
+                "Right"
+              ]
             },
             "footerLayout": {
               "$id": "#/properties/siteDesign/properties/chrome/properties/footerLayout",
@@ -352,7 +387,10 @@
               "title": "footerLayout",
               "description": "The layout of the chrome footer.",
               "default": "Simple",
-              "enum": ["Simple", "Extended"]
+              "enum": [
+                "Simple",
+                "Extended"
+              ]
             },
             "footerEmphasis": {
               "$id": "#/properties/siteDesign/properties/chrome/properties/footerEmphasis",
@@ -360,7 +398,12 @@
               "title": "footerEmphasis",
               "description": "The chrome footer background.",
               "default": "Darkest",
-              "enum": ["Lightest", "Light", "Dark", "Darkest"]
+              "enum": [
+                "Lightest",
+                "Light",
+                "Dark",
+                "Darkest"
+              ]
             },
             "disableMegaMenu": {
               "$id": "#/properties/siteDesign/properties/chrome/properties/disableMegaMenu",
@@ -406,7 +449,12 @@
           "title": "theme",
           "description": "Specify the theme to use for the code blocks. Default is `Dark`.",
           "default": "Dark",
-          "enum": ["Dark", "Light", "dark", "light"]
+          "enum": [
+            "Dark",
+            "Light",
+            "dark",
+            "light"
+          ]
         },
         "shortcodesFolder": {
           "$id": "#/properties/markdown/properties/shortcodesFolder",
@@ -420,7 +468,12 @@
           "type": "array",
           "title": "tocLevels",
           "description": "Defines the heading levels to use in the table of contents.",
-          "default": [1, 2, 3, 4],
+          "default": [
+            1,
+            2,
+            3,
+            4
+          ],
           "items": {
             "type": "number"
           }
@@ -500,7 +553,10 @@
         },
         "translator": {
           "$id": "#/properties/multilingual/properties/translator",
-          "type": ["object", "null"],
+          "type": [
+            "object",
+            "null"
+          ],
           "title": "translator",
           "description": "Allows you to specify the Azure Translator Cognitive Service to machine translate your pages.",
           "properties": {
@@ -519,11 +575,20 @@
               "type": "string",
               "title": "region",
               "description": "The region of the Azure Translator Cognitive Service.",
-              "examples": ["westeurope"]
+              "examples": [
+                "westeurope"
+              ]
             }
           }
         }
       }
+    },
+    "reapplyTemplates": {
+      "$id": "#/properties/reapplyTemplates",
+      "type": "boolean",
+      "title": "Re-apply page templates",
+      "description": "Applies the page template to pages which already exist, not only to the ones Doctor creates. The template's sections are used as the page layout on every publish, with the page's own content and banner kept.",
+      "default": false
     }
   }
 }

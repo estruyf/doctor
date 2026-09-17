@@ -26,6 +26,34 @@ Since v2.0.0 the `deviceCode` and `password` authentication types are removed. C
 
 - Click on **Grant admin consent for <tenant>**, and accept
 
+### Scoping the app to a single site
+
+**Sites.FullControl.All** grants the app rights on **every** site in the tenant. If you would rather
+give it access to only the site you publish to, add the **Sites.Selected** application permission
+instead of `Sites.FullControl.All`, grant admin consent for it, and then grant the app rights on that
+one site. With [PnP PowerShell](https://pnp.github.io/powershell/), as a tenant administrator:
+
+```powershell
+Connect-PnPOnline -Url https://<tenant>.sharepoint.com/sites/<site> -Interactive
+
+Grant-PnPAzureADAppSitePermission `
+  -AppId <appId> `
+  -DisplayName "<app name>" `
+  -Permissions FullControl `
+  -Site https://<tenant>.sharepoint.com/sites/<site>
+```
+
+`FullControl` on the site is what lets `doctor` do everything it can do: publish pages, set their
+metadata, and manage the site navigation, the theme, the header and footer and the site logo — those
+last ones need **Manage Web** rights, which `Write` does not include.
+
+`Write` is enough to publish pages and set their metadata, and is the right choice when you do not
+want the app to be able to change the look of the site.
+
+Either way `doctor` reports what the account may and may not do before it writes anything, and skips
+the site-level steps it is not allowed to take rather than failing the run — see
+[available permissions](../../configuration/cli-options/#available-permissions).
+
 ## Create and upload the certificate
 
 - Open a command prompt, and run the following command in order to generate a certificate: `openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 366 -nodes`

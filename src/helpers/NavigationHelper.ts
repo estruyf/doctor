@@ -2,6 +2,8 @@ import { CliCommand } from "./index.js";
 import { Menu, MenuItem, MenuType, NavigationItem } from "@models";
 import { executeWithRetry } from "./RunCommand.js";
 import { Logger } from "./Logger.js";
+import { OutputHelper } from "./OutputHelper.js";
+import { isPermissionError } from "@utils";
 
 type LocationType = "QuickLaunch" | "TopNavigationBar";
 const WEIGHT_VALUE = 99999;
@@ -28,6 +30,25 @@ export class NavigationHelper {
       return;
     }
 
+    try {
+      await NavigationHelper.applyNavigation(webUrl, navigation);
+    } catch (e: any) {
+      // The pages are published by this point. Managing site navigation needs
+      // rights on the web that an account allowed to edit pages does not
+      // necessarily have, and losing the whole run over the menu — after every
+      // page succeeded — is worse than publishing without it.
+      if (!isPermissionError(e)) {
+        throw e;
+      }
+
+      OutputHelper.warning(
+        `This account is not allowed to change the navigation of ${webUrl}, so the menu was left as it is. The pages themselves were published. Granting it Manage Web rights on the site, or removing the 'menu' setting, stops this being reported.`
+      );
+      Logger.debug(`Navigation skipped: ${e?.message || e}`);
+    }
+  }
+
+  private static async applyNavigation(webUrl: string, navigation: Menu) {
     const cleanNavigation = CliCommand.getCleanNavigation();
     if (cleanNavigation.cleanQuickLaunch) {
       await this.startNavigationCleanup(webUrl, "QuickLaunch");

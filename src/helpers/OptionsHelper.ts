@@ -40,6 +40,7 @@ export class OptionsHelper {
       "--webPartTitle": String,
       "--outputFolder": String,
       "--pageTemplate": String,
+      "--reapplyTemplates": Boolean,
       "--provider": String,
       "--output": String,
 
@@ -184,6 +185,8 @@ export class OptionsHelper {
       cleanTopNavigation:
         args["--cleanTopNavigation"] || options["cleanTopNavigation"] || false,
       pageTemplate: args["--pageTemplate"] || options["pageTemplate"] || null,
+      reapplyTemplates:
+        args["--reapplyTemplates"] || options["reapplyTemplates"] || false,
       disableComments:
         args["--disableComments"] || options["disableComments"] || false,
       provider: args["--provider"] || null,

@@ -9,6 +9,8 @@ import {
   MarkdownHelper,
   OutputHelper,
   PartialsHelper,
+  DependencyHelper,
+  DoctorTranspiler,
   StateHelper,
   StatusHelper,
 } from "@helpers";
@@ -47,6 +49,7 @@ export class Status {
 
     const { startFolder, webUrl } = options;
     let statePageCount = 0;
+    let configChanged = false;
     let localFilesChecked = 0;
 
     const ctx: PublishContext = { files: [] };
@@ -60,10 +63,26 @@ export class Status {
           title: `Load publish state`,
           task: async (_, task) => {
             await StateHelper.load(webUrl, options.assetLibrary, options.stateFile);
+
+            // The publish counts every page as changed when the settings or the
+            // shortcodes moved, so the report has to say so too — otherwise it
+            // reads "up to date" for a run that would republish the whole site
+            configChanged = StateHelper.setConfigHash(
+              await DependencyHelper.getConfigHash(options)
+            );
+
             statePageCount = StateHelper.getPageCount();
-            task.output = statePageCount > 0
-              ? `${statePageCount} pages tracked in state`
-              : `No pages tracked yet — run 'doctor publish' to populate state`;
+            task.output = configChanged
+              ? `The settings changed since the last run, so every page counts as modified`
+              : statePageCount > 0
+                ? `${statePageCount} pages tracked in state`
+                : `No pages tracked yet — run 'doctor publish' to populate state`;
+
+            if (configChanged) {
+              OutputHelper.warning(
+                `The publish settings or the shortcodes changed since the last run, so every page is reported as modified.`
+              );
+            }
           },
           enabled: () => !options.disableStatePersistence,
           rendererOptions: { persistentOutput: true },
@@ -134,6 +153,7 @@ export class Status {
               }
 
               let slug: string;
+              let frontMatter: PageFrontMatter | undefined;
               if (isLanguageFile(file)) {
                 const link = languageFiles.get(file);
                 // A language file nothing refers to never gets published
@@ -150,8 +170,9 @@ export class Status {
                   const markup = matter(contents);
                   if (markup.data?.type === "translation") continue;
                   if (!markup.data?.title) continue;
+                  frontMatter = markup.data as PageFrontMatter;
                   slug = FrontMatterHelper.getSlug(
-                    markup.data as PageFrontMatter,
+                    frontMatter,
                     startFolder,
                     file,
                   );
@@ -160,11 +181,17 @@ export class Status {
                 }
               }
 
-              // Use the same hash as the publish flow, so a changed partial
-              // shows the pages using it as modified
+              // Literally the publish flow's own hash, not one that matches it
+              // by hand: this answers "would the next publish do anything?",
+              // and a pipeline gates on the answer
               let hash: string;
               try {
-                ({ hash } = await PartialsHelper.process(file, contents, options));
+                ({ hash } = await DoctorTranspiler.getContentHash(
+                  file,
+                  contents,
+                  frontMatter,
+                  options,
+                ));
               } catch {
                 hash = StateHelper.hashContent(contents);
               }

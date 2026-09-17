@@ -4,31 +4,114 @@ import {
   File,
   MarkdownSettings,
   CommandArguments,
+  ControlSegment,
+  ControlShortcodeContext,
+  PageSegment,
   TaskOutput,
+  MARKDOWN_WEB_PART_ID,
+  STANDARD_WEB_PARTS,
 } from "@models";
 import {
+  AccessToken,
+  ApiHelper,
+  CanvasHelper,
   CliCommand,
   executeWithRetry,
   FileHelpers,
   FolderHelpers,
   ListHelpers,
   Logger,
-  MarkdownHelper,
   OutputHelper,
+  MarkdownHelper,
+  MetadataHelper,
+  ShortcodesHelpers,
+  StateHelper,
   StatusHelper,
+  TermsHelper,
+  ResolvedTerm,
+  WebPartControl,
 } from "@helpers";
+import { CapabilitiesHelper } from "./CapabilitiesHelper.js";
+import { isPermissionError } from "@utils";
 import { executeCommand } from "@pnp/cli-microsoft365";
+import { randomUUID } from "crypto";
 import { basename, dirname } from "path";
+
+/**
+ * The option names `spo listitem set` reads for itself. A column value under
+ * one of these would be taken as the option rather than as a column.
+ */
+const RESERVED_LISTITEM_OPTIONS = new Set([
+  "webUrl",
+  "listId",
+  "listTitle",
+  "listUrl",
+  "id",
+  "contentType",
+  "systemUpdate",
+  "output",
+  "debug",
+  "verbose",
+  "query",
+  "help",
+]);
+
+interface FieldInfo {
+  internalName: string;
+  typeAsString: string;
+  termSetId?: string;
+  /**
+   * A taxonomy column can be pinned to a sub-tree of its term set. Labels then
+   * have to be resolved inside that sub-tree, which is also the only part of
+   * the set the metadata editor's picker offers.
+   */
+  anchorId?: string;
+}
 
 export class PagesHelper {
   private static pages: File[] = [];
   private static processedPages: { [slug: string]: number } = {};
-  private static listFieldMap: { [listId: string]: Map<string, string> } = {};
+  /**
+   * The pages this run knows are still wanted, but did not write — skipped as
+   * unchanged, or skipped because their metadata could not be worked out.
+   *
+   * `processedPages` cannot carry these: it maps a slug to its list item id and
+   * is what `getPageId` answers from, so a slug with no id has no business in
+   * it. The cleanup pass needs them all the same, or a page that was merely
+   * skipped is treated as one whose markdown file is gone, and recycled.
+   */
+  private static knownPages: Set<string> = new Set();
+  private static listFieldMap: { [listId: string]: Map<string, FieldInfo> } = {};
+  /** Set once the tenant refuses a CSOM system update, see setPageDescription */
+  private static systemUpdateRefused = false;
+  /** Set once a template was named for a page which already existed */
+  private static templateSkipReported = false;
+  /** Set once the site refuses to look a user up, see ensureUserClaim */
+  private static ensureUserRefused = false;
+  /** Set once the account turned out not to be allowed to set columns */
+  private static metadataSkipReported = false;
+  /**
+   * The login name each principal resolved to, or the failure it produced, so
+   * one author shared by a hundred pages costs one call
+   */
+  private static userClaims: { [key: string]: string | Error } = {};
+  /** The canvas of each page template, which does not change during a run */
+  private static templateCanvas: { [name: string]: any[] | null } = {};
 
-  public static reset() {
+  /**
+   * Reset all static state
+   */
+  public static reset(): void {
     PagesHelper.pages = [];
     PagesHelper.processedPages = {};
+    PagesHelper.knownPages = new Set();
     PagesHelper.listFieldMap = {};
+    PagesHelper.systemUpdateRefused = false;
+    PagesHelper.templateSkipReported = false;
+    PagesHelper.ensureUserRefused = false;
+    PagesHelper.metadataSkipReported = false;
+    PagesHelper.userClaims = {};
+    PagesHelper.templateCanvas = {};
   }
 
   /**
@@ -46,6 +129,8 @@ export class PagesHelper {
   /**
    * Cleaning up all the untouched pages
    * @param webUrl
+   * @param task
+   * @param options
    */
   public static async clean(
     webUrl: string,
@@ -89,107 +174,96 @@ export class PagesHelper {
   }
 
   /**
-   * Recycle the pages which are tracked in the publish state, but whose markdown
-   * file no longer exists. The pages end up in the site its recycle bin, so they
-   * can still be restored from SharePoint itself.
-   * @param webUrl
-   * @param slugs The slugs of the pages to recycle
-   * @param task
-   * @param options
-   * @param onRemoved Called for every page which got recycled, also when a later
-   * page fails, so the publish state can be kept in sync with the site.
-   * @returns The slugs which are no longer on the site
-   */
+  * Recycle the pages which are tracked in the publish state, but whose markdown
+  * file no longer exists. The pages end up in the site its recycle bin, so they
+  * can still be restored from SharePoint itself.
+  * @param webUrl
+  * @param slugs The slugs of the pages to recycle
+  * @param task
+  * @param options
+  * @param onRemoved Called for every page which got recycled, also when a later
+  * page fails, so the publish state can be kept in sync with the site.
+  * @returns The slugs which are no longer on the site
+  */
   public static async removePages(
-    webUrl: string,
-    slugs: string[],
-    task: TaskOutput,
-    options: CommandArguments,
-    onRemoved?: (slug: string) => void
+   webUrl: string,
+   slugs: string[],
+   task: TaskOutput,
+   options: CommandArguments,
+   onRemoved?: (slug: string) => void
   ): Promise<string[]> {
-    const removed: string[] = [];
+   const removed: string[] = [];
 
-    Logger.debug(`Recycling the following deleted pages`);
-    Logger.debug(slugs);
+   Logger.debug(`Recycling the following deleted pages`);
+   Logger.debug(slugs);
 
-    for (let i = 0; i < slugs.length; i++) {
-      const slug = slugs[i];
-      if (!slug) {
-        continue;
-      }
+   for (let i = 0; i < slugs.length; i++) {
+     const slug = slugs[i];
+     if (!slug) {
+       continue;
+     }
 
-      task.output = `[${i + 1}/${slugs.length}] Recycling deleted page: ${slug}`;
+     task.output = `[${i + 1}/${slugs.length}] Recycling deleted page: ${slug}`;
 
-      try {
-        const relUrl = FileHelpers.getRelUrl(webUrl, `sitepages/${slug}`);
-        await executeWithRetry(
-          "spo file remove",
-          {
-            webUrl,
-            url: relUrl,
-            recycle: true,
-            force: true,
-          },
-          CliCommand.getRetry()
-        );
+     try {
+       const relUrl = FileHelpers.getRelUrl(webUrl, `sitepages/${slug}`);
+       await executeWithRetry(
+         "spo file remove",
+         {
+           webUrl,
+           url: relUrl,
+           recycle: true,
+           force: true,
+         },
+         CliCommand.getRetry()
+       );
 
-        removed.push(slug);
-        onRemoved?.(slug);
-      } catch (e) {
-        const errorMessage =
-          typeof e === "string" ? e : e instanceof Error ? e.message : JSON.stringify(e);
-        Logger.debug(errorMessage);
+       removed.push(slug);
+       onRemoved?.(slug);
+     } catch (e) {
+       const errorMessage =
+         typeof e === "string" ? e : e instanceof Error ? e.message : JSON.stringify(e);
+       Logger.debug(errorMessage);
 
-        // The page is already gone from the site, so the state can drop it as well.
-        if (this.isNotFoundError(errorMessage)) {
-          Logger.debug(`Page ${slug} no longer exists on the site.`);
-          removed.push(slug);
-          onRemoved?.(slug);
-          continue;
-        }
+       // The page is already gone from the site, so the state can drop it as well.
+       if (this.isNotFoundError(errorMessage)) {
+         Logger.debug(`Page ${slug} no longer exists on the site.`);
+         removed.push(slug);
+         onRemoved?.(slug);
+         continue;
+       }
 
-        // Prefixed with the library, so the summary shows it is a page on the
-        // site which failed, and not a local file.
-        StatusHelper.addError(`sitepages/${slug}`);
+       // Prefixed with the library, so the summary shows it is a page on the
+       // site which failed, and not a local file.
+       StatusHelper.addError(`sitepages/${slug}`);
 
-        if (!options.continueOnError) {
-          throw new Error(
-            `Failed to recycle the deleted page "${slug}". ${errorMessage}`
-          );
-        }
-      }
-    }
+       if (!options.continueOnError) {
+         throw new Error(
+           `Failed to recycle the deleted page "${slug}". ${errorMessage}`
+         );
+       }
+     }
+   }
 
-    return removed;
-  }
-
-  private static isNotFoundError(message: string): boolean {
-    const normalized = (message || "").toLowerCase();
-
-    return (
-      normalized.includes("does not exist") ||
-      normalized.includes("not exist") ||
-      normalized.includes("file not found") ||
-      normalized.includes("cannot be found") ||
-      normalized.includes("404")
-    );
+   return removed;
   }
 
   /**
-   * Check if the page exists, and if it doesn't it will be created
-   * @param webUrl
-   * @param slug
-   * @param title
-   */
+  * Check if the page exists, and if it doesn't it will be created
+  * @param webUrl
+  * @param slug
+  * @param title
+  */
   public static async createPageIfNotExists(
-    webUrl: string,
-    slug: string,
-    title: string,
-    layout: string = "Article",
-    commentsDisabled: boolean = false,
+   webUrl: string,
+   slug: string,
+   title: string,
+   layout: string = "Article",
+   commentsDisabled: boolean = false,
     description: string = "",
     template: string | null = null,
-    skipExistingPages: boolean = false
+    skipExistingPages: boolean = false,
+    reapplyTemplates: boolean = false
   ): Promise<boolean> {
     try {
       const relativeUrl = FileHelpers.getRelUrl(webUrl, `sitepages/${slug}`);
@@ -211,12 +285,13 @@ export class PagesHelper {
         }
       }
 
-      const { stdout: pageDataOutput } = await executeWithRetry(
-        "spo page get",
-        { webUrl, name: slug, metadataOnly: true, output: "json" },
-        CliCommand.getRetry()
-      );
-      let pageData: Page = JSON.parse(pageDataOutput || "{}");
+      const { stdout: pageDataOutput } = await executeCommand("spo page get", {
+        webUrl,
+        name: slug,
+        metadataOnly: true,
+        output: "json",
+      });
+      let pageData: Page = JSON.parse(pageDataOutput);
 
       PagesHelper.processedPages[slug] = (
         pageData as Page
@@ -259,6 +334,16 @@ export class PagesHelper {
         );
       }
 
+      // A template is applied when doctor creates the page. Reaching here means
+      // the page already existed, so it keeps the layout it has — which is easy
+      // to mistake for the template name being wrong.
+      if (template && !reapplyTemplates && !PagesHelper.templateSkipReported) {
+        PagesHelper.templateSkipReported = true;
+        OutputHelper.warning(
+          `The page template "${template}" is only applied to pages doctor creates, and "${slug}" already exists — it keeps the layout it has. Delete the page in SharePoint and publish again to build it from the template. Pages created from here on do use it.`
+        );
+      }
+
       return true;
     } catch (e) {
       // Check if folders for the file need to be created
@@ -284,9 +369,7 @@ export class PagesHelper {
 
         Logger.debug(templates);
 
-        const pageTemplate = (templates as PageTemplate[]).find(
-          (t) => t.Title === template
-        );
+        const pageTemplate = PagesHelper.findPageTemplate(templates, template);
         if (pageTemplate) {
           const templateUrl = pageTemplate.Url.toLowerCase().replace(
             "sitepages/",
@@ -321,8 +404,17 @@ export class PagesHelper {
             skipExistingPages
           );
         } else {
-          OutputHelper.log(
-            `Template "${template}" not found on the site, will create a default page instead.`
+          // Not fatal — the page is still published, just without the
+          // template's sections — but silence would leave every page from this
+          // point quietly looking wrong
+          OutputHelper.warning(
+            `The page template "${template}" does not exist on the site, so "${slug}" was created as an ordinary page. The site has: ${
+              templates.length > 0
+                ? templates
+                    .map((t) => `"${t.Title}"${t.FileName ? ` (${t.FileName})` : ""}`)
+                    .join(", ")
+                : "no page templates"
+            }.`
           );
         }
       }
@@ -433,126 +525,236 @@ export class PagesHelper {
   }
 
   /**
-   * Retrieve all the page controls
-   * @param webUrl
-   * @param slug
+   * Write the page's controls: one Markdown web part per markdown segment and
+   * one web part per control shortcode, in the order they appear in the source.
+   *
+   * The whole canvas is composed and written in one call rather than looping
+   * the CLI's add/set/remove commands, because those cannot move an existing
+   * control and each of them re-saves and republishes the page.
    */
-  public static async getPageControls(
-    webUrl: string,
-    slug: string
-  ): Promise<string> {
-    Logger.debug(`Get page controls for ${slug}`);
-
-    const { stdout } = await executeWithRetry(
-      "spo page get",
-      {
-        webUrl,
-        name: slug,
-        output: "json",
-      },
-      CliCommand.getRetry()
-    );
-    const output = JSON.parse(stdout || "{}");
-
-    Logger.debug(JSON.stringify(output.canvasContentJson || "[]"));
-    return output.canvasContentJson || "[]";
-  }
-
-  /**
-   * Inserts or create the control
-   * @param webPartTitle
-   * @param markdown
-   */
-  public static async insertOrCreateControl(
+  public static async applySegments(
     webPartTitle: string,
-    markdown: string,
+    segments: PageSegment[],
     slug: string,
     webUrl: string,
     options: CommandArguments,
-    wpId: string | null | undefined = null,
     mdOptions: MarkdownSettings | null,
-    wasAlreadyParsed: boolean = false
+    wasAlreadyParsed: boolean = false,
+    context: ControlShortcodeContext | null = null,
+    templateCanvas: any[] | null = null
   ) {
+    const hasControls = segments.some((segment) => segment.type === "control");
+
     Logger.debug(
-      `Insert the markdown webpart for the page ${slug} - Control ID: ${wpId} - Was already parsed: ${wasAlreadyParsed}`
+      `Writing ${segments.length} segment(s) for the page ${slug} - Was already parsed: ${wasAlreadyParsed}`
     );
 
-    const wpData = await MarkdownHelper.getJsonData(
-      webPartTitle,
-      markdown,
-      mdOptions,
-      options,
-      wasAlreadyParsed
-    );
-
-    if (wpId) {
-      // Web part needs to be updated
-      await executeWithRetry(
-        "spo page control set",
-        {
-          webUrl,
-          pageName: slug,
-          id: wpId,
-          webPartData: `@${wpData}`,
-        },
-        CliCommand.getRetry()
+    // The state file is the only record of which controls are doctor's. Without
+    // it a control shortcode's web part cannot be told apart from one the page
+    // owner added, so a re-publish would add a second one on every run.
+    if (hasControls && options.disableStatePersistence) {
+      throw new Error(
+        `The page "${slug}" uses a control shortcode, which needs the publish state to recognise its web parts on a next run. Remove '--disableStatePersistence' to publish it.`
       );
-    } else {
-      // Add new markdown web part
-      const addOptions = {
-        webUrl,
-        pageName: slug,
-        webPartId: "1ef5ed11-ce7b-44be-bc5e-4abd55101d16",
-        webPartData: `@${wpData}`,
-        section: 1,
-        column: 1,
-      };
+    }
 
-      try {
-        await executeWithRetry(
-          "spo page clientsidewebpart add",
-          addOptions,
-          CliCommand.getRetry()
-        );
-      } catch (e: any) {
-        if (!this.isInvalidPlacementError(e)) {
-          throw e;
-        }
+    const page = await CanvasHelper.checkout(webUrl, slug);
+    const existing: any[] = page?.CanvasContent1
+      ? JSON.parse(page.CanvasContent1)
+      : [];
 
-        Logger.debug(
-          `Page ${slug} has no compatible section yet. Creating a OneColumn section and retrying web part add.`
+    const ownership = CanvasHelper.withTemplateControls(
+      {
+        ownedInstanceIds: StateHelper.getControls(slug),
+        ownedTitlePrefix: webPartTitle,
+      },
+      templateCanvas
+    );
+
+    // Reuse the instance id of a control of the same type, so SharePoint keeps
+    // the control rather than seeing it removed and a new one added
+    const reusable: { [webPartId: string]: string[] } = {};
+    for (const control of CanvasHelper.getOwned(existing, ownership)) {
+      const key = (control.webPartId || "").toLowerCase();
+      (reusable[key] = reusable[key] || []).push(control.id);
+    }
+    // Generated here rather than inside compose(), so the ids recorded in the
+    // state file are exactly the ones that end up on the page
+    const takeInstanceId = (webPartId: string): string =>
+      reusable[webPartId.toLowerCase()]?.shift() ?? randomUUID();
+
+    const controls: WebPartControl[] = [];
+    let markdownSegment = 0;
+
+    for (const segment of segments) {
+      if (segment.type === "markdown") {
+        const index = markdownSegment++;
+        const title = PagesHelper.getSegmentTitle(webPartTitle, index);
+
+        controls.push({
+          webPartId: MARKDOWN_WEB_PART_ID,
+          webPartData: await MarkdownHelper.getWebPartData(
+            title,
+            segment.content,
+            mdOptions,
+            options,
+            wasAlreadyParsed,
+            index === 0
+          ),
+          instanceId: takeInstanceId(MARKDOWN_WEB_PART_ID),
+        });
+      } else {
+        const webPartId = await PagesHelper.getControlWebPart(
+          segment,
+          webUrl,
+          slug,
+          context
         );
 
-        await executeWithRetry(
-          "spo page section add",
-          {
-            webUrl,
-            pageName: slug,
-            sectionTemplate: "OneColumn",
-          },
-          CliCommand.getRetry()
-        );
-
-        await executeWithRetry(
-          "spo page clientsidewebpart add",
-          addOptions,
-          CliCommand.getRetry()
-        );
+        controls.push({
+          webPartId: webPartId.id,
+          webPartData: webPartId.data,
+          instanceId: takeInstanceId(webPartId.id),
+        });
       }
     }
+
+    // Compose from the page as it stands at the moment of writing. A save that
+    // is refused because the page moved on is worth one more attempt from a
+    // fresh checkout — the controls are already built, so only the canvas they
+    // are placed into is read again.
+    //
+    // With a template being re-applied, the layout composed into is the
+    // template's rather than the page's. The page's own controls are still
+    // matched against its real canvas above, so they keep their identity.
+    const writeCanvas = async (current: any[]) => {
+      const base = templateCanvas
+        ? CanvasHelper.mergeTemplate(templateCanvas, current, ownership)
+        : current;
+
+      await CanvasHelper.save(
+        webUrl,
+        slug,
+        CanvasHelper.compose(base, controls, ownership)
+      );
+    };
+
+    try {
+      await writeCanvas(existing);
+    } catch (e: any) {
+      if (!CanvasHelper.isSaveConflict(e)) {
+        throw e;
+      }
+
+      Logger.debug(
+        `SharePoint refused the canvas of ${slug} as a conflict, retrying from a fresh checkout.`
+      );
+
+      const retry = await CanvasHelper.checkout(webUrl, slug);
+      await writeCanvas(
+        retry?.CanvasContent1 ? JSON.parse(retry.CanvasContent1) : []
+      );
+    }
+
+    StateHelper.setControls(
+      slug,
+      controls.map((control) => control.instanceId as string)
+    );
   }
 
-  private static isInvalidPlacementError(error: any): boolean {
-    const message =
-      typeof error === "string"
-        ? error
-        : error?.message || JSON.stringify(error);
-    const normalized = (message || "").toLowerCase();
+  /**
+   * The title doctor gives the Markdown web part of a segment. The first keeps
+   * `--webPartTitle` so a page that was published before this existed still
+   * matches its own control.
+   */
+  private static getSegmentTitle(webPartTitle: string, index: number): string {
+    return index === 0 ? webPartTitle : `${webPartTitle} (${index + 1})`;
+  }
 
-    return (
-      normalized.includes("invalid section") ||
-      normalized.includes("invalid column")
+  /**
+   * Ask a control shortcode which web part it becomes, and build the data for
+   * a new instance of it.
+   */
+  private static async getControlWebPart(
+    segment: ControlSegment,
+    webUrl: string,
+    slug: string,
+    context: ControlShortcodeContext | null
+  ): Promise<{ id: string; data: any }> {
+    const shortcode = ShortcodesHelpers.getControl(segment.shortcode);
+    if (!shortcode) {
+      throw new Error(
+        `The "${segment.shortcode}" control shortcode used on "${slug}" is not registered. Check the 'markdown.shortcodesFolder' setting.`
+      );
+    }
+
+    const result = await shortcode.render(
+      segment.attributes,
+      context ?? { frontMatter: {}, slug, webUrl }
     );
+
+    if (!result || (!result.standardWebPart && !result.webPartId)) {
+      throw new Error(
+        `The "${segment.shortcode}" control shortcode has to return a 'standardWebPart' name or a 'webPartId'.`
+      );
+    }
+
+    const id = result.standardWebPart
+      ? PagesHelper.getStandardWebPartId(result.standardWebPart)
+      : (result.webPartId as string);
+
+    const data = await CanvasHelper.getWebPartData(
+      webUrl,
+      id,
+      result.webPartProperties ?? null
+    );
+
+    // A web part with no preconfigured entry has no defaults to start from, so
+    // the shortcode has to describe the instance itself. That is the documented
+    // way to use one, and it only works if the missing defaults are reported
+    // here rather than before `webPartData` is even looked at.
+    if (!data && !result.webPartData) {
+      throw new Error(
+        `The web part behind "${segment.shortcode}" declares no preconfigured entry, so doctor has no defaults to build an instance from. Return the instance data from the shortcode with 'webPartData'.`
+      );
+    }
+
+    // Whatever the shortcode returns wins over the web part's defaults, the
+    // same way the CLI merges its `--webPartData`
+    const merged = result.webPartData
+      ? { ...(data ?? {}), ...result.webPartData }
+      : data;
+
+    if (result.title) {
+      merged.title = result.title;
+    }
+
+    // The instance is doctor's to place, so it cannot be pinned by a shortcode
+    delete merged.id;
+    delete merged.instanceId;
+
+    return { id, data: merged };
+  }
+
+  /**
+   * Resolve an out-of-the-box web part name to its id
+   */
+  private static getStandardWebPartId(name: string): string {
+    const match = STANDARD_WEB_PARTS.find(
+      (webPart) => webPart.name.toLowerCase() === name.toLowerCase()
+    );
+
+    if (!match) {
+      throw new Error(
+        `"${name}" is not a standard web part. Use one of: ${STANDARD_WEB_PARTS.map(
+          (webPart) => webPart.name
+        )
+          .filter((value, index, all) => all.indexOf(value) === index)
+          .join(", ")}.`
+      );
+    }
+
+    return match.id;
   }
 
   /**
@@ -561,45 +763,125 @@ export class PagesHelper {
    * @param slug
    * @param metadata
    */
-  public static async setPageMetadata(
+  /**
+   * Work out what every metadata column should be set to, without touching the
+   * page.
+   *
+   * This runs before anything is written, so a page whose front matter names a
+   * term that is not in the set, an author who is not a user of the site, or a
+   * column that does not exist is left exactly as it was rather than ending up
+   * with new content and stale metadata.
+   *
+   * @returns the values to write, and the reason for every column that could
+   * not be worked out
+   */
+  public static async resolveMetadata(
     webUrl: string,
     slug: string,
-    metadata: { [fieldName: string]: any } | null = null
-  ) {
-    const pageId = await this.getPageId(webUrl, slug);
-    const pageList = await ListHelpers.getSitePagesList(webUrl);
-    if (pageId && pageList && metadata && Object.keys(metadata).length > 0) {
-      const validatedMetadata = await this.getValidatedMetadata(
-        webUrl,
-        pageList,
-        metadata
-      );
+    metadata: { [fieldName: string]: any } | null = null,
+    author: any = undefined
+  ): Promise<{ values: { [fieldName: string]: any }; problems: string[] }> {
+    const hasMetadata = !!metadata && Object.keys(metadata).length > 0;
+    const hasAuthor = typeof author !== "undefined" && author !== null;
 
-      if (Object.keys(validatedMetadata).length === 0) {
-        Logger.debug(
-          `Skipping metadata update for ${slug} because none of the provided fields exist on Site Pages.`
+    if (!hasMetadata && !hasAuthor) {
+      return { values: {}, problems: [] };
+    }
+
+    // Nothing here can be written, so none of it is worked out either — the
+    // term store walk and the user lookups would be paid for on every page to
+    // produce values that cannot land. Reported as a skip rather than a
+    // problem: the page itself still publishes, it is the columns that do not.
+    if (!CapabilitiesHelper.get().setMetadata) {
+      if (!PagesHelper.metadataSkipReported) {
+        PagesHelper.metadataSkipReported = true;
+        OutputHelper.warning(
+          `This account is not allowed to set columns on the Site Pages library, so the 'metadata' and 'author' front matter is skipped. The pages themselves are published.`
         );
-        return;
       }
 
-      await executeWithRetry(
-        "spo listitem set",
-        {
-          listId: pageList.Id,
-          id: pageId,
-          webUrl,
-          ...validatedMetadata,
-        },
-        CliCommand.getRetry()
+      Logger.debug(`Metadata of ${slug} skipped, the account cannot set columns.`);
+      return { values: {}, problems: [] };
+    }
+
+    const pageList = await ListHelpers.getSitePagesList(webUrl);
+    if (!pageList) {
+      return {
+        values: {},
+        problems: [`the Site Pages library of ${webUrl} could not be read`],
+      };
+    }
+
+    const { values, problems } = hasMetadata
+      ? await this.getValidatedMetadata(webUrl, pageList, metadata as any)
+      : { values: {}, problems: [] as string[] };
+
+    if (hasAuthor) {
+      // `Author` is SharePoint's own created-by column, which takes a claim
+      // like any other person field — not the site user id the front matter
+      // carries, so the id is resolved to its login name first.
+      try {
+        values["Author"] = MetadataHelper.toPersonValue([
+          await this.resolveAuthorClaim(webUrl, author, slug),
+        ]) as string;
+      } catch (e: any) {
+        problems.push(e?.message || `${e}`);
+      }
+    }
+
+    return { values, problems };
+  }
+
+  /**
+   * Set the metadata worked out by `resolveMetadata`
+   */
+  public static async writeMetadata(
+    webUrl: string,
+    slug: string,
+    values: { [fieldName: string]: any }
+  ): Promise<void> {
+    if (Object.keys(values).length === 0) {
+      return;
+    }
+
+    const pageId = await this.getPageId(webUrl, slug);
+    const pageList = await ListHelpers.getSitePagesList(webUrl);
+
+    if (!pageId || !pageList) {
+      throw new Error(
+        `The metadata of "${slug}" could not be set, because the page was not found in the Site Pages library.`
       );
     }
+
+    // The column values are spread into the command's own options, so a column
+    // whose internal name is one of them would silently point the update
+    // somewhere else — at another site, or another list item
+    const reserved = Object.keys(values).filter((name) =>
+      RESERVED_LISTITEM_OPTIONS.has(name)
+    );
+    if (reserved.length > 0) {
+      throw new Error(
+        `The column(s) ${reserved.join(", ")} cannot be set by doctor, because the name is one the CLI uses for its own options.`
+      );
+    }
+
+    await executeWithRetry(
+      "spo listitem set",
+      {
+        listId: pageList.Id,
+        id: pageId,
+        webUrl,
+        ...values,
+      },
+      CliCommand.getRetry()
+    );
   }
 
   private static async getValidatedMetadata(
     webUrl: string,
     pageList: any,
     metadata: { [fieldName: string]: any }
-  ): Promise<{ [fieldName: string]: any }> {
+  ): Promise<{ values: { [fieldName: string]: any }; problems: string[] }> {
     const listId = pageList?.Id;
     let fieldMap = this.listFieldMap[listId];
 
@@ -617,41 +899,586 @@ export class PagesHelper {
       );
 
       const fields = JSON.parse(stdout || "[]") as any[];
-      fieldMap = new Map<string, string>();
+      fieldMap = new Map<string, FieldInfo>();
 
       for (const field of fields) {
+        // An unset anchor comes back as the empty guid rather than absent
+        const anchorId =
+          field.AnchorId &&
+          field.AnchorId !== "00000000-0000-0000-0000-000000000000"
+            ? field.AnchorId
+            : undefined;
+
+        const fieldInfo: FieldInfo = {
+          internalName: field.InternalName || field.StaticName || field.Title,
+          typeAsString: field.TypeAsString || "",
+          termSetId: field.TermSetId,
+          ...(anchorId ? { anchorId } : {}),
+        };
+
+        if (!fieldInfo.internalName) {
+          continue;
+        }
+
         if (field?.InternalName) {
-          fieldMap.set(field.InternalName.toLowerCase(), field.InternalName);
+          fieldMap.set(field.InternalName.toLowerCase(), fieldInfo);
         }
 
         if (field?.StaticName) {
-          fieldMap.set(field.StaticName.toLowerCase(), field.InternalName || field.StaticName);
+          fieldMap.set(field.StaticName.toLowerCase(), fieldInfo);
         }
 
         if (field?.Title) {
-          fieldMap.set(field.Title.toLowerCase(), field.InternalName || field.Title);
+          fieldMap.set(field.Title.toLowerCase(), fieldInfo);
         }
       }
 
       this.listFieldMap[listId] = fieldMap;
     }
 
-    const validated: { [fieldName: string]: any } = {};
+    const values: { [fieldName: string]: any } = {};
+    const problems: string[] = [];
 
     for (const [key, value] of Object.entries(metadata)) {
-      const internalName = fieldMap.get(key.toLowerCase());
+      const fieldInfo = fieldMap.get(key.toLowerCase());
 
-      if (!internalName) {
-        Logger.debug(
-          `Skipping metadata field '${key}' because it does not exist on list '${listId}'.`
+      if (!fieldInfo?.internalName) {
+        problems.push(
+          `the column '${key}' does not exist on the Site Pages library`
         );
         continue;
       }
 
-      validated[internalName] = value;
+      let transformed: any;
+      try {
+        transformed = await this.transformMetadataValue(
+          webUrl,
+          fieldInfo,
+          value
+        );
+      } catch (e: any) {
+        problems.push(`the column '${key}' could not be set: ${e?.message || e}`);
+        continue;
+      }
+
+      if (typeof transformed === "undefined") {
+        problems.push(
+          `the column '${key}' does not accept ${JSON.stringify(value)}`
+        );
+        continue;
+      }
+
+      values[fieldInfo.internalName] = transformed;
     }
 
-    return validated;
+    return { values, problems };
+  }
+
+  private static async transformMetadataValue(
+    webUrl: string,
+    fieldInfo: FieldInfo,
+    value: any
+  ): Promise<any> {
+    const typeAsString = fieldInfo.typeAsString || "";
+
+    if (
+      !typeAsString ||
+      MetadataHelper.SIMPLE_FIELD_TYPES.has(typeAsString)
+    ) {
+      return value;
+    }
+
+    switch (typeAsString) {
+      case "TaxonomyFieldType":
+        return await this.transformTaxonomySingle(webUrl, fieldInfo, value);
+      case "TaxonomyFieldTypeMulti":
+        return await this.transformTaxonomyMulti(webUrl, fieldInfo, value);
+      case "User":
+        return await PagesHelper.transformUserSingle(webUrl, value);
+      case "UserMulti":
+        return await PagesHelper.transformUserMulti(webUrl, value);
+      case "DateTime":
+        return MetadataHelper.transformDateTime(value);
+      case "Lookup":
+        return MetadataHelper.transformLookupSingle(
+          value,
+          fieldInfo.internalName
+        );
+      case "LookupMulti":
+        return MetadataHelper.transformLookupMulti(
+          value,
+          fieldInfo.internalName
+        );
+      case "URL":
+        return MetadataHelper.transformUrl(value);
+      case "MultiChoice":
+        return MetadataHelper.transformMultiChoice(value);
+      default:
+        return value;
+    }
+  }
+
+  /**
+   * A person column takes the claim of a user the tenant actually has. The name
+   * is verified — and the site user added, if it was not there — before the
+   * page is written, so an author who does not exist skips the page instead of
+   * failing it after its content has already changed.
+   */
+  private static async transformUserSingle(
+    webUrl: string,
+    value: any
+  ): Promise<string | undefined> {
+    return MetadataHelper.toPersonValue([
+      await PagesHelper.ensureUserClaim(webUrl, value),
+    ]);
+  }
+
+  /**
+   * Several people on one column. Every one of them has to resolve: a column
+   * written with the names that happened to work would hold a shorter list than
+   * the markdown asks for, and say nothing about it.
+   */
+  private static async transformUserMulti(
+    webUrl: string,
+    value: any
+  ): Promise<string | undefined> {
+    const values = Array.isArray(value) ? value : [value];
+    const claims: string[] = [];
+
+    for (const entry of values) {
+      claims.push(await PagesHelper.ensureUserClaim(webUrl, entry));
+    }
+
+    return MetadataHelper.toPersonValue(claims);
+  }
+
+  private static async transformTaxonomySingle(
+    webUrl: string,
+    fieldInfo: FieldInfo,
+    value: any
+  ): Promise<string | undefined> {
+    const term = MetadataHelper.normalizeTaxonomyTerm(value);
+    if (!term) {
+      Logger.debug(
+        `Skipping taxonomy field '${fieldInfo.internalName}' because the value is invalid.`
+      );
+      return undefined;
+    }
+
+    return await this.toTaxonomyValue(webUrl, fieldInfo, term);
+  }
+
+  private static async transformTaxonomyMulti(
+    webUrl: string,
+    fieldInfo: FieldInfo,
+    value: any
+  ): Promise<string | undefined> {
+    const values = Array.isArray(value) ? value : [value];
+    const terms: string[] = [];
+
+    for (const entry of values) {
+      const term = MetadataHelper.normalizeTaxonomyTerm(entry);
+
+      // Every entry counts. Dropping the ones that cannot be read and writing
+      // the rest would leave the column holding a list the markdown never
+      // said, which is the one outcome "the file is the page" rules out.
+      if (!term) {
+        throw new Error(
+          `${JSON.stringify(entry)} is not a term label or a { label, termGuid } pair`
+        );
+      }
+
+      terms.push(await this.toTaxonomyValue(webUrl, fieldInfo, term));
+    }
+
+    return MetadataHelper.joinTaxonomyValues(terms);
+  }
+
+  /**
+   * The `Label|Guid` pair SharePoint stores a term as. The label has to be the
+   * term's own, not what the author wrote — those differ when a term was
+   * addressed by its path or by one of its other labels.
+   */
+  private static async toTaxonomyValue(
+    webUrl: string,
+    fieldInfo: FieldInfo,
+    term: { label: string; termGuid?: string }
+  ): Promise<string> {
+    if (term.termGuid) {
+      return MetadataHelper.toTaxonomyValue(term.label, term.termGuid);
+    }
+
+    const resolved = await this.resolveTerm(webUrl, fieldInfo, term.label);
+    return MetadataHelper.toTaxonomyValue(resolved.label, resolved.id);
+  }
+
+  /**
+   * The canvas of a page template, read once per run.
+   *
+   * Returns null when the template cannot be found or read, which leaves the
+   * page with the layout it has rather than failing over it.
+   */
+  public static async getTemplateCanvas(
+    webUrl: string,
+    template: string
+  ): Promise<any[] | null> {
+    const key = template.toLowerCase();
+
+    if (key in PagesHelper.templateCanvas) {
+      return PagesHelper.templateCanvas[key];
+    }
+
+    PagesHelper.templateCanvas[key] = null;
+
+    try {
+      const { stdout } = await executeWithRetry(
+        "spo page template list",
+        { webUrl, output: "json" },
+        CliCommand.getRetry()
+      );
+
+      const found = PagesHelper.findPageTemplate(
+        JSON.parse(stdout || "[]") as PageTemplate[],
+        template
+      );
+
+      if (!found) {
+        Logger.debug(`Page template "${template}" not found on ${webUrl}.`);
+        return null;
+      }
+
+      const name = found.Url.toLowerCase().replace("sitepages/", "");
+      const page = await CanvasHelper.read(webUrl, name);
+
+      PagesHelper.templateCanvas[key] = page?.CanvasContent1
+        ? JSON.parse(page.CanvasContent1)
+        : null;
+
+      Logger.debug(
+        `Read the canvas of page template "${template}" (${name}).`
+      );
+    } catch (e: any) {
+      Logger.debug(
+        `Could not read the canvas of page template "${template}": ${e?.message || e}`
+      );
+    }
+
+    return PagesHelper.templateCanvas[key];
+  }
+
+  /**
+   * Find the page template the front matter asks for.
+   *
+   * Its title is what a template is named by, but the title is a display value
+   * that rarely matches the file somebody sees in the URL, so the file name and
+   * the page id are accepted too — `Documentation Template`,
+   * `Documentation-Template`, `Documentation-Template.aspx` and `144` all find
+   * the same template.
+   */
+  public static findPageTemplate(
+    templates: PageTemplate[],
+    wanted: string
+  ): PageTemplate | undefined {
+    const byTitle = templates.find((t) => t.Title === wanted);
+    if (byTitle) {
+      return byTitle;
+    }
+
+    const normalized = wanted.trim().toLowerCase().replace(/\.aspx$/, "");
+    const matches = (value: string | undefined) =>
+      !!value && value.trim().toLowerCase().replace(/\.aspx$/, "") === normalized;
+
+    return templates.find(
+      (t) =>
+        matches(t.Title) ||
+        matches(t.FileName) ||
+        (/^\d+$/.test(normalized) && t.Id === parseInt(normalized, 10))
+    );
+  }
+
+  /**
+   * Turn the `author` front matter into the claim SharePoint's Author column
+   * expects.
+   *
+   * The site user id is read back from `_api/web/siteusers` — the same list the
+   * metadata editor's picker searched to produce it, so both sides agree on
+   * what an id means. That list is per site: a user only has an id on a site
+   * they are a member of or have visited, and the id differs from site to site.
+   */
+  private static async resolveAuthorClaim(
+    webUrl: string,
+    author: any,
+    slug: string
+  ): Promise<string> {
+    const siteUserId =
+      typeof author === "number"
+        ? author
+        : typeof author === "string" && /^\d+$/.test(author.trim())
+          ? parseInt(author.trim(), 10)
+          : null;
+
+    if (siteUserId === null) {
+      if (typeof author === "string" && author.includes("@")) {
+        return await PagesHelper.ensureUserClaim(webUrl, author);
+      }
+
+      throw new Error(
+        `The 'author' of "${slug}" has to be a SharePoint site user id (a number) or a user principal name, but was '${author}'.`
+      );
+    }
+
+    const base = webUrl.replace(/\/+$/, "");
+    const headers = {
+      Authorization: `Bearer ${(await AccessToken.get(webUrl)).trim()}`,
+      accept: "application/json;odata=nometadata",
+    };
+
+    // Filtered rather than GetById(), so the id is looked up in exactly the
+    // collection the site lists — GetById refuses ids that are plainly in it
+    const filter = encodeURIComponent(`Id eq ${siteUserId}`);
+    let user: any;
+
+    try {
+      const response = await ApiHelper.getOrThrow(
+        `${base}/_api/web/siteusers?$filter=${filter}&$select=Id,Title,LoginName`,
+        headers
+      );
+      user = response?.value?.[0];
+    } catch (e: any) {
+      // Keep what SharePoint said: a failure to read the list is a different
+      // problem from an id that is not in it
+      throw new Error(
+        `The 'author' of "${slug}" could not be resolved: the users of ${base} could not be read. ${e?.message || e}`
+      );
+    }
+
+    const loginName = user?.LoginName;
+    if (!loginName) {
+      throw new Error(
+        `The 'author' of "${slug}" is site user id ${siteUserId}, which is not a user of ${base}. ${await PagesHelper.getSiteUserHint(base, headers)}`
+      );
+    }
+
+    // The login name already is the claim, which keeps guest and group
+    // accounts working — their claims are not the membership shape
+    return loginName;
+  }
+
+  /**
+   * The claim for a user named by principal name, verified against the tenant.
+   *
+   * `ensureuser` is what SharePoint itself runs when a person column is set: it
+   * resolves the name against the directory, adds the site user when the site
+   * has not seen them before, and answers with the login name it stored. That
+   * login name *is* the claim it will compare against later — which matters for
+   * guests and groups, whose claims are not the `i:0#.f|membership|` shape a
+   * principal name is assembled into.
+   *
+   * Asking it here, while the metadata is being worked out, is what lets a name
+   * that does not exist skip the page instead of failing it half way through.
+   * The site user it adds is the one setting the column would have added
+   * anyway, so nothing is created that the publish was not going to create.
+   *
+   * Answered once per name per run: a site with one author does not pay for
+   * this on every page.
+   */
+  private static async ensureUserClaim(
+    webUrl: string,
+    value: any
+  ): Promise<string> {
+    const wanted = typeof value === "string" ? value.trim() : "";
+
+    if (!wanted) {
+      throw new Error(
+        `${JSON.stringify(value)} is not a user principal name`
+      );
+    }
+
+    const key = `${webUrl.toLowerCase()}|${wanted.toLowerCase()}`;
+    if (key in PagesHelper.userClaims) {
+      const cached = PagesHelper.userClaims[key];
+      if (cached instanceof Error) {
+        throw cached;
+      }
+      return cached;
+    }
+
+    // Once the site has refused to resolve anybody it will refuse the next one
+    // too, so the rest of the names are not each sent a doomed request
+    if (PagesHelper.ensureUserRefused) {
+      return MetadataHelper.toClaimKey(wanted) as string;
+    }
+
+    const base = webUrl.replace(/\/+$/, "");
+
+    try {
+      const response = await ApiHelper.postOrThrow(
+        `${base}/_api/web/ensureuser`,
+        {
+          Authorization: `Bearer ${(await AccessToken.get(webUrl)).trim()}`,
+          accept: "application/json;odata=nometadata",
+          "content-type": "application/json;odata=nometadata",
+        },
+        { logonName: wanted }
+      );
+
+      const loginName = response?.LoginName;
+      if (!loginName) {
+        // The call worked but the answer is not the shape it should be, which
+        // is a different problem from the name not existing
+        throw new Error(
+          `The site answered without a login name for '${wanted}', so doctor cannot tell which account it means.`
+        );
+      }
+
+      Logger.debug(`Ensured '${wanted}' as the site user ${loginName}.`);
+      PagesHelper.userClaims[key] = loginName;
+      return loginName;
+    } catch (e: any) {
+      // Not being allowed to add a site user says nothing about whether the
+      // user exists, and skipping every page which names one would be a worse
+      // answer than the assembled claim doctor used before it asked. Reported
+      // once, then the run carries on the way it used to.
+      if (isPermissionError(e)) {
+        if (!PagesHelper.ensureUserRefused) {
+          PagesHelper.ensureUserRefused = true;
+          OutputHelper.warning(
+            `This account is not allowed to look users up on this site, so the 'author' and person columns are set without checking the name first. A name which does not exist then fails its page while it is being written, instead of being reported before. Granting the account permission to read and add site users avoids that.`
+          );
+        }
+
+        Logger.debug(`ensureuser refused for '${wanted}': ${e?.message || e}`);
+        const claim = MetadataHelper.toClaimKey(wanted) as string;
+        PagesHelper.userClaims[key] = claim;
+        return claim;
+      }
+
+      // Only an answer that says the principal is not there is an answer about
+      // the principal. A timeout, a throttle or a dropped connection says
+      // nothing — reporting it as "not a user of this tenant" would be a lie,
+      // and caching it would repeat that lie for every page naming them, on a
+      // name that was fine all along.
+      if (!PagesHelper.isPrincipalNotFound(e)) {
+        throw e;
+      }
+
+      const failure = new Error(
+        `'${wanted}' is not a user of this tenant (${e?.message || e})`
+      );
+      PagesHelper.userClaims[key] = failure;
+      throw failure;
+    }
+  }
+
+  /**
+   * Whether the site answered that the principal is not there, as opposed to
+   * not answering at all.
+   *
+   * The wordings below are the ones SharePoint uses about a principal. What is
+   * deliberately *not* here is "could not be resolved": that is how a DNS
+   * failure reads too ("The remote name could not be resolved"), and taking it
+   * for an answer about the user is the whole mistake this guard exists to
+   * prevent. A transport failure is checked for first, so a message which
+   * happens to carry one of these phrases still cannot be mistaken for one.
+   */
+  private static isPrincipalNotFound(error: unknown): boolean {
+    const message = (
+      typeof error === "string"
+        ? error
+        : (error as any)?.message || JSON.stringify(error ?? "")
+    ).toLowerCase();
+
+    if (PagesHelper.isTransportFailure(message)) {
+      return false;
+    }
+
+    return (
+      message.includes("could not be found") ||
+      message.includes("cannot be found") ||
+      message.includes("can not be found") ||
+      message.includes("does not exist") ||
+      message.includes("no exact match") ||
+      message.includes("invalid user") ||
+      message.includes("unknown user")
+    );
+  }
+
+  /**
+   * A failure to reach the site, rather than anything the site said. None of
+   * these say a thing about what was asked for, so none of them may be
+   * remembered as an answer.
+   */
+  private static isTransportFailure(message: string): boolean {
+    return [
+      "socket hang up",
+      "econnreset",
+      "econnrefused",
+      "etimedout",
+      "enotfound",
+      "eai_again",
+      "ehostunreach",
+      "enetunreach",
+      "epipe",
+      "timed out",
+      "timeout",
+      "network",
+      "dns",
+      "remote name",
+      "too many requests",
+      "status 429",
+      "status 502",
+      "status 503",
+      "status 504",
+      "service unavailable",
+      "gateway",
+    ].some((needle) => message.includes(needle));
+  }
+
+  /**
+   * A few of the site's actual users, so a wrong author id says what the right
+   * ones would be instead of only that the lookup failed.
+   */
+  private static async getSiteUserHint(
+    base: string,
+    headers: any
+  ): Promise<string> {
+    try {
+      const response = await ApiHelper.getOrThrow(
+        `${base}/_api/web/siteusers?$select=Id,Title,Email&$filter=PrincipalType eq 1&$top=5`,
+        headers
+      );
+
+      const users: any[] = response?.value || [];
+      if (users.length === 0) {
+        return `The site has no users to pick from — check that you are publishing to the site you picked the author on.`;
+      }
+
+      return `Ids on this site look like: ${users
+        .map((entry) => `${entry.Id} (${entry.Title || entry.Email || "?"})`)
+        .join(", ")}. The full list is at ${base}/_api/web/siteusers. Remember an id is per site, so one picked on another site does not carry over — a user principal name works on any site.`;
+    } catch {
+      return `The full list is at ${base}/_api/web/siteusers. Remember an id is per site, so one picked on another site does not carry over — a user principal name works on any site.`;
+    }
+  }
+
+  private static async resolveTerm(
+    webUrl: string,
+    fieldInfo: FieldInfo,
+    label: string
+  ): Promise<ResolvedTerm> {
+    const termSetId = fieldInfo.termSetId;
+    if (!termSetId) {
+      throw new Error(
+        `The taxonomy column '${fieldInfo.internalName}' has no TermSetId, so the term "${label}" cannot be resolved.`
+      );
+    }
+
+    return await TermsHelper.resolve(
+      webUrl,
+      termSetId,
+      label,
+      fieldInfo.anchorId
+    );
   }
 
   /**
@@ -667,19 +1494,57 @@ export class PagesHelper {
   ) {
     const pageId = await this.getPageId(webUrl, slug);
     const pageList = await ListHelpers.getSitePagesList(webUrl);
-    if (pageId && pageList) {
-      await executeWithRetry(
-        "spo listitem set",
-        {
-          listId: pageList.Id,
-          id: pageId,
-          webUrl,
-          Description: description,
-          systemUpdate: true,
-        },
-        CliCommand.getRetry()
-      );
+
+    if (!pageId || !pageList) {
+      return;
     }
+
+    const item = {
+      listId: pageList.Id,
+      id: pageId,
+      webUrl,
+      Description: description,
+    };
+
+    // A system update leaves Modified and Modified By alone, which is what a
+    // description belongs in. It goes through CSOM though, and a tenant can
+    // refuse that to an app which is otherwise allowed to edit the page — so
+    // rather than losing the description, fall back to a normal update and say
+    // what that costs. Once refused it stays refused for the run, so the other
+    // pages do not each pay for the same doomed call.
+    if (!PagesHelper.systemUpdateRefused) {
+      try {
+        await executeWithRetry(
+          "spo listitem set",
+          { ...item, systemUpdate: true },
+          CliCommand.getRetry()
+        );
+        return;
+      } catch (e: any) {
+        // Only a refusal is permanent. A timeout, a throttle or a dropped
+        // connection says nothing about what the account may do, and taking it
+        // as a refusal would change 'Modified' and 'Modified By' on every page
+        // for the rest of the run — while telling the user they lack a
+        // permission they have.
+        if (!isPermissionError(e)) {
+          throw e;
+        }
+
+        PagesHelper.systemUpdateRefused = true;
+        Logger.debug(
+          `System update refused on ${webUrl}: ${e?.message || e}`
+        );
+        OutputHelper.warning(
+          `This account is not allowed to update a page without touching its history, so page descriptions are set with a normal update instead. The pages get their description, but their "Modified" date and "Modified By" change with it. Granting the account permission to run a system update on the Site Pages library avoids that.`
+        );
+      }
+    }
+
+    await executeWithRetry(
+      "spo listitem set",
+      item,
+      CliCommand.getRetry()
+    );
   }
 
   /**
@@ -746,17 +1611,42 @@ export class PagesHelper {
   /**
    * Receive all the pages which have not been touched
    */
+  /**
+   * Record a page this run is keeping but did not write, so the cleanup pass
+   * leaves it alone
+   * @param slug
+   */
+  public static markKnown(slug: string): void {
+    if (slug) {
+      PagesHelper.knownPages.add(slug.toLowerCase());
+    }
+  }
+
   private static getUntouchedPages(): string[] {
     let untouched: string[] = [];
     for (const page of PagesHelper.pages) {
       const { FileRef: url } = page;
-      if (!url) continue;
+      if (!url) {
+        continue;
+      }
       const slug = url.toLowerCase().split("/sitepages/")[1];
-      if (!PagesHelper.processedPages[slug]) {
+      if (!PagesHelper.processedPages[slug] && !PagesHelper.knownPages.has(slug)) {
         untouched.push(slug);
       }
     }
     return untouched;
+  }
+
+  private static isNotFoundError(message: string): boolean {
+    const normalized = (message || "").toLowerCase();
+
+    return (
+      normalized.includes("does not exist") ||
+      normalized.includes("not exist") ||
+      normalized.includes("file not found") ||
+      normalized.includes("cannot be found") ||
+      normalized.includes("404")
+    );
   }
 
 }

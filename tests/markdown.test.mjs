@@ -85,3 +85,24 @@ test("getHtmlData keeps the container structure and code highlighting", async ()
   assert.match(html, /<div class="doctor__container__markdown">/);
   assert.match(html, /<pre class="hljs js">/);
 });
+
+test("getHtmlData carries the stylesheet only when it is asked for", async () => {
+  // A page split by control shortcodes renders one Markdown web part per
+  // segment into the same document, so only the first one brings the CSS
+  const withStyles = await render(`# Heading\n`, { allowHtml: true });
+  assert.match(withStyles, /<style>/);
+
+  CliCommand.reset();
+  CliCommand.init({ commandName: "m365", markdown: { allowHtml: true } });
+  const withoutStyles = await MarkdownHelper.getHtmlData(
+    `# Heading\n`,
+    OPTIONS,
+    false,
+  );
+  CliCommand.reset();
+
+  assert.doesNotMatch(withoutStyles, /<style>/);
+  // Nothing but the stylesheet is dropped
+  assert.match(withoutStyles, /<h1 id="heading"/);
+  assert.equal(withStyles.startsWith(withoutStyles), true);
+});

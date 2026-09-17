@@ -9,7 +9,7 @@ import markdownItMark from "markdown-it-mark";
 import markdownItFootnote from "markdown-it-footnote";
 import markdownItDeflist from "markdown-it-deflist";
 import markdownItTaskLists from "markdown-it-task-lists";
-import { CliCommand, ShortcodesHelpers, TempDataHelper } from "@helpers";
+import { CliCommand, ShortcodesHelpers } from "@helpers";
 import { CommandArguments, MarkdownSettings, PublishContext, TaskOutput } from "@models";
 import hljs from "highlight.js";
 import { encode } from "html-entities";
@@ -80,7 +80,11 @@ export class MarkdownHelper {
    * @param options
    * @returns
    */
-  public static async getHtmlData(markdown: string, options: CommandArguments) {
+  public static async getHtmlData(
+    markdown: string,
+    options: CommandArguments,
+    includeStyles: boolean = true
+  ) {
     const mdOptions = CliCommand.options?.markdown;
     const theme =
       mdOptions && mdOptions.theme ? mdOptions.theme.toLowerCase() : "dark";
@@ -138,6 +142,13 @@ ${markdown}
     htmlMarkup = converter.render(htmlMarkup);
     htmlMarkup = await ShortcodesHelpers.parseAfter(htmlMarkup);
 
+    // A page split by control shortcodes renders one Markdown web part per
+    // segment, but they all end up in the same document — so the stylesheet is
+    // only carried by the first of them instead of being repeated N times.
+    if (!includeStyles) {
+      return htmlMarkup;
+    }
+
     const editorCss = theme === "light" ? hljsLightCss : hljsDarkCss;
     const additionalCss = useExtended
       ? ` ${cleanCss.minify(extendedCss).styles}`
@@ -150,17 +161,18 @@ ${markdown}
   }
 
   /**
-   * Retrieve the JSON data for the web part
+   * Retrieve the web part data for the markdown web part
    * @param webPartTitle
    * @param markdown
    */
-  public static async getJsonData(
+  public static async getWebPartData(
     webPartTitle: string,
     markdown: string,
     mdOptions: MarkdownSettings | null,
     options: CommandArguments,
-    wasAlreadyParsed: boolean = false
-  ): Promise<string> {
+    wasAlreadyParsed: boolean = false,
+    includeStyles: boolean = true
+  ): Promise<any> {
     const allowHtml = mdOptions && mdOptions.allowHtml;
     const theme =
       mdOptions && mdOptions.theme ? mdOptions.theme.toLowerCase() : "dark";
@@ -187,7 +199,7 @@ ${markdown}
     if (allowHtml) {
       let htmlMarkup = wasAlreadyParsed
         ? markdown
-        : await this.getHtmlData(markdown, options);
+        : await this.getHtmlData(markdown, options, includeStyles);
 
       if (htmlMarkup) {
         wpData.serverProcessedContent["htmlStrings"] = {
@@ -196,7 +208,7 @@ ${markdown}
       }
     }
 
-    return await TempDataHelper.create(wpData);
+    return wpData;
   }
 
 }

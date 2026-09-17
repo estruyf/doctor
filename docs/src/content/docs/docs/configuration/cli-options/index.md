@@ -222,7 +222,7 @@ This flag can only be added to the command execution. Using it in the `doctor.js
 :::
 
 `--cleanEnd`
-: Removes the pages which have not been touched during the publishing run. This will happen at the end of the whole process.
+: Removes the pages which the run did not want, at the end of the whole process. A page which was *skipped* — as unchanged, or because its metadata could not be worked out — is still a page `doctor` wants, and is left alone. What gets removed is what has no markdown file behind it any more.
 
 :::caution[Important]
 This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
@@ -252,7 +252,7 @@ This flag can only be added to the command execution. Using it in the `doctor.js
 : Recycles the pages which `doctor` published before, but whose markdown file no longer exists. Requires the `--confirm` flag, or `doctor` asks you to confirm the removal. Check the [removing deleted pages](#removing-deleted-pages) section for more information.
 
 `--skipPrecheck`
-: Skips the pre-process validation which runs before any SharePoint calls are made. Check the [pre-process checks](#pre-process-checks) section for more information.
+: Skips the checks which run before any page is written: the local front matter and slug validation, and the capability check described below. Check the [pre-process checks](#pre-process-checks) section for more information.
 
 `--timingDetails`
 : Shows additional per-page timing statistics (average, fastest and slowest page) after the publishing run. The total publishing time is always shown, also without this flag.
@@ -295,7 +295,13 @@ This flag can only be added to the command execution. Using it in the `doctor.js
 : Allows you to specify if you want to remove all the navigation elements defined in the `TopNavigation` navigation before adding the new navigation structure.
 
 `--pageTemplate`
-: Name of the default page template to use for all the pages which will be created.
+: Name of the default page template to use for all the pages which will be created. It accepts the
+  template's page title, its file name or its page id. A page can override it with the `template`
+  front matter — see [page templates](../../content/pages/#page-templates).
+
+`--reapplyTemplates`
+: Applies the page template to pages which already exist, not only to the ones `Doctor` creates. Off
+  by default. Check [page templates](../../content/pages/#page-templates).
 
 `--disableComments`
 : Disable comments for all pages. By default the comments are enabled on the pages.
@@ -312,14 +318,37 @@ You can override this by specifying the `comments` option on page level.
 
 ### Change detection / publish state
 
-`doctor` keeps track of what it published in a state file which is stored on your SharePoint site. For every page it stores a hash of the source markdown file, together with the timestamp of when it got published.
+`doctor` keeps track of what it published in a state file which is stored on your SharePoint site. For every page it stores a hash of everything the page is built from, the timestamp of when it got published, and the instance ids of the web parts `doctor` put on it — which is how it recognises its own controls on the next run and leaves the ones you added in SharePoint alone. The file also carries a hash of the publish settings and your custom shortcodes, so changing one of those marks every page as changed.
 
 On the next run, `doctor` compares the hash of each local file with the one in the state file:
 
 - Pages which are **new** or **modified** get published.
 - Pages which are **unchanged** get skipped.
 
-The hash covers the markdown file together with the [partials](../doctor-json/#reusable-content-partials) it uses, so a changed partial marks every page using it as modified.
+A skipped page is still a page on the site, so it keeps everything a published page would have kept:
+its entry in the [site navigation](../../content/pages/#menu), which is rebuilt on every run, and its
+place in the site when [`--cleanEnd`](#--cleanend) removes the pages the run did not want. The same
+goes for a page skipped because [its metadata could not be worked out](../../content/pages/#what-happens-when-a-value-cannot-be-set).
+
+The hash covers everything the published page is built from, not just the file you edited:
+
+| What changed | Effect |
+| --- | --- |
+| The markdown file | that page is modified |
+| A [partial](../doctor-json/#reusable-content-partials) it uses | every page using that partial is modified |
+| An **image** it references | every page referencing that image is modified, and the image is re-uploaded |
+| The **slug of a page it links to** | every page linking to it is modified, so its links keep pointing at the right page |
+| A **custom shortcode's** code | every page is modified — a shortcode decides what its pages render |
+| A publish **setting** in `doctor.json` (`markdown.*`, `webPartTitle`, `partials.*`, `library`, the template options) | every page is modified |
+| The **page template**, with [`--reapplyTemplates`](#--reapplytemplates) | every page using that template is modified |
+
+Images and linked pages are read once per run, however many pages refer to them.
+
+:::note[The first run after upgrading publishes everything]
+`Doctor` 2.3.0 folds images, links, shortcodes and settings into the hash, so every hash recorded by
+an earlier version now differs. The first run after upgrading therefore republishes the whole site,
+once. Runs after that behave as normal.
+:::
 
 Localized pages are tracked the same way, under the URL SharePoint issued for them. They are published in their own phase which runs after the normal pages, so a changed `.lang.md` file gets published even when its source page did not change.
 
@@ -360,7 +389,7 @@ The removal needs to be confirmed. When you do not pass the `--confirm` flag, `d
 
 Good to know:
 
-- The state file is the source of truth. Pages which were created outside of `doctor`, or before the state file existed, are not touched. Use the `--cleanEnd` flag when you want to remove everything which was not published during the run.
+- The state file is the source of truth. Pages which were created outside of `doctor`, or before the state file existed, are not touched. Use the `--cleanEnd` flag when you want to remove everything `doctor` does not have a markdown file for, whether or not it is in the state.
 - Multilingual pages are removed together with their source page. Translations of a page which still exists are kept.
 - Pages which are already gone from the site are removed from the state as well, so the state keeps matching your site.
 - When a markdown file cannot be resolved to a page (an unreadable file, or one without a `title`), no pages get removed at all. The [pre-process checks](#pre-process-checks) catch these before the publishing run, unless you use `--skipPrecheck`.
@@ -378,7 +407,53 @@ Before any call to SharePoint is made, `doctor` validates your markdown files an
 
 When one or more issues are found, the run stops and all issues are listed at once (up to a maximum of 20, followed by the number of remaining issues). Pages of the `translation` type are skipped during this validation.
 
-Use the `--skipPrecheck` flag when you want to skip this validation.
+### Available permissions
+
+`doctor` then asks the site which of its operations the account is actually allowed to perform, and
+prints the answer before anything is written:
+
+```
+ Available permissions on https://contoso.sharepoint.com/sites/docs:
+   yes  Publish pages
+   yes  Set page metadata
+   yes  Upload assets to "Shared Documents"
+    no  Update a page without changing its history — page descriptions will change 'Modified' and 'Modified By'
+    no  Manage the site navigation — the 'menu' setting is skipped
+    no  Change the look of the site — the 'siteDesign' setting is skipped
+   yes  Read the term store
+   yes  Read the site users
+```
+
+Publishing pages and setting metadata need rights on the **Site Pages library**. The navigation, the
+theme, the header and footer and the site logo need **Manage Web** rights on the **site** — an
+account that is perfectly able to publish pages often does not have those, which used to surface as a
+failure at the very end of a run, with every page already written.
+
+- A step the account cannot perform is **skipped**, not attempted and failed. Each one is repeated in
+  the warnings at the end of the run.
+  - Without **Manage Web**, the `menu` and `siteDesign` settings are left alone and the pages still
+    publish.
+  - Without rights to **set columns**, the `metadata` and `author` front matter is skipped — and not
+    even worked out, so the term store and the user lookups are not paid for either.
+  - Without rights to **write to the asset library**, a page which has to upload something is skipped
+    whole rather than published with its pictures pointing at nothing — that means a page with an
+    image, with a `header.image`, or with a Mermaid diagram, since `doctor` draws those during the
+    publish and uploads them like any other image. The publish state is not saved either, so the next
+    run publishes everything again.
+- A missing **system update** right is the one that is not a skip: descriptions are written with an
+  ordinary update instead, at the cost of the page's `Modified` date and `Modified By`.
+- Not being able to **create or update pages** stops the run straight away, since that is the whole
+  job.
+- Only the steps this run was going to take are listed — no `menu` in your configuration means no
+  line about navigation.
+- If the site's permissions cannot be read at all, `doctor` says so and attempts everything, exactly
+  as it did before this check existed.
+
+This is a check of what the account may *do*, not of what the site will accept. A term which is not
+in the term set, or an author who is not a member of this site, is still found per page while
+publishing.
+
+Use the `--skipPrecheck` flag when you want to skip this validation and the capability check.
 
 ## Workflow command specific options
 

@@ -68,6 +68,7 @@ export default defineConfig({
               items: [
                 { label: "Overview", link: "/docs/content/shortcodes/" },
                 { label: "Callout", link: "/docs/content/shortcodes/callout/" },
+                { label: "Control shortcodes", link: "/docs/content/shortcodes/control/" },
                 { label: "Icon", link: "/docs/content/shortcodes/icon/" },
                 { label: "Mermaid", link: "/docs/content/shortcodes/mermaid/" },
                 { label: "Table of Contents", link: "/docs/content/shortcodes/toc/" },
