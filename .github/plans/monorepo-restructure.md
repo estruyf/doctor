@@ -31,16 +31,17 @@ so its pages belong downstream of the configuration pages rather than in a site 
 
 ## Structure
 
-```
+```cd
 package.json              private workspace root, no code of its own
 docs/                     stays put — the site serves both packages
 schema/                   stays put — see below, this is a published URL
 assets/                   repository-level images
 .github/ .husky/          repository-wide
-packages/
+apps/
   doctor/                 @estruyf/doctor — src, bin, dist, tests, scripts
-  vscode-extension/       doctor-metadata
-  front-matter/           later — the shared contract
+  doctor-vscode/          The VS Code extension for the doctor
+packages/
+  common/                 later — the shared contract
 ```
 
 **npm workspaces, not turborepo/nx/changesets.** The repository is already two packages — `docs/`
@@ -63,7 +64,7 @@ for the extension, downstream of the configuration pages.
 `schema/` **must not move**, and this is the one hard constraint in the whole plan. The schema is
 addressed by URL:
 
-```
+```url
 https://raw.githubusercontent.com/estruyf/doctor/dev/schema/2.1.0.json
 ```
 
@@ -80,24 +81,24 @@ working.
 
 ### Two shared contracts, kept apart
 
-| | Describes | How it is shared |
-| --- | --- | --- |
-| `schema/*.json` | the shape of `doctor.json` | stays at the root; already published over HTTP |
-| `packages/front-matter` | the shape of page **front matter** | new package, imported by both |
+|                         | Describes                          | How it is shared                               |
+| ----------------------- | ---------------------------------- | ---------------------------------------------- |
+| `schema/*.json`         | the shape of `doctor.json`         | stays at the root; already published over HTTP |
+| `packages/front-matter` | the shape of page **front matter** | new package, imported by both                  |
 
 They are not the same thing and should not become one package. The first is configuration consumed
 by editors over HTTP; the second is the page contract consumed as code.
 
 ## What the move breaks
 
-| | |
-| --- | --- |
-| `.github/workflows/*.yml` (4) | none use `working-directory` today — all assume the root |
-| `.husky/pre-commit` | runs `node ./scripts/prepare-changelog.js`, root relative |
-| npm publish | the `#release` flow needs `-w @estruyf/doctor` |
-| a local `npm link` | re-run from the package directory |
-| `tsconfig` + `tsc-alias` | the `@helpers`/`@models` aliases are package relative |
-| `AGENTS.md` / `CLAUDE.md` | the command table and every path in it |
+|                               |                                                           |
+| ----------------------------- | --------------------------------------------------------- |
+| `.github/workflows/*.yml` (4) | none use `working-directory` today — all assume the root  |
+| `.husky/pre-commit`           | runs `node ./scripts/prepare-changelog.js`, root relative |
+| npm publish                   | the `#release` flow needs `-w @estruyf/doctor`            |
+| a local `npm link`            | re-run from the package directory                         |
+| `tsconfig` + `tsc-alias`      | the `@helpers`/`@models` aliases are package relative     |
+| `AGENTS.md` / `CLAUDE.md`     | the command table and every path in it                    |
 
 ## Packaging the extension
 
@@ -120,13 +121,13 @@ the answer — the bundle is self contained and there is nothing for it to go lo
 `.npmignore` denies `src`, `docs`, `schema`, `scripts` and more — and has never mentioned `tests`.
 `npm pack --dry-run` on 2.3.0:
 
-| | |
-| --- | --- |
-| `dist/` | 300 files, correct |
-| `tests/` | **28 files, shipped to every consumer** |
-| `bin/` | 2 files, correct |
-| `AGENTS.md`, `CLAUDE.md` | AI tooling instructions, shipped |
-| `cypress.sample.json`, `.templates/` | strays |
+|                                      |                                         |
+| ------------------------------------ | --------------------------------------- |
+| `dist/`                              | 300 files, correct                      |
+| `tests/`                             | **28 files, shipped to every consumer** |
+| `bin/`                               | 2 files, correct                        |
+| `AGENTS.md`, `CLAUDE.md`             | AI tooling instructions, shipped        |
+| `cypress.sample.json`, `.templates/` | strays                                  |
 
 It also grew during this release: the five suites added for the review passes went straight into the
 published package without anyone touching the ignore file. That is what a denylist does — a new
