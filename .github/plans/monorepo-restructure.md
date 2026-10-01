@@ -105,6 +105,13 @@ accurate as it grows:
 | `schema/2.1.0.json` | `src/config/doctor-schema.json` — a byte-for-byte copy the `doctor.json` editor is built from |
 | `src/commands/Command.ts`, the `--forceAll` option | `src/commands/runDoctor.ts` — `DOCTOR_RUNS`, the commands and flags the editor starts |
 | `CERTIFICATE_PASSWORD_ENV` in `OptionsHelper` | `src/commands/runDoctor.ts` — the variable the stored certificate password is handed over in |
+| `LCID_BY_LOCALE` in `LocaleHelper` | `src/config/languages.ts` — `DOCTOR_LOCALES`, the `doctor.json` editor's language list when SharePoint cannot be asked |
+
+The locale table matters beyond the editor. When signed in, the editor lists the languages SharePoint
+itself offers, which can include ones this table lacks; doctor accepts those by LCID but fails on
+their *names*, which is why the editor writes LCIDs. A language missing here is therefore a gap in
+doctor's `localization` front matter as well — a page cannot name it as a locale — and comparing the
+table against SharePoint's live list is the way to find them.
 
 The schema row is the one copy that can be checked mechanically, because it is meant to be identical:
 `cmp schema/2.1.0.json <extension>/src/config/doctor-schema.json` says whether it has drifted. It
