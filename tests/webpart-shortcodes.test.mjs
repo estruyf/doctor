@@ -33,7 +33,7 @@ const withShortcodes = async (files, assertions) => {
 
 const relatedPages = `module.exports = {
   name: "related-pages",
-  kind: "control",
+  kind: "webpart",
   render: (attributes) => ({
     standardWebPart: "ContentRollup",
     webPartProperties: { count: Number(attributes.count ?? 3) },
@@ -44,18 +44,18 @@ test("ShortcodesHelpers keeps the kind of a loaded shortcode", async () => {
   await withShortcodes({ "related-pages.cjs": relatedPages }, async () => {
     await ShortcodesHelpers.init("./shortcodes");
 
-    assert.deepEqual(ShortcodesHelpers.getControlTags(), ["related-pages"]);
-    assert.equal(ShortcodesHelpers.isControl("related-pages"), true);
+    assert.deepEqual(ShortcodesHelpers.getWebPartTags(), ["related-pages"]);
+    assert.equal(ShortcodesHelpers.isWebPart("related-pages"), true);
     // The built-ins stay inline
-    assert.equal(ShortcodesHelpers.isControl("callout"), false);
+    assert.equal(ShortcodesHelpers.isWebPart("callout"), false);
   });
 });
 
-test("ShortcodesHelpers does not render a control shortcode as HTML", async () => {
+test("ShortcodesHelpers does not render a web part shortcode as HTML", async () => {
   await withShortcodes({ "related-pages.cjs": relatedPages }, async () => {
     await ShortcodesHelpers.init("./shortcodes");
 
-    // A control shortcode returns a web part definition, not markup. If the
+    // A web part shortcode returns a web part definition, not markup. If the
     // inline parser picked it up it would splice "[object Object]" into the page.
     for (const output of [
       await ShortcodesHelpers.parseBefore(`<related-pages count="5" />`),
@@ -70,12 +70,12 @@ test("ShortcodesHelpers does not render a control shortcode as HTML", async () =
 test("ShortcodesHelpers refuses an unknown shortcode kind", async () => {
   await withShortcodes(
     {
-      "broken.cjs": `module.exports = { name: "broken", kind: "webpart", render: () => "" };`,
+      "broken.cjs": `module.exports = { name: "broken", kind: "widget", render: () => "" };`,
     },
     async () => {
       await assert.rejects(
         () => ShortcodesHelpers.init("./shortcodes"),
-        /Unknown kind "webpart" for shortcode "broken"/,
+        /Unknown kind "widget" for shortcode "broken"/,
       );
     },
   );
@@ -89,7 +89,7 @@ test("ShortcodesHelpers still loads a shortcode without a kind as inline", async
     async () => {
       await ShortcodesHelpers.init("./shortcodes");
 
-      assert.deepEqual(ShortcodesHelpers.getControlTags(), []);
+      assert.deepEqual(ShortcodesHelpers.getWebPartTags(), []);
       assert.equal(
         await ShortcodesHelpers.parseAfter(`<hello />`),
         `<p>hi</p>`,

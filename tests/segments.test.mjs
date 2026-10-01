@@ -5,7 +5,7 @@ import { SegmentsHelper } from "../dist/helpers/SegmentsHelper.js";
 
 const CONTROLS = ["related-pages", "events"];
 
-test("SegmentsHelper leaves a page without control shortcodes untouched", () => {
+test("SegmentsHelper leaves a page without web part shortcodes untouched", () => {
   const markdown = `# Title\n\nSome content.\n\n<callout type="info">Inline shortcodes are not controls</callout>\n`;
 
   const segments = SegmentsHelper.split(markdown, CONTROLS);
@@ -16,7 +16,7 @@ test("SegmentsHelper leaves a page without control shortcodes untouched", () => 
   assert.equal(segments[0].content, markdown);
 });
 
-test("SegmentsHelper leaves a page untouched when no control shortcodes are registered", () => {
+test("SegmentsHelper leaves a page untouched when no web part shortcodes are registered", () => {
   const markdown = `# Title\n\n<related-pages />\n`;
 
   const segments = SegmentsHelper.split(markdown, []);
@@ -25,7 +25,7 @@ test("SegmentsHelper leaves a page untouched when no control shortcodes are regi
   assert.equal(segments[0].content, markdown);
 });
 
-test("SegmentsHelper cuts the page at a control shortcode", () => {
+test("SegmentsHelper cuts the page at a web part shortcode", () => {
   const markdown = [
     `# Title`,
     ``,
@@ -44,7 +44,7 @@ test("SegmentsHelper cuts the page at a control shortcode", () => {
     content: `# Title\n\nBefore the control.`,
   });
   assert.deepEqual(segments[1], {
-    type: "control",
+    type: "webpart",
     shortcode: "related-pages",
     attributes: {},
   });
@@ -70,7 +70,7 @@ test("SegmentsHelper keeps the source order across several controls", () => {
   const segments = SegmentsHelper.split(markdown, CONTROLS);
 
   assert.deepEqual(
-    segments.map((s) => (s.type === "control" ? s.shortcode : s.content)),
+    segments.map((s) => (s.type === "webpart" ? s.shortcode : s.content)),
     ["Intro", "related-pages", "Middle", "events", "Outro"],
   );
 });
@@ -81,7 +81,7 @@ test("SegmentsHelper does not emit empty markdown segments", () => {
   const segments = SegmentsHelper.split(markdown, CONTROLS);
 
   assert.equal(segments.length, 2);
-  assert.ok(segments.every((segment) => segment.type === "control"));
+  assert.ok(segments.every((segment) => segment.type === "webpart"));
 });
 
 test("SegmentsHelper reads the attributes off the tag", () => {
@@ -90,7 +90,7 @@ test("SegmentsHelper reads the attributes off the tag", () => {
   const segments = SegmentsHelper.split(markdown, CONTROLS);
 
   assert.deepEqual(segments[1], {
-    type: "control",
+    type: "webpart",
     shortcode: "related-pages",
     attributes: { count: "5", tag: "how-to" },
   });
@@ -103,10 +103,10 @@ test("SegmentsHelper accepts an empty paired tag", () => {
   );
 
   assert.equal(segments.length, 3);
-  assert.equal(segments[1].type, "control");
+  assert.equal(segments[1].type, "webpart");
 });
 
-test("SegmentsHelper ignores a control shortcode used as a code sample", () => {
+test("SegmentsHelper ignores a web part shortcode used as a code sample", () => {
   const markdown = [
     `Use it like this:`,
     ``,
@@ -123,7 +123,7 @@ test("SegmentsHelper ignores a control shortcode used as a code sample", () => {
   assert.equal(segments[0].content, markdown);
 });
 
-test("SegmentsHelper refuses a control shortcode that is not on its own line", () => {
+test("SegmentsHelper refuses a web part shortcode that is not on its own line", () => {
   for (const markdown of [
     `Related: <related-pages /> and more`,
     `- <related-pages />`,
@@ -169,7 +169,7 @@ test("SegmentsHelper reads an attribute value containing a > as part of the tag"
 
   assert.deepEqual(
     segments.map((s) => s.type),
-    ["markdown", "control", "markdown"],
+    ["markdown", "webpart", "markdown"],
   );
   assert.equal(segments[1].attributes.path, "/sites/docs");
 });
@@ -178,7 +178,7 @@ test("SegmentsHelper reads an unquoted and a valueless attribute", () => {
   const segments = SegmentsHelper.split(`<related-pages count=5 compact />`, CONTROLS);
 
   assert.equal(segments.length, 1);
-  assert.equal(segments[0].type, "control");
+  assert.equal(segments[0].type, "webpart");
   assert.equal(segments[0].attributes.count, "5");
 });
 
@@ -190,7 +190,7 @@ test("SegmentsHelper reads an unquoted attribute value containing a slash", () =
     CONTROLS,
   );
 
-  assert.equal(segments[0].type, "control");
+  assert.equal(segments[0].type, "webpart");
   assert.equal(segments[0].attributes.path, "/sites/docs");
   assert.equal(segments[0].attributes.count, "5");
 });

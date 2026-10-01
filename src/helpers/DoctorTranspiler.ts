@@ -696,31 +696,31 @@ export class DoctorTranspiler {
               : `Creating new page: ${title}`,
             );
 
-            // A control shortcode cuts the page into several web parts. A page
+            // A web part shortcode cuts the page into several web parts. A page
             // without one yields a single segment holding the whole document,
             // which is the input the Markdown web part has always received.
-            const controlTags = ShortcodesHelpers.getControlTags();
+            const webPartTags = ShortcodesHelpers.getWebPartTags();
             const wasAlreadyParsed = file.endsWith(`.machinetranslated.md`);
 
             // A machine translated page reaches this point as HTML, so there is
             // no markdown left to cut up
             if (
               wasAlreadyParsed &&
-              SegmentsHelper.hasTag(markup.content, controlTags)
+              SegmentsHelper.hasTag(markup.content, webPartTags)
             ) {
               throw new Error(
-                `The translated page "${relPath}" uses a control shortcode, which doctor cannot place on a machine translated page. Remove it from the source page, or translate that page by hand.`,
+                `The translated page "${relPath}" uses a web part shortcode, which doctor cannot place on a machine translated page. Remove it from the source page, or translate that page by hand.`,
               );
             }
 
             const segments: PageSegment[] = wasAlreadyParsed
               ? [{ type: "markdown", content: markup.content }]
-              : SegmentsHelper.split(markup.content, controlTags);
+              : SegmentsHelper.split(markup.content, webPartTags);
 
             // Every markdown segment is rendered on its own, so a table of
             // contents would only list the headings of the segment it sits in
             if (
-              segments.some((segment) => segment.type === "control") &&
+              segments.some((segment) => segment.type === "webpart") &&
               segments.some(
                 (segment) =>
                   segment.type === "markdown" &&
@@ -728,7 +728,7 @@ export class DoctorTranspiler {
               )
             ) {
               throw new Error(
-                `The page "${relPath}" combines a table of contents with a control shortcode. A control shortcode splits the page into separate web parts, each rendered on its own, so the table of contents can only see the headings next to it.`,
+                `The page "${relPath}" combines a table of contents with a web part shortcode. A web part shortcode splits the page into separate web parts, each rendered on its own, so the table of contents can only see the headings next to it.`,
               );
             }
 

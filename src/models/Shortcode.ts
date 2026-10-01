@@ -4,28 +4,28 @@ export interface Shortcode {
 
 /**
  * What a shortcode contributes to the page. An `inline` shortcode returns HTML
- * that is spliced into the Markdown web part; a `control` shortcode becomes a
- * SharePoint control of its own, splitting the page canvas around it.
+ * that is spliced into the Markdown web part; a `webpart` shortcode becomes a
+ * SharePoint web part of its own, splitting the page canvas around it.
  */
-export type ShortcodeKind = "inline" | "control";
+export type ShortcodeKind = "inline" | "webpart";
 
-export const SHORTCODE_KINDS: ShortcodeKind[] = ["inline", "control"];
+export const SHORTCODE_KINDS: ShortcodeKind[] = ["inline", "webpart"];
 
 /**
- * Page-level facts a control shortcode may need to build its web part
+ * Page-level facts a web part shortcode may need to build its web part
  * properties, so every shortcode author doesn't have to re-derive them.
  */
-export interface ControlShortcodeContext {
+export interface WebPartShortcodeContext {
   frontMatter: { [key: string]: any };
   slug: string;
   webUrl: string;
 }
 
 /**
- * What a control shortcode returns: either an out-of-the-box web part by name,
+ * What a web part shortcode returns: either an out-of-the-box web part by name,
  * or a custom/SPFx one by id. `webPartProperties` is passed through untouched.
  */
-export interface ControlShortcodeResult {
+export interface WebPartShortcodeResult {
   standardWebPart?: string;
   webPartId?: string;
   /** Merged over the web part's own default properties */
@@ -46,13 +46,13 @@ export interface InlineShortcodeRender {
   beforeMarkdown: boolean;
 }
 
-export interface ControlShortcodeRender {
-  kind: "control";
+export interface WebPartShortcodeRender {
+  kind: "webpart";
   render: (
     attr: any,
-    context: ControlShortcodeContext,
-  ) => Promise<ControlShortcodeResult> | ControlShortcodeResult;
+    context: WebPartShortcodeContext,
+  ) => Promise<WebPartShortcodeResult> | WebPartShortcodeResult;
   beforeMarkdown: boolean;
 }
 
-export type ShortcodeRender = InlineShortcodeRender | ControlShortcodeRender;
+export type ShortcodeRender = InlineShortcodeRender | WebPartShortcodeRender;

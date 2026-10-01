@@ -20,7 +20,7 @@ export interface DoctorStateEntry {
   /**
    * The instance ids of the controls doctor put on the page, in the order the
    * segments appear in the markdown. A page becomes more than one control when
-   * it uses a control shortcode, and the title alone cannot tell doctor's
+   * it uses a web part shortcode, and the title alone cannot tell doctor's
    * controls apart from ones the page owner added on the SharePoint side.
    */
   controls?: string[];

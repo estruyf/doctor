@@ -20,7 +20,7 @@ At the moment, `doctor` has the following built-in shortcodes:
 - [Mermaid](./mermaid/)
 - [Table of contents](./toc/)
 
-A shortcode can also become a SharePoint web part of its own instead of returning HTML — see [control shortcodes](./control/).
+A shortcode can also become a SharePoint web part of its own instead of returning HTML — see [web part shortcodes](./webpart/).
 
 ## Provide your own shortcodes
 
@@ -60,4 +60,4 @@ module.exports = {
 : This is an optional property introduced to specify if you want to parse the shortcode before or after the Markdown gets processed. In case you include your own Markdown code with your shortcode, you can set this property to `true`. Otherwise you keep ot set to `false` or do not include it.
 
 `kind`
-: Optional, `"inline"` by default. Set it to `"control"` to have the shortcode become its own SharePoint web part rather than HTML inside the Markdown web part — see [control shortcodes](./control/). Any other value stops the publish with an error.
+: Optional, `"inline"` by default. Set it to `"webpart"` to have the shortcode become its own SharePoint web part rather than HTML inside the Markdown web part — see [web part shortcodes](./webpart/). Any other value stops the publish with an error.

@@ -6,7 +6,7 @@ Context: @estruyf asked for the **Doctor Metadata** VS Code extension
 to be merged into this repository. The code comes over as a clean copy; its history stays in the
 original repo.
 Related: the metadata, `author` and page template work in 2.3.0 is what the extension exists to
-drive — see [control-shortcodes.md](control-shortcodes.md) for the other half of that release.
+drive — see [webpart-shortcodes.md](webpart-shortcodes.md) for the other half of that release.
 
 ## Why
 

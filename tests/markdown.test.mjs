@@ -87,7 +87,7 @@ test("getHtmlData keeps the container structure and code highlighting", async ()
 });
 
 test("getHtmlData carries the stylesheet only when it is asked for", async () => {
-  // A page split by control shortcodes renders one Markdown web part per
+  // A page split by web part shortcodes renders one Markdown web part per
   // segment into the same document, so only the first one brings the CSS
   const withStyles = await render(`# Heading\n`, { allowHtml: true });
   assert.match(withStyles, /<style>/);

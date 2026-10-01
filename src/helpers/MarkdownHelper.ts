@@ -142,7 +142,7 @@ ${markdown}
     htmlMarkup = converter.render(htmlMarkup);
     htmlMarkup = await ShortcodesHelpers.parseAfter(htmlMarkup);
 
-    // A page split by control shortcodes renders one Markdown web part per
+    // A page split by web part shortcodes renders one Markdown web part per
     // segment, but they all end up in the same document — so the stylesheet is
     // only carried by the first of them instead of being repeated N times.
     if (!includeStyles) {

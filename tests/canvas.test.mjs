@@ -184,7 +184,7 @@ test("CanvasHelper reorders doctor's controls without moving the others", () => 
     SETTINGS,
   ];
 
-  // The control shortcode moved above the markdown in the source
+  // The web part shortcode moved above the markdown in the source
   const canvas = CanvasHelper.compose(
     existing,
     [

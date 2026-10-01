@@ -1,11 +1,11 @@
 ---
-title: Control shortcodes
+title: Web part shortcodes
 description: Let a shortcode become its own SharePoint web part instead of HTML inside the Markdown web part.
 sidebar:
   order: 5
 ---
 
-A normal shortcode returns HTML, which `doctor` splices into the one Markdown web part a page becomes. A **control shortcode** returns a web part instead: `doctor` cuts the page at that point and puts a real SharePoint web part between the parts of your content.
+A normal shortcode returns HTML, which `doctor` splices into the one Markdown web part a page becomes. A **web part shortcode** returns a web part instead: `doctor` cuts the page at that point and puts a real SharePoint web part between the parts of your content.
 
 Use it when what you want cannot be static HTML — a search-driven list of related pages, a `List` web part, a `Hero`, or your own SPFx web part.
 
@@ -23,13 +23,13 @@ That page becomes three controls on the SharePoint canvas, in that order: a Mark
 
 ## Writing one
 
-A control shortcode is a normal shortcode file with `kind: "control"`. Its `render` returns a web part description rather than a string:
+A web part shortcode is a normal shortcode file with `kind: "webpart"`. Its `render` returns a web part description rather than a string:
 
 ```javascript
 // shortcodes/related-pages.cjs
 module.exports = {
   name: "related-pages",
-  kind: "control",
+  kind: "webpart",
   render: (attributes, context) => ({
     standardWebPart: "ContentRollup",
     webPartProperties: {
@@ -65,7 +65,7 @@ The shortcode must live in the shortcodes folder like any other — see the [ove
 
 ## Where the tag may go
 
-A control shortcode becomes a web part of its own, so there is nowhere for surrounding text to go. The tag has to sit **on a line of its own, unindented, without a body**:
+A web part shortcode becomes a web part of its own, so there is nowhere for surrounding text to go. The tag has to sit **on a line of its own, unindented, without a body**:
 
 ```markdown
 <related-pages />
@@ -99,7 +99,7 @@ same way they are not for inline shortcodes, so `&gt;` arrives as `&gt;`.
 ## What to know before you use one
 
 :::caution[The publish state is required]
-`doctor` recognises the web parts it created through `.doctor/state.json`. Without it there is no way to tell your `related-pages` web part apart from one somebody added in SharePoint, so a page using a control shortcode cannot be published with `--disableStatePersistence`.
+`doctor` recognises the web parts it created through `.doctor/state.json`. Without it there is no way to tell your `related-pages` web part apart from one somebody added in SharePoint, so a page using a web part shortcode cannot be published with `--disableStatePersistence`.
 :::
 
 - **`markdown.allowHtml` must be on.** Shortcodes are only loaded when it is; without it the tag ends up as literal text in the page.

@@ -657,7 +657,7 @@ export class CanvasHelper {
    *
    * Answers `null` when the deployed web part declares no preconfigured entry:
    * there are no defaults to start from, but that is not fatal on its own,
-   * because a control shortcode is allowed to supply the whole instance itself
+   * because a web part shortcode is allowed to supply the whole instance itself
    * through `webPartData`. Whether it did is the caller's to judge. Looking the
    * definition up still throws when the web part is not deployed at all.
    */

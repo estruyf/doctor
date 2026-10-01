@@ -1,4 +1,4 @@
-# Plan: control shortcodes — splitting a page into multiple web parts
+# Plan: web part shortcodes — splitting a page into multiple web parts
 
 Status: **implemented** on `feat/sharepoint-metadata-transforms` (2026-09-15). The design below is
 what was built; see [As built](#as-built) for the decisions taken during implementation and where
@@ -30,7 +30,7 @@ don't use one — this is fully additive.
 
 ## Design
 
-### 1. New shortcode kind: `"control"` (default stays `"inline"`)
+### 1. New shortcode kind: `"webpart"` (default stays `"inline"`)
 
 A shortcode module gains an optional `kind` field. Existing modules (no `kind` field) keep working
 unchanged:
@@ -44,10 +44,10 @@ export default {
 ```
 
 ```javascript
-// new: a control shortcode contributes a separate SharePoint control instead of HTML
+// new: a web part shortcode contributes a separate SharePoint control instead of HTML
 export default {
   name: "related-pages",
-  kind: "control",
+  kind: "webpart",
   render: (attributes, ctx) => ({
     // one of:
     standardWebPart: undefined,      // e.g. "List" for an OOTB web part
@@ -60,7 +60,7 @@ export default {
 `ctx` gives the shortcode access to page-level facts it may need for its properties (front matter,
 slug, site URL) without every shortcode author having to re-derive them.
 
-`kind: "control"` shortcodes must be **kept out of the inline shortcode registry entirely** — the
+`kind: "webpart"` shortcodes must be **kept out of the inline shortcode registry entirely** — the
 constraint is not a `beforeMarkdown` position. Segmentation (§2) runs on raw Markdown *before*
 `getHtmlData()`, so a control tag never reaches either parse phase and `beforeMarkdown` is
 meaningless for it. What matters is that `ShortcodesHelpers.parse()` must never receive a control
@@ -86,19 +86,19 @@ one-helper-per-concern pattern) that runs on the raw Markdown, before `getHtmlDa
 
 1. Mask fenced/inline code the same way `ShortcodesHelpers.maskCode()` already does, so a
    control-shortcode tag shown as a code sample isn't mistaken for a real one.
-2. Find top-level occurrences of any registered `kind: "control"` tag (cheerio, `xmlMode: true`,
+2. Find top-level occurrences of any registered `kind: "webpart"` tag (cheerio, `xmlMode: true`,
    same approach `ShortcodesHelpers.parse()` uses).
 3. Cut the document into an ordered list of segments:
    ```typescript
    type PageSegment =
      | { type: "markdown"; content: string }
-     | { type: "control"; shortcode: string; attributes: Record<string, string> };
+     | { type: "webpart"; shortcode: string; attributes: Record<string, string> };
    ```
-   A page with no control shortcode produces exactly one `{ type: "markdown", content: <whole file> }`
+   A page with no web part shortcode produces exactly one `{ type: "markdown", content: <whole file> }`
    segment — byte-for-byte the same input `getHtmlData()` gets today, so existing pages are
    unaffected.
 4. Each `"markdown"` segment goes through the **existing** pipeline unchanged (`getHtmlData()` →
-   `markdown-it` → inline shortcodes → HTML). `"control"` segments call the shortcode's `render()`
+   `markdown-it` → inline shortcodes → HTML). `"webpart"` segments call the shortcode's `render()`
    to get its `standardWebPart`/`webPartId`/`webPartProperties`, nothing else.
 5. A control-shortcode tag found *below* top level — inside a list item, blockquote or table cell,
    or pulled in mid-paragraph by a partial — is an error, never a silent inline render (see §1).
@@ -181,9 +181,9 @@ than merely untidy. The state-file marker above is what bounds this.
 
 ### 5. State hash / `doctor status`
 
-`StateHelper` hashes "front matter + content + partials" per slug — a control shortcode's
+`StateHelper` hashes "front matter + content + partials" per slug — a web part shortcode's
 attributes are part of that same Markdown content, so the existing hash already invalidates
-correctly when a control shortcode's attributes change. No new hashing logic should be needed here,
+correctly when a web part shortcode's attributes change. No new hashing logic should be needed here,
 but this needs to be verified with a test once implemented, since the segmentation pass reads from
 the same resolved source string the hash is computed from.
 
@@ -202,7 +202,7 @@ unaddressed risk in this plan:
 - **`<toc />` breaks.** markdown-it runs per segment, so a table of contents in segment 1 only sees
   the headings in segment 1. The left/right post-processing in `ShortcodesHelpers.parse()` also
   targets `.doctor__container`, which now exists once per segment. For v1, `toc` together with a
-  control shortcode is probably a hard incompatibility and should error rather than render wrongly.
+  web part shortcode is probably a hard incompatibility and should error rather than render wrongly.
 - **Anchor slugs, footnotes and reference links.** markdown-it-anchor de-duplicates slugs per
   render, so two `## Overview` headings in different segments both become `#overview`. Footnote
   numbering restarts per segment, and reference-style link definitions collected at the bottom of a
@@ -220,7 +220,7 @@ uses the affected features.
 - **Multilingual.** For `*.machinetranslated.md`, `markup.content` is already HTML by the time it
   reaches the publish call (`wasAlreadyParsed`, `DoctorTranspiler.ts:454-461`), so a segmentation
   pass that assumes raw Markdown does not apply. Either segment before translation, or explicitly
-  reject control shortcodes on machine-translated pages.
+  reject web part shortcodes on machine-translated pages.
 
 ## Scope check against `AGENTS.md`
 
@@ -231,7 +231,7 @@ in the same change:
   `ControlShortcodeResult` return shape.
 - `src/helpers/ShortcodesHelpers.ts` — carry `kind` through `init()` (it is dropped today), keep
   control tags out of the `tags` list `parse()` walks, and expose a way to ask "is this tag a
-  control shortcode".
+  web part shortcode".
 - `src/helpers/MarkdownHelper.ts` (or new `SegmentsHelper.ts`, exported from `src/helpers/index.ts`)
   — the segmentation pass.
 - `src/helpers/PagesHelper.ts` — loop + reconcile instead of single insert/update.
@@ -248,8 +248,8 @@ in the same change:
 - `tests/` — tests import compiled helpers from `dist/` with no SharePoint available, so the
   testable surface is segmentation plus reconcile planning (given a segment list and a prior state,
   which adds/sets/removes are emitted — without executing them). At minimum: a page with zero
-  control shortcodes still produces one segment/one control (regression guard), a page with one
-  control shortcode produces three segments in the right order, a control tag below top level
+  web part shortcodes still produces one segment/one control (regression guard), a page with one
+  web part shortcode produces three segments in the right order, a control tag below top level
   throws, and a re-publish plans an update in place rather than a duplicate.
 
 ## Decisions (was: open questions for @estruyf)
@@ -257,9 +257,9 @@ in the same change:
 All three were decided as proposed and built that way. @estruyf can still overrule any of them; the
 first two are the ones with a cost to reversing.
 
-1. **Should `kind: "control"` be opt-in per `doctor.json`?** — Decided: **no flag.**
+1. **Should `kind: "webpart"` be opt-in per `doctor.json`?** — Decided: **no flag.**
    `markdown.allowHtml` already gates the entire shortcode system (§7), and using the feature
-   requires authoring a module with `kind: "control"`, so it is safe by construction. A flag would
+   requires authoring a module with `kind: "webpart"`, so it is safe by construction. A flag would
    add a fourth place to keep in sync (args → `doctor.json` → `CommandArguments` → schema) for no
    real safety gain. Instead, validate that an unrecognised `kind` throws (§1).
 2. **Multi-column pages** — Decided: **same section/column for v1.** Every control doctor writes
@@ -282,10 +282,10 @@ callers and went with it. Every page — including the single-segment majority �
 **Three combinations are refused rather than published wrong.** Each was a "document it as a known
 limit" in §6/§7; on reflection a page that publishes incorrectly is worse than one that fails:
 
-- `<toc />` together with a control shortcode. Each segment is rendered on its own, so the table of
+- `<toc />` together with a web part shortcode. Each segment is rendered on its own, so the table of
   contents could only ever list the headings beside it.
-- A control shortcode on a machine translated page, which reaches publish as HTML.
-- A control shortcode with `--disableStatePersistence`. The state file is the only record of which
+- A web part shortcode on a machine translated page, which reaches publish as HTML.
+- A web part shortcode with `--disableStatePersistence`. The state file is the only record of which
   web parts are doctor's, so without it a re-publish would add a second copy on every run.
 
 **The stylesheet is emitted once.** `getHtmlData()` takes an `includeStyles` argument, and only the
@@ -293,13 +293,13 @@ first markdown segment carries the hljs and shortcode CSS (§6).
 
 **Where a control tag may sit is stricter than "top level".** It has to be alone on an unindented
 line with no body. Anything else — mid-paragraph, in a list item, a blockquote, indented, or
-wrapped around content — throws. A control shortcode has no body to render, so there was nothing to
+wrapped around content — throws. A web part shortcode has no body to render, so there was nothing to
 gain from being lenient.
 
 **Ownership is by recorded instance id, with `--webPartTitle` as the fallback.** `StateHelper`
 stores the ids per slug (`controls`), and `markPublished()` carries them across. Without state,
 doctor recognises only its own markdown controls, by `webPartTitle` and the numbered
-`webPartTitle (n)` variants, and only inside its own column — which is why control shortcodes
+`webPartTitle (n)` variants, and only inside its own column — which is why web part shortcodes
 require the state file.
 
 **The standard web part list is copied, not deep-imported** (`src/models/StandardWebPart.ts`), as
@@ -340,15 +340,15 @@ real publish.
 | `src/helpers/StateHelper.ts` | `controls` per slug, with `getControls()`/`setControls()` |
 | `src/helpers/DoctorTranspiler.ts` | segment the page and call `applySegments()` |
 | `src/main.ts` | `CanvasHelper.reset()` |
-| `tests/segments.test.mjs`, `tests/canvas.test.mjs`, `tests/control-shortcodes.test.mjs` | new |
-| `docs/.../shortcodes/control/index.md` | new page, sidebar entry, `kind` on the overview |
+| `tests/segments.test.mjs`, `tests/canvas.test.mjs`, `tests/webpart-shortcodes.test.mjs` | new |
+| `docs/.../shortcodes/webpart/index.md` | new page, sidebar entry, `kind` on the overview |
 | `changelog.json` | 2.3.0 entry |
 
 ## Downstream motivation (context, not part of this repo's implementation)
 
 A consumer repo (Involv's SharePoint intranet docs) wants a `<related-pages />` shortcode that
 renders as a live SharePoint search web part showing pages related by metadata/tags, instead of a
-hand-curated link list. That only becomes possible once control shortcodes exist — it is currently
+hand-curated link list. That only becomes possible once web part shortcodes exist — it is currently
 documented there as an inert placeholder shortcode with a "Status: placeholder, not yet implemented
 in Doctor" note, pending this feature.
 
@@ -361,5 +361,5 @@ through the `--standardWebPart` branch of §3.
 | Date | Change |
 |---|---|
 | 2026-09-10 | Initial draft |
-| 2026-09-15 | Implemented. Publish path decided: compose `CanvasContent1` and write it in one call, replacing the CLI add/set loop for every page. Three combinations that §6/§7 listed as known limits are refused instead: `toc` plus a control shortcode, a control shortcode on a machine translated page, and one published with `--disableStatePersistence`. Added an [As built](#as-built) section with the decisions, the deviations and the file list. |
+| 2026-09-15 | Implemented. Publish path decided: compose `CanvasContent1` and write it in one call, replacing the CLI add/set loop for every page. Three combinations that §6/§7 listed as known limits are refused instead: `toc` plus a web part shortcode, a web part shortcode on a machine translated page, and one published with `--disableStatePersistence`. Added an [As built](#as-built) section with the decisions, the deviations and the file list. |
 | 2026-09-15 | Revised after review against the code and `@pnp/cli-microsoft365` 11.5.0. Corrected three claims: the `beforeMarkdown` constraint in §1 (control tags must be kept out of the inline registry, not positioned within it), the reconciliation marker in §4 (`searchablePlainTexts.code` is page content, not hidden metadata — use `StateHelper`), and "`page control remove` is already used elsewhere" in §4 (it is not; `--removeDeleted` recycles pages). Added: `--order` insert-position semantics and the impossibility of reordering via `page control set` (§3), the `CanvasContent1` PATCH alternative (§3), title-scheme fragility (§4), new §6 on CSS duplication / `toc` / anchor-slug breakage when splitting a document, new §7 on the `allowHtml` gate and multilingual, `StateHelper` and the schema-version note in the scope list, and proposed answers to all three open questions. |

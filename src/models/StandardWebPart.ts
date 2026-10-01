@@ -1,5 +1,5 @@
 /**
- * The out-of-the-box web parts a control shortcode can ask for by name.
+ * The out-of-the-box web parts a web part shortcode can ask for by name.
  *
  * The list is copied from the CLI for Microsoft 365 rather than imported from
  * it: the CLI only exposes it from its `dist` folder, which is unversioned

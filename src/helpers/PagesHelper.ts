@@ -4,8 +4,8 @@ import {
   File,
   MarkdownSettings,
   CommandArguments,
-  ControlSegment,
-  ControlShortcodeContext,
+  WebPartSegment,
+  WebPartShortcodeContext,
   PageSegment,
   TaskOutput,
   MARKDOWN_WEB_PART_ID,
@@ -526,7 +526,7 @@ export class PagesHelper {
 
   /**
    * Write the page's controls: one Markdown web part per markdown segment and
-   * one web part per control shortcode, in the order they appear in the source.
+   * one web part per web part shortcode, in the order they appear in the source.
    *
    * The whole canvas is composed and written in one call rather than looping
    * the CLI's add/set/remove commands, because those cannot move an existing
@@ -540,21 +540,21 @@ export class PagesHelper {
     options: CommandArguments,
     mdOptions: MarkdownSettings | null,
     wasAlreadyParsed: boolean = false,
-    context: ControlShortcodeContext | null = null,
+    context: WebPartShortcodeContext | null = null,
     templateCanvas: any[] | null = null
   ) {
-    const hasControls = segments.some((segment) => segment.type === "control");
+    const hasWebParts = segments.some((segment) => segment.type === "webpart");
 
     Logger.debug(
       `Writing ${segments.length} segment(s) for the page ${slug} - Was already parsed: ${wasAlreadyParsed}`
     );
 
     // The state file is the only record of which controls are doctor's. Without
-    // it a control shortcode's web part cannot be told apart from one the page
+    // it a web part shortcode's web part cannot be told apart from one the page
     // owner added, so a re-publish would add a second one on every run.
-    if (hasControls && options.disableStatePersistence) {
+    if (hasWebParts && options.disableStatePersistence) {
       throw new Error(
-        `The page "${slug}" uses a control shortcode, which needs the publish state to recognise its web parts on a next run. Remove '--disableStatePersistence' to publish it.`
+        `The page "${slug}" uses a web part shortcode, which needs the publish state to recognise its web parts on a next run. Remove '--disableStatePersistence' to publish it.`
       );
     }
 
@@ -604,7 +604,7 @@ export class PagesHelper {
           instanceId: takeInstanceId(MARKDOWN_WEB_PART_ID),
         });
       } else {
-        const webPartId = await PagesHelper.getControlWebPart(
+        const webPartId = await PagesHelper.getSegmentWebPart(
           segment,
           webUrl,
           slug,
@@ -672,19 +672,19 @@ export class PagesHelper {
   }
 
   /**
-   * Ask a control shortcode which web part it becomes, and build the data for
+   * Ask a web part shortcode which web part it becomes, and build the data for
    * a new instance of it.
    */
-  private static async getControlWebPart(
-    segment: ControlSegment,
+  private static async getSegmentWebPart(
+    segment: WebPartSegment,
     webUrl: string,
     slug: string,
-    context: ControlShortcodeContext | null
+    context: WebPartShortcodeContext | null
   ): Promise<{ id: string; data: any }> {
-    const shortcode = ShortcodesHelpers.getControl(segment.shortcode);
+    const shortcode = ShortcodesHelpers.getWebPart(segment.shortcode);
     if (!shortcode) {
       throw new Error(
-        `The "${segment.shortcode}" control shortcode used on "${slug}" is not registered. Check the 'markdown.shortcodesFolder' setting.`
+        `The "${segment.shortcode}" web part shortcode used on "${slug}" is not registered. Check the 'markdown.shortcodesFolder' setting.`
       );
     }
 
@@ -695,7 +695,7 @@ export class PagesHelper {
 
     if (!result || (!result.standardWebPart && !result.webPartId)) {
       throw new Error(
-        `The "${segment.shortcode}" control shortcode has to return a 'standardWebPart' name or a 'webPartId'.`
+        `The "${segment.shortcode}" web part shortcode has to return a 'standardWebPart' name or a 'webPartId'.`
       );
     }
 
