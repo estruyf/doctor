@@ -192,3 +192,58 @@ test("relativePath keeps paths outside the working directory absolute", () => {
 test("relativePath returns falsy values untouched", () => {
   assert.equal(relativePath(""), "");
 });
+
+//
+// The certificate password from the environment
+//
+
+const withEnv = (t, value) => {
+  const before = process.env.DOCTOR_CERTIFICATE_PASSWORD;
+  if (value === undefined) {
+    delete process.env.DOCTOR_CERTIFICATE_PASSWORD;
+  } else {
+    process.env.DOCTOR_CERTIFICATE_PASSWORD = value;
+  }
+  t.after(() => {
+    if (before === undefined) {
+      delete process.env.DOCTOR_CERTIFICATE_PASSWORD;
+    } else {
+      process.env.DOCTOR_CERTIFICATE_PASSWORD = before;
+    }
+  });
+};
+
+test("OptionsHelper.parseArguments reads the certificate password from the environment", (t) => {
+  // The channel that does not leak: --password is echoed by the terminal and
+  // visible in the process list
+  withEnv(t, "from-env");
+  const parsed = OptionsHelper.parseArguments({}, ["node", "doctor", "publish"]);
+  assert.equal(parsed.password, "from-env");
+});
+
+test("OptionsHelper.parseArguments prefers doctor.json's password to the environment", (t) => {
+  withEnv(t, "from-env");
+  const parsed = OptionsHelper.parseArguments({ password: "from-file" }, ["node", "doctor", "publish"]);
+  assert.equal(parsed.password, "from-file");
+});
+
+test("OptionsHelper.parseArguments prefers --password to both", (t) => {
+  withEnv(t, "from-env");
+  const parsed = OptionsHelper.parseArguments({ password: "from-file" }, [
+    "node", "doctor", "publish", "--password", "from-argument",
+  ]);
+  assert.equal(parsed.password, "from-argument");
+});
+
+test("OptionsHelper.parseArguments leaves the password empty when nothing supplies one", (t) => {
+  withEnv(t, undefined);
+  const parsed = OptionsHelper.parseArguments({}, ["node", "doctor", "publish"]);
+  assert.equal(parsed.password, null);
+});
+
+test("OptionsHelper.parseArguments ignores an empty environment variable", (t) => {
+  // An exported-but-empty variable is how a shell says "not set" often enough
+  withEnv(t, "");
+  const parsed = OptionsHelper.parseArguments({}, ["node", "doctor", "publish"]);
+  assert.equal(parsed.password, null);
+});

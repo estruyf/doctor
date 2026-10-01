@@ -45,6 +45,16 @@ The base64 encoded value is the easiest option to use in a CI/CD pipeline, as yo
 `--password <password>`
 : The password of your certificate file, when you protected it with one.
 
+  It can also come from the `DOCTOR_CERTIFICATE_PASSWORD` environment variable, which is the better
+  place for it when you run `doctor` yourself: a value passed as `--password` is printed by the
+  terminal that runs it and sits in the process list for the whole run, where any user on the machine
+  can read it. The order is `--password`, then `password` in `doctor.json`, then the environment
+  variable.
+
+  ```bash
+  DOCTOR_CERTIFICATE_PASSWORD='…' doctor publish
+  ```
+
 ### Authentication changes in v2.0.0
 
 Before v2.0.0, `doctor` could also authenticate with the `deviceCode` and `password` authentication types. Both are removed:

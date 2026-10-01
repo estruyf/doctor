@@ -222,6 +222,10 @@
       {
         "id": null,
         "title": "Fix: the `doctor.json` schema no longer offers `\"doctor-placeholder\"` as the default `pageTemplate`. The value was copied from `webPartTitle` by mistake, so an editor's IntelliSense suggested it as a page template name — and there is no default page template."
+      },
+      {
+        "id": null,
+        "title": "New: the certificate password can come from the `DOCTOR_CERTIFICATE_PASSWORD` environment variable, after `--password` and `doctor.json`. Passed as `--password`, a value is printed by the terminal that runs `doctor` and stays in the process list for the whole run; an environment variable is neither. The Doctor Metadata extension uses it to hand doctor the password it keeps in VS Code's secure storage."
       }
     ]
   },

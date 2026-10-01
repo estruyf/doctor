@@ -104,6 +104,7 @@ accurate as it grows:
 | `src/shortcodes/`, `ShortcodeKind` | `src/shortcodes/ShortcodeRegistry.ts` — the `BUILT_IN` list and the `kind` values |
 | `schema/2.1.0.json` | `src/config/doctor-schema.json` — a byte-for-byte copy the `doctor.json` editor is built from |
 | `src/commands/Command.ts`, the `--forceAll` option | `src/commands/runDoctor.ts` — `DOCTOR_RUNS`, the commands and flags the editor starts |
+| `CERTIFICATE_PASSWORD_ENV` in `OptionsHelper` | `src/commands/runDoctor.ts` — the variable the stored certificate password is handed over in |
 
 The schema row is the one copy that can be checked mechanically, because it is meant to be identical:
 `cmp schema/2.1.0.json <extension>/src/config/doctor-schema.json` says whether it has drifted. It
