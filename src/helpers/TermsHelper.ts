@@ -236,10 +236,12 @@ export class TermsHelper {
       }
 
       Logger.debug(
-        `The term store refused childrenCount, reading every term's children instead: ${e?.message || e}`,
+        `The term store refused a query with childrenCount, trying without: ${e?.message || e}`,
       );
+      const children = await read(select(false));
+      // Only now is it the count that was refused, rather than the request
       TermsHelper.countsChildren = false;
-      return await read(select(false));
+      return children;
     }
   }
 }

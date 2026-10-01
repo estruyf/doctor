@@ -216,3 +216,30 @@ test("TermsHelper still walks a store that refuses childrenCount", async (t) => 
   const resolved = await TermsHelper.resolve("https://contoso.sharepoint.com/sites/docs", "set-1", "Finance");
   assert.equal(resolved.id, "t1");
 });
+
+test("TermsHelper keeps asking for childrenCount when the request itself was the problem", async (t) => {
+  const realGet = ApiHelper.getOrThrow;
+  const realToken = AccessToken.get;
+  t.after(() => {
+    ApiHelper.getOrThrow = realGet;
+    AccessToken.get = realToken;
+    TermsHelper.reset();
+  });
+  TermsHelper.reset();
+  AccessToken.get = async () => "token";
+
+  const requested = [];
+  ApiHelper.getOrThrow = async (url) => {
+    requested.push(url);
+    if (url.includes("/sets/bad-set/")) {
+      throw new Error(`GET ${url} failed with status 400 (Bad Request)`);
+    }
+    return { value: [{ id: "t1", labels: [{ name: "Finance", isDefault: true }], childrenCount: 0 }] };
+  };
+
+  const site = "https://contoso.sharepoint.com/sites/docs";
+  await assert.rejects(TermsHelper.resolve(site, "bad-set", "Finance"), /status 400/);
+  await TermsHelper.resolve(site, "good-set", "Finance");
+
+  assert.ok(requested.at(-1).includes("childrenCount"), "a failing set did not turn the count off for the others");
+});

@@ -265,7 +265,6 @@ export class PagesHelper {
     skipExistingPages: boolean = false,
     reapplyTemplates: boolean = false
   ): Promise<boolean> {
-    const relativeUrl = FileHelpers.getRelUrl(webUrl, `sitepages/${slug}`);
     // Whether SharePoint answered for the page. Everything after that is an
     // update of a page that is there, and a failure in it is not a reason to
     // create the page — see the catch below.
@@ -273,28 +272,24 @@ export class PagesHelper {
 
     try {
       if (skipExistingPages) {
-        if (PagesHelper.pages && PagesHelper.pages.length > 0) {
-          const page = PagesHelper.pages.find(
-            (page: File) =>
-              page.FileRef?.toLowerCase() === relativeUrl.toLowerCase()
+        const page = PagesHelper.findListedPage(webUrl, slug);
+        if (page) {
+          // Page already existed
+          PagesHelper.processedPages[slug] = page.ID;
+          Logger.debug(
+            `Processed pages: ${JSON.stringify(PagesHelper.processedPages)}`
           );
-          if (page) {
-            // Page already existed
-            PagesHelper.processedPages[slug] = page.ID;
-            Logger.debug(
-              `Processed pages: ${JSON.stringify(PagesHelper.processedPages)}`
-            );
-            return true;
-          }
+          return true;
         }
       }
 
-      // Not retried: for a page that does not exist yet, which is what most
-      // failures here are, a retry is five seconds spent on the same answer
+      // Retried only for a page the site listed: for one that does not exist
+      // yet, which is what most failures here are, a retry is five seconds
+      // spent on the same answer
       const { stdout: pageDataOutput } = await executeWithRetry(
         "spo page get",
         { webUrl, name: slug, metadataOnly: true, output: "json" },
-        false
+        CliCommand.getRetry() && PagesHelper.isListedPage(webUrl, slug)
       );
       found = true;
       let pageData: Page = JSON.parse(pageDataOutput);
@@ -363,7 +358,7 @@ export class PagesHelper {
         throw e;
       }
 
-      if (PagesHelper.isListedPage(relativeUrl)) {
+      if (PagesHelper.isListedPage(webUrl, slug)) {
         throw new Error(
           `The page "${slug}" exists on the site, but could not be read, so it was left as it is rather than created again. ${
             e instanceof Error ? e.message : `${e}`
@@ -1670,13 +1665,33 @@ export class PagesHelper {
   }
 
   /**
-   * Whether the page was in Site Pages when the run started
-   * @param relativeUrl the page's server relative url
+   * Whether the page was in Site Pages when the run started.
+   *
+   * The path is built from the site URL itself rather than with `getRelUrl`,
+   * which cuts the URL at "sharepoint.com": on a root site that leaves
+   * `//sitepages/...`, and on another cloud's domain the whole URL, and either
+   * would never match — quietly turning this check off.
+   * @param webUrl
+   * @param slug
    */
-  private static isListedPage(relativeUrl: string): boolean {
-    const wanted = relativeUrl.toLowerCase();
-    return PagesHelper.pages.some(
-      (page: File) => page.FileRef?.toLowerCase() === wanted
+  private static isListedPage(webUrl: string, slug: string): boolean {
+    return !!PagesHelper.findListedPage(webUrl, slug);
+  }
+
+  private static findListedPage(webUrl: string, slug: string): File | undefined {
+    let site: string;
+    try {
+      site = new URL(webUrl).pathname;
+    } catch {
+      return undefined;
+    }
+
+    const normalize = (path: string) =>
+      path.replace(/\/{2,}/g, "/").toLowerCase();
+    const wanted = normalize(`${site}/sitepages/${slug}`);
+
+    return PagesHelper.pages.find(
+      (page: File) => !!page.FileRef && normalize(page.FileRef) === wanted
     );
   }
 

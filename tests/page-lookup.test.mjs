@@ -99,3 +99,48 @@ test("a page that was found is not created when updating it fails", { skip }, as
   );
   assert.deepEqual(await calls(), ["spo page get", "spo page set"]);
 });
+
+test("a listed page on a root site is recognised too", { skip }, async (t) => {
+  // The relative url used to be cut out of the site url at "sharepoint.com",
+  // which leaves `//sitepages/...` for a root site and never matched
+  const calls = await setup(t, {
+    pageGet: "unreachable",
+    listed: ["/SitePages/setup.aspx"],
+  });
+
+  await assert.rejects(
+    PagesHelper.createPageIfNotExists("https://contoso.sharepoint.com", "setup.aspx", "Setup"),
+    /exists on the site, but could not be read/,
+  );
+  assert.deepEqual(await calls(), ["spo page get"]);
+});
+
+test("a listed page on another cloud's domain is recognised too", { skip }, async (t) => {
+  await setup(t, {
+    pageGet: "unreachable",
+    listed: ["/sites/docs/SitePages/guides/Setup.aspx"],
+  });
+
+  await assert.rejects(
+    PagesHelper.createPageIfNotExists("https://contoso.sharepoint.us/sites/docs", "guides/setup.aspx", "Setup"),
+    /exists on the site, but could not be read/,
+  );
+});
+
+test("skipExistingPages finds a page on a root site without asking for it", { skip }, async (t) => {
+  const calls = await setup(t, { pageGet: "unreachable", listed: ["/SitePages/setup.aspx"] });
+
+  const existed = await PagesHelper.createPageIfNotExists(
+    "https://contoso.sharepoint.com",
+    "setup.aspx",
+    "Setup",
+    "Article",
+    false,
+    "",
+    null,
+    true,
+  );
+
+  assert.equal(existed, true);
+  assert.deepEqual(await calls(), []);
+});

@@ -251,8 +251,8 @@ export class CapabilitiesHelper {
 
   /**
    * Write the capability list to the console, once, before anything is
-   * published. In JSON mode `info` writes nothing, and the capabilities travel
-   * in the result document instead.
+   * published. In JSON mode `info` writes nothing; what will not run still
+   * reaches the result document, as its `warnings`.
    */
   public static report(
     capabilities: Capabilities,
