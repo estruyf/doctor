@@ -227,6 +227,13 @@ template on **every** publish instead of only when the page is created:
 
 The template is read once per run, however many pages use it.
 
+:::tip[A template made from a published page]
+Saving a page `Doctor` published as a template copies its Markdown web part into the template, text
+and all. That web part is left alone like anything else the template carries, so every page using the
+template would show that text above its own. Remove it from the template, and leave an empty
+one-column section where the page content should go.
+:::
+
 :::caution[The page layout is rebuilt every publish]
 With this on, a section somebody added to a templated page in SharePoint is gone the next time that
 page is published. That is the point of the setting — the template plus the markdown file describe

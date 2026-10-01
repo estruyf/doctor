@@ -653,6 +653,17 @@ export class PagesHelper {
     // With a template being re-applied, the layout composed into is the
     // template's rather than the page's. The page's own controls are still
     // matched against its real canvas above, so they keep their identity.
+    //
+    // Composing into a template, the title fallback stays out of it. It is for
+    // finding doctor's web part on a page that has no recorded ids, but the
+    // canvas composed into here is the template's — and a template made from a
+    // page doctor published carries a web part with exactly that title. It
+    // would be taken over on the first run and left alone on every run after,
+    // once the ids are recorded, moving the content between the two.
+    const composeOwnership = templateCanvas
+      ? { ownedInstanceIds: ownership.ownedInstanceIds }
+      : ownership;
+
     const writeCanvas = async (current: any[]) => {
       const base = templateCanvas
         ? CanvasHelper.mergeTemplate(templateCanvas, current)
@@ -661,7 +672,7 @@ export class PagesHelper {
       await CanvasHelper.save(
         webUrl,
         slug,
-        CanvasHelper.compose(base, controls, ownership)
+        CanvasHelper.compose(base, controls, composeOwnership)
       );
     };
 
