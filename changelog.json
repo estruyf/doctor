@@ -233,6 +233,10 @@
       },
       {
         "id": null,
+        "title": "New: when a certificate needs a password and none was given, doctor asks for it in the terminal, with the input shown as dots, and checks it against the certificate before signing in. Without a terminal — a pipeline, or `--output json` — it says the password is missing, instead of failing at the sign-in. `--password`, doctor.json and `DOCTOR_CERTIFICATE_PASSWORD` keep working as they did."
+      },
+      {
+        "id": null,
         "title": "Fix: a partial starting with a `/`, like `<include file=\"/navigation\" />`, is looked up in your sources folder as documented, instead of at the root of the file system. An absolute path to a partial outside the sources folder keeps working."
       },
       {

@@ -1,4 +1,5 @@
 export * from "./existsAsync.js";
+export * from "./checkCertificatePassword.js";
 export * from "./getAssetFolders.js";
 export * from "./toComparablePath.js";
 export * from "./splitLinkTarget.js";

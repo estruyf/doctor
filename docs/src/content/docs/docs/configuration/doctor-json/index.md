@@ -156,7 +156,7 @@ A web part added on the SharePoint side with the same title is left alone once `
 | `password` | The password of the certificate, when it has one. |
 
 :::caution[Important]
-`doctor.json` is usually committed. Keep the password out of it: `doctor` reads it from the `DOCTOR_CERTIFICATE_PASSWORD` environment variable when neither `--password` nor `doctor.json` has one. A certificate file is better kept outside the repository, too — an absolute path works.
+`doctor.json` is usually committed. Keep the password out of it: `doctor` reads it from the `DOCTOR_CERTIFICATE_PASSWORD` environment variable when neither `--password` nor `doctor.json` has one, and asks for it in the terminal when none of the three does. A certificate file is better kept outside the repository, too — an absolute path works.
 :::
 
 ## Pages

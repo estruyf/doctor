@@ -1,11 +1,14 @@
 import { resolve } from "path";
 import { Listr } from "listr2";
+import inquirer from "inquirer";
 import { CommandArguments } from "@models";
-import { Logger } from "@helpers";
-import { existsAsync } from "@utils";
+import { CERTIFICATE_PASSWORD_ENV, Logger, OutputHelper } from "@helpers";
+import { checkCertificatePassword, existsAsync, readFileAsync } from "@utils";
 import { executeCommand } from "@pnp/cli-microsoft365";
 
 const CERTIFICATE_FILE_EXTENSIONS = [".pfx", ".p12", ".pem"];
+/** How often a certificate password is asked for before giving up */
+const PASSWORD_ATTEMPTS = 3;
 
 export class Authenticate {
   /**
@@ -48,13 +51,75 @@ export class Authenticate {
       }
 
       // The file path is not a secret, so there is nothing to mask.
-      return { loginOptions: { certificateFile: certificatePath }, toMask: [] };
+      return {
+        loginOptions: { certificateFile: certificatePath },
+        toMask: [],
+        contents: async () => (await readFileAsync(certificatePath)) as Buffer,
+      };
     }
 
     return {
       loginOptions: { certificateBase64Encoded: certificate },
       toMask: [certificate],
+      contents: async () => Buffer.from(certificate, "base64"),
     };
+  }
+
+  /**
+   * The password of a certificate that needs one and was not given one.
+   *
+   * Asked for in the terminal, masked, and checked against the certificate
+   * before it is used — so a typo is caught here, in a second, rather than by
+   * Entra after a round trip, in an error about the sign-in. It is never
+   * echoed, never written anywhere, and lives only as long as this run.
+   *
+   * Without a terminal to ask in — a pipeline, `--output json`, input piped in —
+   * it says what is missing and where to put it, instead of the error the
+   * sign-in would end with.
+   *
+   * @returns the password, or `null` when the certificate needs none or this
+   * cannot tell
+   */
+  private static async askForPassword(
+    contents: Buffer
+  ): Promise<string | null> {
+    if (checkCertificatePassword(contents) !== "wrong") {
+      return null;
+    }
+
+    const canAsk =
+      !!process.stdin.isTTY && !!process.stdout.isTTY && !OutputHelper.isJson();
+
+    if (!canAsk) {
+      throw new Error(
+        `The certificate is protected with a password, and none was given. Set it in the ${CERTIFICATE_PASSWORD_ENV} environment variable, or pass it with the "--password" option.`
+      );
+    }
+
+    // Asked again from an empty field rather than through the prompt's own
+    // validation, which keeps the rejected text in the box: with every
+    // character shown as a dot, there is no telling how much to delete
+    for (let attempt = 1; attempt <= PASSWORD_ATTEMPTS; attempt++) {
+      const { password } = await inquirer.prompt([
+        {
+          type: "password",
+          name: "password",
+          message:
+            attempt === 1
+              ? "The certificate is protected with a password. Password:"
+              : "That password does not open the certificate. Try again:",
+          mask: "•",
+        },
+      ]);
+
+      if (checkCertificatePassword(contents, password) !== "wrong") {
+        return password;
+      }
+    }
+
+    throw new Error(
+      `None of the ${PASSWORD_ATTEMPTS} passwords opened the certificate.`
+    );
   }
 
   /**
@@ -105,9 +170,18 @@ Doctor signs in through the CLI for Microsoft 365, which requires your own Entra
       );
     }
 
-    const { loginOptions, toMask } = await this.getCertificateOptions(
+    const { loginOptions, toMask, contents } = await this.getCertificateOptions(
       certificate as string
     );
+
+    // `--password`, doctor.json and the environment variable all count as
+    // given; only a certificate that needs a password and has none is asked
+    // for one
+    const secret =
+      password ||
+      (await this.askForPassword(await contents()).catch((e) => {
+        throw new Error(Logger.mask(e?.message || `${e}`, toMask));
+      }));
 
     const certificateLoginOptions: any = {
       authType: "certificate",
@@ -116,8 +190,8 @@ Doctor signs in through the CLI for Microsoft 365, which requires your own Entra
       ...loginOptions,
     };
 
-    if (password) {
-      certificateLoginOptions.password = password;
+    if (secret) {
+      certificateLoginOptions.password = secret;
     }
 
     await new Listr<object, "default", "verbose">(
@@ -127,7 +201,7 @@ Doctor signs in through the CLI for Microsoft 365, which requires your own Entra
           task: async () =>
             await this.executeLogin(
               certificateLoginOptions,
-              [...toMask, password].filter((v): v is string => !!v)
+              [...toMask, secret].filter((v): v is string => !!v)
             ),
         },
       ],

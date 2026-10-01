@@ -166,7 +166,10 @@ mechanism off. Anything that changes what a page renders from must feed the hash
   Use the `*OrThrow` variants when a call must succeed — the plain ones swallow the SharePoint error
   message. `AccessToken.get()` caches per site for ten minutes, since fetching one runs two CLI commands.
 - [Authenticate](src/commands/authenticate.ts) handles login; a `--certificate` value ending in
-  `.pfx`/`.p12`/`.pem` is treated as a file path, anything else as base64 contents.
+  `.pfx`/`.p12`/`.pem` is treated as a file path, anything else as base64 contents. A certificate that
+  needs a password and was given none is asked for one in the terminal (masked, checked locally with
+  `checkCertificatePassword` before the sign-in) — only with a TTY and never with `--output json`, so a
+  pipeline gets an error rather than a prompt that hangs it.
 
 ### Logging secrets
 

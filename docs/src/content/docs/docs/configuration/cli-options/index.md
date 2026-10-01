@@ -55,6 +55,12 @@ The base64 encoded value is the easiest option to use in a CI/CD pipeline, as yo
   DOCTOR_CERTIFICATE_PASSWORD='…' doctor publish
   ```
 
+  When none of them has a password and the certificate needs one, `doctor` asks for it in the
+  terminal, with the input shown as dots. It checks the password against the certificate before
+  signing in, and asks again from an empty field when it does not fit — three tries. Nothing is
+  asked when the certificate has no password, and without a terminal to ask in — a CI/CD pipeline,
+  or `--output json` — `doctor` stops with a message saying the password is missing instead.
+
 ### Authentication changes in v2.0.0
 
 Before v2.0.0, `doctor` could also authenticate with the `deviceCode` and `password` authentication types. Both are removed:
