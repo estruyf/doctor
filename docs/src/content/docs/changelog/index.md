@@ -60,6 +60,7 @@ description: The changelog of Doctor
 - A web part a page template carries is never taken over, not even a Markdown one. Doctor used to write the page's content into the template's own Markdown web part, which meant it could not tell a slot you left for content from a web part you mean to show. The content now goes into the first empty one-column section, or into a new section below the template's layout when there is none, and everything the template brought is left alone.
 - Fix: the `doctor.json` schema no longer offers `"doctor-placeholder"` as the default `pageTemplate`. The value was copied from `webPartTitle` by mistake, so an editor's IntelliSense suggested it as a page template name — and there is no default page template.
 - New: the certificate password can come from the `DOCTOR_CERTIFICATE_PASSWORD` environment variable, after `--password` and `doctor.json`. Passed as `--password`, a value is printed by the terminal that runs `doctor` and stays in the process list for the whole run; an environment variable is neither. The Doctor Metadata extension uses it to hand doctor the password it keeps in VS Code's secure storage.
+- Docs: the `doctor.json` page now explains every setting — what it does, its default and flag, and what to know before changing it, such as why `webPartTitle` should be picked once, what `library` holds, and why a static navigation `id` must be lowercase without spaces.
 
 ## [2.2.0]
 
