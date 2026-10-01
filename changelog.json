@@ -226,6 +226,10 @@
       {
         "id": null,
         "title": "New: the certificate password can come from the `DOCTOR_CERTIFICATE_PASSWORD` environment variable, after `--password` and `doctor.json`. Passed as `--password`, a value is printed by the terminal that runs `doctor` and stays in the process list for the whole run; an environment variable is neither. The Doctor Metadata extension uses it to hand doctor the password it keeps in VS Code's secure storage."
+      },
+      {
+        "id": null,
+        "title": "Docs: the `doctor.json` page now explains every setting — what it does, its default and flag, and what to know before changing it, such as why `webPartTitle` should be picked once, what `library` holds, and why a static navigation `id` must be lowercase without spaces."
       }
     ]
   },

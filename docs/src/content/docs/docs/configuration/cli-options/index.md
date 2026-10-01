@@ -337,7 +337,7 @@ On the next run, `doctor` compares the hash of each local file with the one in t
 
 A skipped page is still a page on the site, so it keeps everything a published page would have kept:
 its entry in the [site navigation](../../content/pages/#menu), which is rebuilt on every run, and its
-place in the site when [`--cleanEnd`](#--cleanend) removes the pages the run did not want. The same
+place in the site when [`--cleanEnd`](#publish-command-specific-options) removes the pages the run did not want. The same
 goes for a page skipped because [its metadata could not be worked out](../../content/pages/#what-happens-when-a-value-cannot-be-set).
 
 The hash covers everything the published page is built from, not just the file you edited:
@@ -346,11 +346,11 @@ The hash covers everything the published page is built from, not just the file y
 | --- | --- |
 | The markdown file | that page is modified |
 | A [partial](../doctor-json/#reusable-content-partials) it uses | every page using that partial is modified |
-| An **image** it references | every page referencing that image is modified, and the image is re-uploaded |
+| An **image** it references | every page referencing that image is modified. The image itself is only uploaded again with [`--overwriteImages`](../doctor-json/#overwriteimages) — otherwise the file already in the library is kept |
 | The **slug of a page it links to** | every page linking to it is modified, so its links keep pointing at the right page |
 | A **custom shortcode's** code | every page is modified — a shortcode decides what its pages render |
 | A publish **setting** in `doctor.json` (`markdown.*`, `webPartTitle`, `partials.*`, `library`, the template options) | every page is modified |
-| The **page template**, with [`--reapplyTemplates`](#--reapplytemplates) | every page using that template is modified |
+| The **page template**, with [`--reapplyTemplates`](../doctor-json/#reapplytemplates) | every page using that template is modified |
 
 Images and linked pages are read once per run, however many pages refer to them.
 

@@ -20,12 +20,14 @@ Your article content starts here.
 Front Matter is the page its metadata.
 :::
 
+### Optional front matter
+
 Optional Front Matter properties are:
 
 - **slug**: `string` - If a slug is not defined, the title and current folder struture will be used. You can add the slug with our without `.aspx` file extension. The tool will automatically add it.
 - **draft**: `boolean` - defines if you want to publish the article during the publishing phase. Default: if not defined, the page will always be published.
 - **description**: `string` - the page description to add. _Be aware_: description is limited to 255 characters.
-- **comments**: `boolean` - with this setting you can enable/disable page commenting. By default comments are enabled, unless you disabled them for the whole site with the [`disableComments`](../../configuration/cli-options/#publish-command-specific-options) option. This page level setting always wins over the global one.
+- **comments**: `boolean` - with this setting you can enable/disable page commenting. By default comments are enabled, unless you disabled them for the whole site with the [`disableComments`](../../configuration/doctor-json/#disablecomments) option. This page level setting always wins over the global one.
 - **layout**: `Article` | `Home` - defines which page layout you want to use. Default layout type is `Article`.
 - **template**: `string` - the name of the page template to use for this page. Check: [Page templates](#page-templates).
 - **header**: `HeaderOptions` - defines how you want to render the header on the page.
@@ -148,7 +150,7 @@ exactly what the file says on every publish.
   matter brings along. `Doctor` has no way to describe a vertical section's contents in markdown, so
   it never writes to one.
 
-The **banner** follows the [`header`](#front-matter) front matter the same way. Changing a setting
+The **banner** follows the [`header`](#optional-front-matter) front matter the same way. Changing a setting
 applies it and resets the ones you left out, and removing the `header` block altogether puts the
 banner back to the default — a page never keeps a header its markdown no longer describes. The one
 exception is a page built from a `template`, which keeps the template's banner.
@@ -172,7 +174,7 @@ template: PageTemplate
 ---
 ```
 
-Or for every page at once, with the [`pageTemplate`](../../configuration/cli-options/#--pagetemplate)
+Or for every page at once, with the [`pageTemplate`](../../configuration/doctor-json/#pagetemplate)
 option in `doctor.json`:
 
 ```json
@@ -204,7 +206,7 @@ m365 spo page template list --webUrl https://<tenant>.sharepoint.com/sites/<site
 the site keeps the layout it has, even if you add `template` to its front matter afterwards.
 `Doctor` reports this once per run when it happens.
 
-Use [`--reapplyTemplates`](../../configuration/cli-options/#--reapplytemplates) to apply the template
+Use [`--reapplyTemplates`](../../configuration/doctor-json/#reapplytemplates) to apply the template
 to existing pages too — see below.
 :::
 
