@@ -106,6 +106,8 @@ accurate as it grows:
 | `src/commands/Command.ts`, the `--forceAll` option | `src/commands/runDoctor.ts` — `DOCTOR_RUNS`, the commands and flags the editor starts |
 | `CERTIFICATE_PASSWORD_ENV` in `OptionsHelper` | `src/commands/runDoctor.ts` — the variable the stored certificate password is handed over in |
 | `LCID_BY_LOCALE` in `LocaleHelper` | `src/config/languages.ts` — `DOCTOR_LOCALES`, the `doctor.json` editor's language list when SharePoint cannot be asked |
+| how `OptionsHelper`, `SiteHelpers.resolveLogoPath` and `PartialsHelper.getPartialPath` resolve a path setting | `src/config/pathFields.ts` — `PATH_FIELDS`, which form the editor's Browse button writes each path in |
+| the static item rules in `NavigationHelper` — the `parent` normalisation, the nameless-item skip, the weight sort | `src/config/menuItems.ts` — the warnings the `menu.*.items` editor shows, and the ids the side panel offers as a page's `parent` |
 
 The locale table matters beyond the editor. When signed in, the editor lists the languages SharePoint
 itself offers, which can include ones this table lacks; doctor accepts those by LCID but fails on
@@ -119,6 +121,12 @@ also showed the value of the copy being exercised: rendering the editor from it 
 `pageTemplate` default of `"doctor-placeholder"`, copied by mistake from `webPartTitle`, which had
 been in the published schema — and in every editor's IntelliSense for `doctor.json` — since August.
 Fixed on both sides in this release.
+
+The last two rows copy *behaviour* rather than a list, which makes them the easiest to break without
+noticing: the editor warns about what doctor does, so a change to how doctor resolves a path or
+builds the navigation turns those warnings into wrong advice. Both were written from the code, and
+both found a gap in it along the way — the `/x` partial form the docs describe is read as an absolute
+path, and a static `id` with capitals or spaces can never be a page's `parent`.
 
 A change to either side of a row without the other is a bug which does not show up until a page is
 published.
