@@ -102,6 +102,14 @@ accurate as it grows:
 | --- | --- |
 | front matter keys and the `metadata` transforms | `src/utils/doctorMappings.ts` |
 | `src/shortcodes/`, `ShortcodeKind` | `src/shortcodes/ShortcodeRegistry.ts` — the `BUILT_IN` list and the `kind` values |
+| `schema/2.1.0.json` | `src/config/doctor-schema.json` — a byte-for-byte copy the `doctor.json` editor is built from |
+
+The schema row is the one copy that can be checked mechanically, because it is meant to be identical:
+`cmp schema/2.1.0.json <extension>/src/config/doctor-schema.json` says whether it has drifted. It
+also showed the value of the copy being exercised: rendering the editor from it surfaced a
+`pageTemplate` default of `"doctor-placeholder"`, copied by mistake from `webPartTitle`, which had
+been in the published schema — and in every editor's IntelliSense for `doctor.json` — since August.
+Fixed on both sides in this release.
 
 A change to either side of a row without the other is a bug which does not show up until a page is
 published.

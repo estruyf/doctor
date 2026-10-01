@@ -168,8 +168,7 @@
       "$id": "#/properties/pageTemplate",
       "type": "string",
       "title": "pageTemplate",
-      "description": "The name of the default page template to use for all the pages.",
-      "default": "doctor-placeholder"
+      "description": "The name of the default page template to use for all the pages."
     },
     "continueOnError": {
       "$id": "#/properties/continueOnError",
