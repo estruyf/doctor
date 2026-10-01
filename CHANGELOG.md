@@ -54,6 +54,7 @@
 - A lookup column takes a list item id, so `0` and negative numbers are reported rather than sent to SharePoint to be refused after the page has been written.
 - The permissions report describes what happens to an `author` more precisely: one given as a site user id is skipped when the site users cannot be read, while one given as a name is set without checking it exists first.
 - The shortcode kind which becomes its own SharePoint web part is called `webpart` rather than `control`, so it is named after what it produces. The kind never shipped under the old name.
+- A web part a page template carries is never taken over, not even a Markdown one. Doctor used to write the page's content into the template's own Markdown web part, which meant it could not tell a slot you left for content from a web part you mean to show. The content now goes into the first empty one-column section, or into a new section below the template's layout when there is none, and everything the template brought is left alone.
 
 ## [2.2.0]
 
