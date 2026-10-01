@@ -58,6 +58,7 @@ description: The changelog of Doctor
 - The permissions report describes what happens to an `author` more precisely: one given as a site user id is skipped when the site users cannot be read, while one given as a name is set without checking it exists first.
 - The shortcode kind which becomes its own SharePoint web part is called `webpart` rather than `control`, so it is named after what it produces. The kind never shipped under the old name.
 - A web part a page template carries is never taken over, not even a Markdown one. Doctor used to write the page's content into the template's own Markdown web part, which meant it could not tell a slot you left for content from a web part you mean to show. The content now goes into the first empty one-column section, or into a new section below the template's layout when there is none, and everything the template brought is left alone.
+- Fix: the `doctor.json` schema no longer offers `"doctor-placeholder"` as the default `pageTemplate`. The value was copied from `webPartTitle` by mistake, so an editor's IntelliSense suggested it as a page template name — and there is no default page template.
 
 ## [2.2.0]
 
