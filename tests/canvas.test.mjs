@@ -673,42 +673,41 @@ test("mergeTemplate does not touch either input", () => {
   assert.equal(JSON.stringify(page), before.page);
 });
 
-test("a re-applied template puts the page's content in the template's slot", () => {
-  // What the publish actually does: merge, then compose into the result
+test("a re-applied template never takes over a web part the template carries", () => {
+  // Doctor cannot tell a slot a template left for content from a web part the
+  // template means to show, so it assumes the latter. The page's content gets
+  // somewhere of its own and the template keeps everything it brought.
   const page = [
     bannerFor("page-banner", "Extensions"),
     { ...webPart("ours-1", "doctor-placeholder", 1), position: contentSection(1, 9) },
     SETTINGS,
   ];
 
-  // The template's own placeholder carries an id belonging to the template, so
-  // it is folded into ownership the way the publish does — `compose` matches by
-  // id once it has any, and never claims a control on title alone
-  const ownership = CanvasHelper.withTemplateControls(
-    { ownedInstanceIds: ["ours-1"], ownedTitlePrefix: "doctor-placeholder" },
-    TEMPLATE,
-  );
-
   const canvas = CanvasHelper.compose(
-    CanvasHelper.mergeTemplate(TEMPLATE, page, ownership),
+    CanvasHelper.mergeTemplate(TEMPLATE, page),
     [{ ...markdown("doctor-placeholder"), instanceId: "ours-1" }],
-    ownership,
+    { ownedInstanceIds: ["ours-1"], ownedTitlePrefix: "doctor-placeholder" },
   );
 
-  // The page's own control, in the section the template reserved for content
+  // The template's own Markdown web part is still there, where it was
+  const templatePlaceholder = canvas.find((c) => c.id === "tpl-doctor");
+  assert.ok(templatePlaceholder, "the template's web part is kept");
+  assert.deepEqual(templatePlaceholder.position, TEMPLATE[1].position);
+  assert.ok(canvas.some((c) => c.id === "tpl-extra"), "template section kept");
+
+  // The page's content sits somewhere the template was not already using
   const content = canvas.find((c) => c.id === "ours-1");
-  assert.equal(content.position.zoneIndex, 2);
-  // The template's placeholder is gone, replaced rather than left beside it
-  assert.equal(
-    canvas.filter((c) => c.webPartId === MARKDOWN_WEBPART).length,
-    1,
+  const occupied = TEMPLATE.filter((c) => c.position).map(
+    (c) => `${c.position.zoneIndex}/${c.position.sectionIndex}`,
   );
-  assert.deepEqual(titles(canvas), [
-    "Title Region",
-    "doctor-placeholder",
-    "Contact us",
-  ]);
-  // And the banner is still the page's own
+  assert.ok(
+    !occupied.includes(
+      `${content.position.zoneIndex}/${content.position.sectionIndex}`,
+    ),
+    "content is not placed on top of the template",
+  );
+
+  // The banner is still the page's own
   assert.equal(
     canvas.find((c) => c.webPartId === PAGE_TITLE_WEBPART).webPartData.properties
       .title,
@@ -809,21 +808,47 @@ test("CanvasHelper still falls back to the title when it has no ids at all", () 
   assert.equal(titles(canvas).length, 1, "recognised, not duplicated");
 });
 
-test("withTemplateControls hands the template's placeholders over as owned", () => {
-  const ownership = CanvasHelper.withTemplateControls(
-    { ownedInstanceIds: ["ours-1"], ownedTitlePrefix: "doctor-placeholder" },
-    TEMPLATE,
+test("mergeTemplate always leaves somewhere for the content to go", () => {
+  // Including when the template has a Markdown web part of its own — that one
+  // is the template's, not a slot
+  const merged = CanvasHelper.mergeTemplate(TEMPLATE, [SETTINGS]);
+
+  const templateZones = new Set(
+    TEMPLATE.filter((c) => c.position).map((c) => c.position.zoneIndex),
+  );
+  const added = merged.filter(
+    (c) => c.position && !templateZones.has(c.position.zoneIndex),
   );
 
-  assert.ok(ownership.ownedInstanceIds.includes("ours-1"));
+  assert.equal(added.length, 1, "exactly one new section");
+  assert.equal(added[0].sectionFactor ?? added[0].position.sectionFactor, 12);
+  assert.ok(!added[0].controlType, "and it is empty");
+  // Everything the template carried survives
+  assert.ok(merged.some((c) => c.id === "tpl-doctor"));
+  assert.ok(merged.some((c) => c.id === "tpl-extra"));
+});
+
+test("CanvasHelper claims nothing by title on a page it has just created", () => {
+  // A page created in this run cannot carry a web part from an older doctor,
+  // but it can carry one from the template it was created from. The caller
+  // leaves the title prefix off, and nothing is claimed.
+  const fromTemplate = [
+    { ...webPart("tpl-1", "doctor-placeholder", 1), position: position(1) },
+    SETTINGS,
+  ];
+
+  const canvas = CanvasHelper.compose(fromTemplate, [markdown("doctor-placeholder")], {
+    ownedInstanceIds: [],
+    ownedTitlePrefix: undefined,
+  });
+
   assert.ok(
-    ownership.ownedInstanceIds.includes("tpl-doctor"),
-    "the template's own placeholder is owned too",
+    canvas.some((c) => c.id === "tpl-1"),
+    "the template's web part is left alone",
   );
-  // Nothing to add when there is no template
-  assert.deepEqual(
-    CanvasHelper.withTemplateControls({ ownedInstanceIds: ["ours-1"] }, null)
-      .ownedInstanceIds,
-    ["ours-1"],
+  assert.equal(
+    canvas.filter((c) => c.webPartId === MARKDOWN_WEBPART).length,
+    2,
+    "doctor's content is added alongside it, not into it",
   );
 });

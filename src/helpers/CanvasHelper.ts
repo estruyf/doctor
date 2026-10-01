@@ -159,8 +159,11 @@ export class CanvasHelper {
    * title inside the web part, so taking the template's would stamp the
    * template's title onto every page that uses it.
    *
-   * The template's own doctor controls are left in place on purpose: they mark
-   * where the content goes, and `compose()` recognises and replaces them.
+   * A web part the template carries is never taken over, not even a Markdown
+   * one. Doctor cannot tell a slot the template left for content from a web
+   * part the template means to show, so it assumes the latter and gives the
+   * content somewhere of its own — `compose()` then picks the first empty
+   * one-column section, or this one.
    *
    * @param template the template page's canvas
    * @param page the canvas of the page being published
@@ -168,7 +171,6 @@ export class CanvasHelper {
   public static mergeTemplate(
     template: CanvasControl[] | null,
     page: CanvasControl[] | null,
-    options: ComposeOptions = {},
   ): CanvasControl[] {
     if (!template || template.length === 0) {
       return page ? clone(page) : [];
@@ -176,28 +178,25 @@ export class CanvasHelper {
 
     const merged = clone(template);
 
-    // A template which says nothing about where the content goes gets a
-    // section of its own for it. Without this, doctor would take over the
-    // template's first ordinary section and clear whatever the template put
-    // there — the sections are the reason to use a template at all.
-    const isOwned = CanvasHelper.ownershipTest(options);
-    if (!merged.some((control) => isOwned(control))) {
-      const zones = merged
-        .filter((control) => control.position)
-        .map((control) => control.position.zoneIndex);
+    // Somewhere for the content to go which is not something the template put
+    // there. An empty column the template left is still preferred over this —
+    // `compose()` decides that — but there is always this to fall back on.
+    const zones = merged
+      .filter((control) => control.position)
+      .map((control) => control.position.zoneIndex);
 
-      merged.push({
-        position: {
-          zoneIndex: zones.length > 0 ? Math.max(...zones) + 1 : 1,
-          sectionIndex: 1,
-          sectionFactor: 12,
-          layoutIndex: 1,
-          controlIndex: 1,
-        },
-        emphasis: {},
-        displayMode: 2,
-      });
-    }
+    merged.push({
+      position: {
+        zoneIndex: zones.length > 0 ? Math.max(...zones) + 1 : 1,
+        sectionIndex: 1,
+        sectionFactor: 12,
+        layoutIndex: 1,
+        controlIndex: 1,
+      },
+      emphasis: {},
+      displayMode: 2,
+    });
+
     const isBanner = (control: CanvasControl) =>
       typeof control?.webPartId === "string" &&
       control.webPartId.toLowerCase() === PAGE_TITLE_WEB_PART_ID;
@@ -249,8 +248,12 @@ export class CanvasHelper {
    * Where doctor's controls belong.
    *
    * In order: the section its own controls are already in, so re-publishing
-   * never moves a page's content; otherwise the first ordinary content section;
-   * otherwise a new one-column section after everything else.
+   * never moves a page's content; otherwise the first *empty* one-column
+   * section, which is a slot waiting to be filled; otherwise a new one-column
+   * section after everything else.
+   *
+   * A section which already holds a web part is never taken, because doctor
+   * cannot tell one it may clear from one a template means to show.
    *
    * The full-width and vertical sections are deliberately never chosen. A
    * full-width section holds a single banner web part — dropping the markdown
@@ -302,16 +305,13 @@ export class CanvasHelper {
       return { ...empty.position };
     }
 
-    const content =
-      canvas.find((control) => CanvasHelper.isOneColumnSection(control)) ||
-      canvas.find((control) => CanvasHelper.isContentSection(control));
-    if (content) {
-      return { ...content.position };
-    }
-
-    // Only a banner (or nothing usable) on the page: give the content a section
-    // of its own underneath. A new zone, not another column of the banner's
-    // section — a full-width section takes a single web part.
+    // Nothing empty to move into, so the content gets a section of its own
+    // rather than one which already holds somebody's web parts. Taking an
+    // occupied section would clear it, and on a page built from a template
+    // what it would clear is the template.
+    //
+    // A new zone, not another column of an existing section — a full-width
+    // section takes a single web part.
     const zones = canvas
       .filter((control) => control.position)
       .map((control) => control.position.zoneIndex);
@@ -356,43 +356,6 @@ export class CanvasHelper {
     }
 
     return existing.filter(CanvasHelper.ownershipTest(options));
-  }
-
-  /**
-   * Ownership for a page whose template is being re-applied.
-   *
-   * A template's doctor controls mark where the content goes, but their
-   * instance ids belong to the template rather than to this page, so they are
-   * not in the page's recorded state. They are identified by title here, which
-   * is safe because a template is doctor's own page, and folded in as owned —
-   * so `compose` can go on matching by id alone and never has to guess about a
-   * control somebody added in SharePoint.
-   *
-   * @param options the page's own ownership
-   * @param template the template canvas being merged in, if there is one
-   */
-  public static withTemplateControls(
-    options: ComposeOptions,
-    template: CanvasControl[] | null,
-  ): ComposeOptions {
-    if (!template || template.length === 0) {
-      return options;
-    }
-
-    const fromTemplate = CanvasHelper.getOwned(template, {
-      ownedTitlePrefix: options.ownedTitlePrefix,
-    })
-      .map((control) => control.id)
-      .filter(Boolean);
-
-    if (fromTemplate.length === 0) {
-      return options;
-    }
-
-    return {
-      ...options,
-      ownedInstanceIds: [...(options.ownedInstanceIds ?? []), ...fromTemplate],
-    };
   }
 
   /**

@@ -541,7 +541,8 @@ export class PagesHelper {
     mdOptions: MarkdownSettings | null,
     wasAlreadyParsed: boolean = false,
     context: WebPartShortcodeContext | null = null,
-    templateCanvas: any[] | null = null
+    templateCanvas: any[] | null = null,
+    existed: boolean = true
   ) {
     const hasWebParts = segments.some((segment) => segment.type === "webpart");
 
@@ -563,13 +564,18 @@ export class PagesHelper {
       ? JSON.parse(page.CanvasContent1)
       : [];
 
-    const ownership = CanvasHelper.withTemplateControls(
-      {
-        ownedInstanceIds: StateHelper.getControls(slug),
-        ownedTitlePrefix: webPartTitle,
-      },
-      templateCanvas
-    );
+    // Matching on the title is how doctor finds the web part it put on a page
+    // before it recorded instance ids — a migration for pages published by an
+    // earlier version, which takes over from the next run.
+    //
+    // It is deliberately not applied to a page created in this run: such a page
+    // cannot carry a web part from an older doctor, but it can carry one from
+    // the template it was created from, and claiming that would clear what the
+    // template put there.
+    const ownership = {
+      ownedInstanceIds: StateHelper.getControls(slug),
+      ownedTitlePrefix: existed ? webPartTitle : undefined,
+    };
 
     // Reuse the instance id of a control of the same type, so SharePoint keeps
     // the control rather than seeing it removed and a new one added
@@ -629,7 +635,7 @@ export class PagesHelper {
     // matched against its real canvas above, so they keep their identity.
     const writeCanvas = async (current: any[]) => {
       const base = templateCanvas
-        ? CanvasHelper.mergeTemplate(templateCanvas, current, ownership)
+        ? CanvasHelper.mergeTemplate(templateCanvas, current)
         : current;
 
       await CanvasHelper.save(

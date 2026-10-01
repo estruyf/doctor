@@ -138,9 +138,12 @@ exactly what the file says on every publish.
 
 - The **page banner** keeps the full-width section at the top of the page, on its own. A full-width
   section holds a single web part, so nothing else is ever put there.
-- The **content** goes in the first ordinary one-column section. If the page has none — a page which
-  is only a banner, for instance — one is created below it.
-- Once a page has content, it stays in the section it is in. Re-publishing never moves it.
+- The **content** goes in the first **empty** one-column section. If the page has none — a page which
+  is only a banner, or whose sections all hold web parts already — one is created below them. A
+  section which already has a web part in it is never taken over.
+- Once a page has content, it stays in the section it is in. Re-publishing never moves it, and if you
+  drag it to another section in SharePoint it is published there from then on: `Doctor` finds its own
+  web parts by the instance ids it recorded, so the section is wherever they are now.
 - Every **other** section is left untouched: a vertical section, and anything the `template` front
   matter brings along. `Doctor` has no way to describe a vertical section's contents in markdown, so
   it never writes to one.
@@ -214,9 +217,10 @@ template on **every** publish instead of only when the page is created:
 2. the page keeps **its own banner**, so it keeps its own title and header image. A banner stores the
    page title inside the web part, so taking the template's would put the template's title on every
    page using it;
-3. the page's content is written into the slot the template reserves for it — the Markdown web part
-   the template itself contains. A template which has none gets a new section below its own, so the
-   web parts it does carry are never cleared to make room;
+3. the page's content goes into the first **empty** one-column section, or into a new section below
+   the template's layout when there is none. A web part the template carries is never taken over,
+   not even a Markdown one: `Doctor` cannot tell a slot you left for content from a web part you
+   mean to show, so it assumes the latter and leaves it alone;
 4. the page keeps its id, URL, history, comments and column values. Nothing is recreated.
 
 The template is read once per run, however many pages use it.

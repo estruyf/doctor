@@ -751,6 +751,7 @@ export class DoctorTranspiler {
               wasAlreadyParsed,
               { frontMatter: markup.data ?? {}, slug, webUrl },
               templateCanvas,
+              existed,
             );
 
             // Apply the page header after the page has content, because the CLI header command
