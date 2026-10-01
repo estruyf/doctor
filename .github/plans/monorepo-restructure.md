@@ -81,13 +81,30 @@ working.
 
 ### Two shared contracts, kept apart
 
-|                         | Describes                          | How it is shared                               |
-| ----------------------- | ---------------------------------- | ---------------------------------------------- |
-| `schema/*.json`         | the shape of `doctor.json`         | stays at the root; already published over HTTP |
-| `packages/front-matter` | the shape of page **front matter** | new package, imported by both                  |
+| | Describes | How it is shared |
+| --- | --- | --- |
+| `schema/*.json` | the shape of `doctor.json` | stays at the root; already published over HTTP |
+| `packages/common` | the shape of page **front matter**, and the **shortcodes** doctor ships | new package, imported by both |
 
-They are not the same thing and should not become one package. The first is configuration consumed
-by editors over HTTP; the second is the page contract consumed as code.
+The schema and the package are not the same thing and should not become one: the first is
+configuration consumed by editors over HTTP, the second is code.
+
+`packages/common` holds more than the front matter contract: the built-in shortcode list belongs
+there too, and so does anything else the two sides have to agree about.
+
+### Until then, the copies are kept in sync by hand
+
+The decision is to let them diverge-by-copy for now rather than block the extension's features on
+the restructure. These are the files that have to be changed together, and the list is worth keeping
+accurate as it grows:
+
+| In this repository | In the extension |
+| --- | --- |
+| front matter keys and the `metadata` transforms | `src/utils/doctorMappings.ts` |
+| `src/shortcodes/`, `ShortcodeKind` | `src/shortcodes/ShortcodeRegistry.ts` — the `BUILT_IN` list and the `kind` values |
+
+A change to either side of a row without the other is a bug which does not show up until a page is
+published.
 
 ## What the move breaks
 
@@ -156,11 +173,11 @@ This is a decision, not an oversight — please do not tidy it.
    is not worth anybody's afternoon.
 2. **The `files` allowlist**, on its own, small.
 3. **PR A — the mechanical move, no behaviour change.** One commit per step so a bisect can find a
-   break: `git mv` the CLI into `packages/doctor` and fix its aliases and scripts; workspaces at the
+   break: `git mv` the CLI into `apps/doctor` and fix its aliases and scripts; workspaces at the
    root; CI paths; husky; `AGENTS.md`/`CLAUDE.md`. Green at every step. The only review question is
    whether anything broke.
 4. **PR B — drop the extension in**, with `.vscodeignore`, a `publisher`, and a `vsce` workflow.
-5. **PR C onward — the redundancy work**, starting with `packages/front-matter`.
+5. **PR C onward — the redundancy work**, starting with `packages/common`.
 
 A and B stay apart deliberately: A is a large diff that has to be boring, B is a small diff that
 needs real review.
