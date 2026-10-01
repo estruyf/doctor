@@ -205,7 +205,7 @@
       },
       {
         "id": null,
-        "title": "Fix: a DateTime value which is not a date is reported before anything is written, instead of being passed to SharePoint to refuse after the page content has already changed. A date written without quotes in the front matter is parsed by YAML itself and is still accepted as it was."
+        "title": "Fix: a DateTime value which is not a date is reported before anything is written, instead of being passed to SharePoint to refuse after the page content has already changed. A date written without quotes in the front matter is parsed by YAML itself and is still accepted. A time with a time zone (`Z`, `+02:00`) is written in UTC and one without is written as it stands, so the value no longer depends on the time zone of the machine running doctor — the same markdown published a different date from a laptop than from a pipeline."
       },
       {
         "id": null,
@@ -234,6 +234,18 @@
       {
         "id": null,
         "title": "Fix: a partial starting with a `/`, like `<include file=\"/navigation\" />`, is looked up in your sources folder as documented, instead of at the root of the file system. An absolute path to a partial outside the sources folder keeps working."
+      },
+      {
+        "id": null,
+        "title": "Fix: a page that exists is no longer created again when looking it up fails for another reason than it not being there — a timeout, a throttled or failed request. Doctor took any failure as \"the page does not exist\", and for a page in a folder that meant creating it at the root and moving it over the existing page, which lost its history, its id and its translations. The lookup now also honours `--commandTimeout` and `--commandName`, which it bypassed."
+      },
+      {
+        "id": null,
+        "title": "Fix: a page or translation whose slug holds an apostrophe (`what's-new.aspx`) is addressed correctly in the REST calls doctor makes, which used to fail on it."
+      },
+      {
+        "id": null,
+        "title": "Fix: a person whose login name holds an apostrophe (`o'neill@contoso.com`) can be set on a person column and as the `author`."
       },
       {
         "id": null,

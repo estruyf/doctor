@@ -103,7 +103,7 @@ test("A person column carries everyone, in the order they were written", async (
       "b@contoso.com",
       "a@contoso.com",
     ]),
-    `[{'Key':'${CLAIM}b@contoso.com'},{'Key':'${CLAIM}a@contoso.com'}]`,
+    `[{"Key":"${CLAIM}b@contoso.com"},{"Key":"${CLAIM}a@contoso.com"}]`,
   );
 });
 
@@ -112,7 +112,7 @@ test("A single person column takes one claim, in the same shape", async (t) => {
 
   assert.equal(
     await PagesHelper.transformUserSingle(WEB_URL, "a@contoso.com"),
-    `[{'Key':'${CLAIM}a@contoso.com'}]`,
+    `[{"Key":"${CLAIM}a@contoso.com"}]`,
   );
 });
 

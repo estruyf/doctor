@@ -74,14 +74,14 @@ test("Taxonomy: no terms means no value to set", () => {
 test("Person: a claim becomes the value the column takes", () => {
   assert.equal(
     MetadataHelper.toPersonValue([`${CLAIM}user@contoso.com`]),
-    `[{'Key':'${CLAIM}user@contoso.com'}]`,
+    `[{"Key":"${CLAIM}user@contoso.com"}]`,
   );
 });
 
 test("Person: several claims keep the order they were written in", () => {
   assert.equal(
     MetadataHelper.toPersonValue([`${CLAIM}a@contoso.com`, `${CLAIM}b@contoso.com`]),
-    `[{'Key':'${CLAIM}a@contoso.com'},{'Key':'${CLAIM}b@contoso.com'}]`,
+    `[{"Key":"${CLAIM}a@contoso.com"},{"Key":"${CLAIM}b@contoso.com"}]`,
   );
 });
 
@@ -89,7 +89,7 @@ test("Person: a claim is taken as given, not reassembled", () => {
   // A guest or a group does not use the membership shape, so whatever the site
   // handed back has to survive untouched
   const guest = "i:0#.f|membership|guest_contoso.com#ext#@fabrikam.onmicrosoft.com";
-  assert.equal(MetadataHelper.toPersonValue([guest]), `[{'Key':'${guest}'}]`);
+  assert.equal(MetadataHelper.toPersonValue([guest]), `[{"Key":"${guest}"}]`);
 });
 
 test("Person: nobody means no value to set", () => {
@@ -130,14 +130,33 @@ test("DateTime: an ISO 8601 value is reformatted", () => {
   );
 });
 
-test("DateTime: a UTC value keeps pointing at the same moment", () => {
-  const output = MetadataHelper.transformDateTime("2026-03-15T14:30:00Z");
-
-  assert.match(output, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+test("DateTime: a value with a zone is written in UTC, wherever doctor runs", () => {
+  // Reformatted in the machine's local time, the same markdown published a
+  // different value from a laptop than from a pipeline running in UTC
   assert.equal(
-    new Date(output).getTime(),
-    new Date("2026-03-15T14:30:00Z").getTime(),
+    MetadataHelper.transformDateTime("2026-03-15T14:30:00Z"),
+    "2026-03-15 14:30:00",
   );
+  assert.equal(
+    MetadataHelper.transformDateTime("2026-03-15T14:30:00+02:00"),
+    "2026-03-15 12:30:00",
+  );
+  assert.equal(
+    MetadataHelper.transformDateTime("2026-03-15T00:30:00+0200"),
+    "2026-03-14 22:30:00",
+  );
+});
+
+test("DateTime: a value without a zone is written as it stands", () => {
+  assert.equal(
+    MetadataHelper.transformDateTime("2026-03-15T14:30"),
+    "2026-03-15 14:30:00",
+  );
+  assert.equal(
+    MetadataHelper.transformDateTime("2026-03-15T14:30:45.123"),
+    "2026-03-15 14:30:45",
+  );
+  assert.equal(MetadataHelper.transformDateTime("2026-02-30T10:00"), undefined);
 });
 
 test("DateTime: something that is not a date is reported, not passed through", () => {
@@ -149,12 +168,17 @@ test("DateTime: something that is not a date is reported, not passed through", (
   assert.equal(MetadataHelper.transformDateTime(new Date("nope")), undefined);
 });
 
-test("DateTime: a date YAML already parsed is left as the Date it is", () => {
-  // `Modified: 2026-03-15` without quotes is a Date by the time it gets here.
-  // Reformatting a UTC midnight in local time would move it to the 14th for
-  // anyone west of Greenwich.
-  const parsed = new Date("2026-03-15T00:00:00.000Z");
-  assert.equal(MetadataHelper.transformDateTime(parsed), parsed);
+test("DateTime: a date YAML already parsed keeps the day it was written on", () => {
+  // `Modified: 2026-03-15` without quotes is a Date by the time it gets here,
+  // a UTC midnight. Read in local time it moved to the 14th west of Greenwich.
+  assert.equal(
+    MetadataHelper.transformDateTime(new Date("2026-03-15T00:00:00.000Z")),
+    "2026-03-15 00:00:00",
+  );
+  assert.equal(
+    MetadataHelper.transformDateTime(new Date("2026-03-15T14:30:00.000Z")),
+    "2026-03-15 14:30:00",
+  );
 });
 
 //
@@ -242,6 +266,17 @@ test("MultiChoice: the blank entries are dropped", () => {
     MetadataHelper.transformMultiChoice(["Draft", "", "   ", "Review"]),
     "Draft;#Review",
   );
+});
+
+test("MultiChoice: a number or a yes/no YAML read is written as the choice it is", () => {
+  assert.equal(MetadataHelper.transformMultiChoice([2026, "Draft", true]), "2026;#Draft;#true");
+});
+
+test("MultiChoice: an entry that cannot be a choice reports the column", () => {
+  // As with people, lookups and terms: the readable entries are not written on
+  // their own, because that is a shorter list than the markdown asks for
+  assert.equal(MetadataHelper.transformMultiChoice(["Draft", { label: "Review" }]), undefined);
+  assert.equal(MetadataHelper.transformMultiChoice(["Draft", ["Review"]]), undefined);
 });
 
 test("MultiChoice: a string is passed through, already delimited", () => {

@@ -9,6 +9,7 @@ import { AccessToken } from "./AccessToken.js";
 import { ApiHelper } from "./ApiHelper.js";
 import { Logger } from "./Logger.js";
 import { OutputHelper } from "./OutputHelper.js";
+import { toODataPath } from "@utils";
 
 const trimUrl = (webUrl: string): string => webUrl.replace(/\/+$/, "");
 
@@ -144,7 +145,7 @@ export class CapabilitiesHelper {
     }
 
     const pages = await read(
-      `${base}/_api/web/GetList('${encodeURIComponent(`${site}/SitePages`)}')/EffectiveBasePermissions`,
+      `${base}/_api/web/GetList('${toODataPath(`${site}/SitePages`)}')/EffectiveBasePermissions`,
     );
     // Addressed by its server relative url, not by title: `--library` is a path
     // — `Shared Documents` is the folder, while the list is called `Documents`
@@ -152,7 +153,7 @@ export class CapabilitiesHelper {
     // nothing about the library it is actually asked about.
     const assets = options.assetLibrary
       ? await read(
-          `${base}/_api/web/GetList('${encodeURIComponent(`${site}/${options.assetLibrary.replace(/^\/+|\/+$/g, "")}`)}')/EffectiveBasePermissions`,
+          `${base}/_api/web/GetList('${toODataPath(`${site}/${options.assetLibrary.replace(/^\/+|\/+$/g, "")}`)}')/EffectiveBasePermissions`,
         )
       : null;
 

@@ -81,6 +81,11 @@ export class MetadataHelper {
    * name first — a guest or a group does not use the shape a principal name is
    * assembled into, so the login name the site holds is the only one it will
    * compare against.
+   *
+   * Serialised as JSON rather than assembled by hand: a login name can hold a
+   * `'` — `o'neill@contoso.com` is a valid principal name — and spliced into a
+   * single-quoted string it ended the value early, so SharePoint refused the
+   * column after the page had already been written.
    * @param loginNames one claim per person, in the order they were written
    */
   public static toPersonValue(loginNames: string[]): string | undefined {
@@ -88,7 +93,7 @@ export class MetadataHelper {
       return undefined;
     }
 
-    return `[${loginNames.map((name) => `{'Key':'${name}'}`).join(",")}]`;
+    return JSON.stringify(loginNames.map((name) => ({ Key: name })));
   }
 
   /**
@@ -105,17 +110,25 @@ export class MetadataHelper {
   }
 
   /**
-   * SharePoint wants `YYYY-MM-DD HH:MM:SS`. A date with no time is midnight,
-   * and anything else is parsed and reformatted in local time.
+   * SharePoint wants `YYYY-MM-DD HH:MM:SS`, which it reads in the site's time
+   * zone.
+   *
+   * The result must not depend on the machine running doctor, or the same
+   * markdown publishes a different date from a laptop than from a pipeline
+   * running in UTC. So a time that names its zone — `Z`, `+02:00`, or a date
+   * YAML already parsed — is written in UTC, and one that names none is
+   * written as it stands. A date without a time is midnight.
    * @param value
    */
   public static transformDateTime(value: any): any {
     // A date written without quotes is parsed by YAML itself, so it arrives as
-    // a Date rather than a string. Passed through as it always has been: the
-    // CLI serialises it, and reformatting a UTC midnight in local time would
-    // move `2026-03-15` to the 14th for anyone west of Greenwich.
+    // a Date — a moment in UTC. Read back in UTC, `2026-03-15` stays the 15th
+    // wherever doctor runs; in local time it moved to the 14th west of
+    // Greenwich.
     if (value instanceof Date) {
-      return Number.isNaN(value.getTime()) ? undefined : value;
+      return Number.isNaN(value.getTime())
+        ? undefined
+        : MetadataHelper.formatUtc(value);
     }
 
     // Anything which is not a date and not text cannot be one
@@ -132,6 +145,40 @@ export class MetadataHelper {
       return `${trimmed} 00:00:00`;
     }
 
+    const iso =
+      /^(\d{4}-\d{2}-\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?(Z|[+-]\d{2}:?\d{2})?$/i.exec(
+        trimmed,
+      );
+    if (iso) {
+      const [, date, hours, minutes, seconds = "00", zone] = iso;
+
+      // Taken apart by hand rather than by Date, so it also has to be checked
+      // by hand: `2026-02-30` is the right shape and not a day
+      const asUtc = new Date(`${date}T${hours}:${minutes}:${seconds}Z`);
+      if (
+        Number.isNaN(asUtc.getTime()) ||
+        asUtc.toISOString().slice(0, 10) !== date
+      ) {
+        Logger.debug(`DateTime value '${value}' is not a real date.`);
+        return undefined;
+      }
+
+      if (!zone) {
+        return `${date} ${hours}:${minutes}:${seconds}`;
+      }
+
+      // `+0200` is ISO 8601 too, but not a form every Date parser takes
+      const withColon = zone.replace(/^([+-]\d{2})(\d{2})$/, "$1:$2");
+      const moment = new Date(
+        `${date}T${hours}:${minutes}:${seconds}${withColon.toUpperCase()}`,
+      );
+      if (!Number.isNaN(moment.getTime())) {
+        return MetadataHelper.formatUtc(moment);
+      }
+    }
+
+    // Any other way of writing a date says nothing about its zone, so it is
+    // read the way it reads: in the local time it was written in
     const parsed = new Date(trimmed);
     if (!Number.isNaN(parsed.getTime())) {
       return `${parsed.getFullYear()}-${MetadataHelper.pad2(
@@ -235,17 +282,55 @@ export class MetadataHelper {
   }
 
   /**
-   * Several choices on one column
+   * Several choices on one column.
+   *
+   * A blank entry is not a choice, so it is left out. A number or a yes/no is
+   * one YAML read before doctor did — `- 2026` is the choice "2026" — so it is
+   * written as text. Anything else, a nested list or an object, cannot be a
+   * choice, and as with the other multi-value columns the column is reported
+   * rather than written with the entries that could be read.
    * @param value
    */
   public static transformMultiChoice(value: any): any {
-    if (Array.isArray(value)) {
-      return value
-        .filter((entry) => typeof entry === "string" && entry.trim())
-        .join(";#");
+    if (!Array.isArray(value)) {
+      return value;
     }
 
-    return value;
+    const choices: string[] = [];
+
+    for (const entry of value) {
+      if (entry === null || typeof entry === "undefined") {
+        continue;
+      }
+
+      if (typeof entry === "number" || typeof entry === "boolean") {
+        choices.push(String(entry));
+        continue;
+      }
+
+      if (typeof entry !== "string") {
+        Logger.debug(
+          `Skipping choice field because ${JSON.stringify(entry)} is not a choice.`,
+        );
+        return undefined;
+      }
+
+      if (entry.trim()) {
+        choices.push(entry.trim());
+      }
+    }
+
+    return choices.join(";#");
+  }
+
+  private static formatUtc(value: Date): string {
+    return `${value.getUTCFullYear()}-${MetadataHelper.pad2(
+      value.getUTCMonth() + 1,
+    )}-${MetadataHelper.pad2(value.getUTCDate())} ${MetadataHelper.pad2(
+      value.getUTCHours(),
+    )}:${MetadataHelper.pad2(value.getUTCMinutes())}:${MetadataHelper.pad2(
+      value.getUTCSeconds(),
+    )}`;
   }
 
   private static pad2(value: number): string {

@@ -6,6 +6,8 @@ interface TermStoreTerm {
   id: string;
   labels?: { name: string; isDefault?: boolean; languageTag?: string }[];
   isDeprecated?: boolean;
+  /** How many terms sit directly under this one, when the store says */
+  childrenCount?: number;
 }
 
 /** A term with the labels it can be addressed by, flattened out of the tree */
@@ -30,9 +32,17 @@ const defaultLabel = (term: TermStoreTerm): string => {
 export class TermsHelper {
   /** The flattened terms per term set (and anchor), which do not change during a run */
   private static terms: { [cacheKey: string]: ResolvedTerm[] } = {};
+  /**
+   * Whether the store accepts `childrenCount` in a `$select`. It tells which
+   * terms have children, so the leaves — most of a term set — are not each
+   * asked for children they do not have. A store which refuses the property
+   * is walked the slow way rather than not at all.
+   */
+  private static countsChildren = true;
 
   public static reset(): void {
     TermsHelper.terms = {};
+    TermsHelper.countsChildren = true;
   }
 
   /**
@@ -134,56 +144,102 @@ export class TermsHelper {
     parentId: string | undefined,
     path: string[],
   ): Promise<ResolvedTerm[]> {
-    const base = trimUrl(webUrl);
-    const set = encodeURIComponent(termSetId);
-    const first = parentId
-      ? `${base}/_api/v2.1/termStore/sets/${set}/terms/${encodeURIComponent(parentId)}/children?$select=id,labels,isDeprecated`
-      : `${base}/_api/v2.1/termStore/sets/${set}/children?$select=id,labels,isDeprecated`;
-
-    // The term store answers in pages. Reading only the first one used to make
-    // every term past it invisible, so a perfectly valid label in a large set
-    // was reported as not existing in it — and the page skipped over a term
-    // that was there all along.
-    const children: TermStoreTerm[] = [];
-    let url: string | null = first;
-
-    while (url) {
-      const response: any = await ApiHelper.getOrThrow(url, {
-        Authorization: `Bearer ${(await AccessToken.get(webUrl)).trim()}`,
-        accept: "application/json",
-      });
-
-      children.push(...((response?.value as TermStoreTerm[]) || []));
-
-      const next = response?.["@odata.nextLink"] || response?.["odata.nextLink"];
-      url = typeof next === "string" && next !== url ? next : null;
-    }
+    const children = await TermsHelper.readChildren(
+      webUrl,
+      termSetId,
+      parentId,
+    );
 
     const resolved: ResolvedTerm[] = [];
 
     for (const child of children) {
-      if (child.isDeprecated) {
-        // A deprecated term cannot be set on an item, and is not offered by the
-        // picker either, so matching one would only produce a confusing failure
-        continue;
+      const label = defaultLabel(child);
+
+      // A deprecated term cannot be set on an item, and is not offered by the
+      // picker either, so matching one would only produce a confusing failure.
+      // Its children are another matter: deprecating a term leaves the terms
+      // under it as they were, so they are still read.
+      if (!child.isDeprecated) {
+        resolved.push({
+          id: child.id,
+          label,
+          labels: (child.labels || [])
+            .map((entry) => entry.name)
+            .filter(Boolean),
+          path,
+        });
       }
 
-      const label = defaultLabel(child);
-      resolved.push({
-        id: child.id,
-        label,
-        labels: (child.labels || []).map((entry) => entry.name).filter(Boolean),
-        path,
-      });
-
-      resolved.push(
-        ...(await TermsHelper.walk(webUrl, termSetId, child.id, [
-          ...path,
-          label,
-        ])),
-      );
+      // A count of 0 is a leaf. No count at all says nothing, so it is asked.
+      if (child.childrenCount !== 0) {
+        resolved.push(
+          ...(await TermsHelper.walk(webUrl, termSetId, child.id, [
+            ...path,
+            label,
+          ])),
+        );
+      }
     }
 
     return resolved;
+  }
+
+  /** The terms directly under a set or a term, every page of them */
+  private static async readChildren(
+    webUrl: string,
+    termSetId: string,
+    parentId: string | undefined,
+  ): Promise<TermStoreTerm[]> {
+    const base = trimUrl(webUrl);
+    const set = encodeURIComponent(termSetId);
+    const collection = parentId
+      ? `${base}/_api/v2.1/termStore/sets/${set}/terms/${encodeURIComponent(parentId)}/children`
+      : `${base}/_api/v2.1/termStore/sets/${set}/children`;
+    const select = (withCount: boolean) =>
+      `${collection}?$select=id,labels,isDeprecated${withCount ? ",childrenCount" : ""}`;
+
+    const read = async (first: string): Promise<TermStoreTerm[]> => {
+      // The term store answers in pages. Reading only the first one used to
+      // make every term past it invisible, so a perfectly valid label in a
+      // large set was reported as not existing in it — and the page skipped
+      // over a term that was there all along.
+      const children: TermStoreTerm[] = [];
+      let url: string | null = first;
+
+      while (url) {
+        const response: any = await ApiHelper.getOrThrow(url, {
+          Authorization: `Bearer ${(await AccessToken.get(webUrl)).trim()}`,
+          accept: "application/json",
+        });
+
+        children.push(...((response?.value as TermStoreTerm[]) || []));
+
+        const next =
+          response?.["@odata.nextLink"] || response?.["odata.nextLink"];
+        url = typeof next === "string" && next !== url ? next : null;
+      }
+
+      return children;
+    };
+
+    if (!TermsHelper.countsChildren) {
+      return await read(select(false));
+    }
+
+    try {
+      return await read(select(true));
+    } catch (e: any) {
+      // Only a refusal of the query is worth another try without the count;
+      // anything else fails the same way again
+      if (!/status 400|childrenCount/i.test(`${e?.message || e}`)) {
+        throw e;
+      }
+
+      Logger.debug(
+        `The term store refused childrenCount, reading every term's children instead: ${e?.message || e}`,
+      );
+      TermsHelper.countsChildren = false;
+      return await read(select(false));
+    }
   }
 }

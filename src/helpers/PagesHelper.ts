@@ -174,100 +174,104 @@ export class PagesHelper {
   }
 
   /**
-  * Recycle the pages which are tracked in the publish state, but whose markdown
-  * file no longer exists. The pages end up in the site its recycle bin, so they
-  * can still be restored from SharePoint itself.
-  * @param webUrl
-  * @param slugs The slugs of the pages to recycle
-  * @param task
-  * @param options
-  * @param onRemoved Called for every page which got recycled, also when a later
-  * page fails, so the publish state can be kept in sync with the site.
-  * @returns The slugs which are no longer on the site
-  */
+   * Recycle the pages which are tracked in the publish state, but whose markdown
+   * file no longer exists. The pages end up in the site its recycle bin, so they
+   * can still be restored from SharePoint itself.
+   * @param webUrl
+   * @param slugs The slugs of the pages to recycle
+   * @param task
+   * @param options
+   * @param onRemoved Called for every page which got recycled, also when a later
+   * page fails, so the publish state can be kept in sync with the site.
+   * @returns The slugs which are no longer on the site
+   */
   public static async removePages(
-   webUrl: string,
-   slugs: string[],
-   task: TaskOutput,
-   options: CommandArguments,
-   onRemoved?: (slug: string) => void
+    webUrl: string,
+    slugs: string[],
+    task: TaskOutput,
+    options: CommandArguments,
+    onRemoved?: (slug: string) => void
   ): Promise<string[]> {
-   const removed: string[] = [];
+    const removed: string[] = [];
 
-   Logger.debug(`Recycling the following deleted pages`);
-   Logger.debug(slugs);
+    Logger.debug(`Recycling the following deleted pages`);
+    Logger.debug(slugs);
 
-   for (let i = 0; i < slugs.length; i++) {
-     const slug = slugs[i];
-     if (!slug) {
-       continue;
-     }
+    for (let i = 0; i < slugs.length; i++) {
+      const slug = slugs[i];
+      if (!slug) {
+        continue;
+      }
 
-     task.output = `[${i + 1}/${slugs.length}] Recycling deleted page: ${slug}`;
+      task.output = `[${i + 1}/${slugs.length}] Recycling deleted page: ${slug}`;
 
-     try {
-       const relUrl = FileHelpers.getRelUrl(webUrl, `sitepages/${slug}`);
-       await executeWithRetry(
-         "spo file remove",
-         {
-           webUrl,
-           url: relUrl,
-           recycle: true,
-           force: true,
-         },
-         CliCommand.getRetry()
-       );
+      try {
+        const relUrl = FileHelpers.getRelUrl(webUrl, `sitepages/${slug}`);
+        await executeWithRetry(
+          "spo file remove",
+          {
+            webUrl,
+            url: relUrl,
+            recycle: true,
+            force: true,
+          },
+          CliCommand.getRetry()
+        );
 
-       removed.push(slug);
-       onRemoved?.(slug);
-     } catch (e) {
-       const errorMessage =
-         typeof e === "string" ? e : e instanceof Error ? e.message : JSON.stringify(e);
-       Logger.debug(errorMessage);
+        removed.push(slug);
+        onRemoved?.(slug);
+      } catch (e) {
+        const errorMessage =
+          typeof e === "string" ? e : e instanceof Error ? e.message : JSON.stringify(e);
+        Logger.debug(errorMessage);
 
-       // The page is already gone from the site, so the state can drop it as well.
-       if (this.isNotFoundError(errorMessage)) {
-         Logger.debug(`Page ${slug} no longer exists on the site.`);
-         removed.push(slug);
-         onRemoved?.(slug);
-         continue;
-       }
+        // The page is already gone from the site, so the state can drop it as well.
+        if (this.isNotFoundError(errorMessage)) {
+          Logger.debug(`Page ${slug} no longer exists on the site.`);
+          removed.push(slug);
+          onRemoved?.(slug);
+          continue;
+        }
 
-       // Prefixed with the library, so the summary shows it is a page on the
-       // site which failed, and not a local file.
-       StatusHelper.addError(`sitepages/${slug}`);
+        // Prefixed with the library, so the summary shows it is a page on the
+        // site which failed, and not a local file.
+        StatusHelper.addError(`sitepages/${slug}`);
 
-       if (!options.continueOnError) {
-         throw new Error(
-           `Failed to recycle the deleted page "${slug}". ${errorMessage}`
-         );
-       }
-     }
-   }
+        if (!options.continueOnError) {
+          throw new Error(
+            `Failed to recycle the deleted page "${slug}". ${errorMessage}`
+          );
+        }
+      }
+    }
 
-   return removed;
+    return removed;
   }
 
   /**
-  * Check if the page exists, and if it doesn't it will be created
-  * @param webUrl
-  * @param slug
-  * @param title
-  */
+   * Check if the page exists, and if it doesn't it will be created
+   * @param webUrl
+   * @param slug
+   * @param title
+   */
   public static async createPageIfNotExists(
-   webUrl: string,
-   slug: string,
-   title: string,
-   layout: string = "Article",
-   commentsDisabled: boolean = false,
+    webUrl: string,
+    slug: string,
+    title: string,
+    layout: string = "Article",
+    commentsDisabled: boolean = false,
     description: string = "",
     template: string | null = null,
     skipExistingPages: boolean = false,
     reapplyTemplates: boolean = false
   ): Promise<boolean> {
-    try {
-      const relativeUrl = FileHelpers.getRelUrl(webUrl, `sitepages/${slug}`);
+    const relativeUrl = FileHelpers.getRelUrl(webUrl, `sitepages/${slug}`);
+    // Whether SharePoint answered for the page. Everything after that is an
+    // update of a page that is there, and a failure in it is not a reason to
+    // create the page — see the catch below.
+    let found = false;
 
+    try {
       if (skipExistingPages) {
         if (PagesHelper.pages && PagesHelper.pages.length > 0) {
           const page = PagesHelper.pages.find(
@@ -285,12 +289,14 @@ export class PagesHelper {
         }
       }
 
-      const { stdout: pageDataOutput } = await executeCommand("spo page get", {
-        webUrl,
-        name: slug,
-        metadataOnly: true,
-        output: "json",
-      });
+      // Not retried: for a page that does not exist yet, which is what most
+      // failures here are, a retry is five seconds spent on the same answer
+      const { stdout: pageDataOutput } = await executeWithRetry(
+        "spo page get",
+        { webUrl, name: slug, metadataOnly: true, output: "json" },
+        false
+      );
+      found = true;
       let pageData: Page = JSON.parse(pageDataOutput);
 
       PagesHelper.processedPages[slug] = (
@@ -346,6 +352,25 @@ export class PagesHelper {
 
       return true;
     } catch (e) {
+      // Only a page which is not there may be created. Creating one that is —
+      // because the lookup timed out, or SharePoint answered with a 5xx —
+      // replaces it: a page in a folder is created at the root and moved over
+      // the existing one, which loses its history, its id and the translations
+      // linked to it. The error text cannot tell the cases apart, as SharePoint
+      // words it in the site's language, but the list of pages read at the
+      // start of the run can.
+      if (found) {
+        throw e;
+      }
+
+      if (PagesHelper.isListedPage(relativeUrl)) {
+        throw new Error(
+          `The page "${slug}" exists on the site, but could not be read, so it was left as it is rather than created again. ${
+            e instanceof Error ? e.message : `${e}`
+          }`
+        );
+      }
+
       // Check if folders for the file need to be created
       if (slug.split("/").length > 1) {
         const folders = slug.split("/");
@@ -764,12 +789,6 @@ export class PagesHelper {
   }
 
   /**
-   * Set the page its metadata
-   * @param webUrl
-   * @param slug
-   * @param metadata
-   */
-  /**
    * Work out what every metadata column should be set to, without touching the
    * page.
    *
@@ -1122,7 +1141,9 @@ export class PagesHelper {
    * The canvas of a page template, read once per run.
    *
    * Returns null when the template cannot be found or read, which leaves the
-   * page with the layout it has rather than failing over it.
+   * page with the layout it has rather than failing over it. That is said once
+   * per template: `--reapplyTemplates` was asked for, and every page quietly
+   * keeping its old layout looks exactly like the option doing nothing.
    */
   public static async getTemplateCanvas(
     webUrl: string,
@@ -1149,7 +1170,9 @@ export class PagesHelper {
       );
 
       if (!found) {
-        Logger.debug(`Page template "${template}" not found on ${webUrl}.`);
+        OutputHelper.warning(
+          `The page template "${template}" does not exist on ${webUrl}, so the pages using it keep the layout they have instead of having it re-applied.`
+        );
         return null;
       }
 
@@ -1164,8 +1187,11 @@ export class PagesHelper {
         `Read the canvas of page template "${template}" (${name}).`
       );
     } catch (e: any) {
-      Logger.debug(
-        `Could not read the canvas of page template "${template}": ${e?.message || e}`
+      // Remembered for the run like a missing template, so the pages using it
+      // do not each wait on the same failure. The pages are tracked with the
+      // template unread, so the next run sees a change and re-applies it.
+      OutputHelper.warning(
+        `The page template "${template}" could not be read, so the pages using it keep the layout they have on this run. ${e?.message || e}`
       );
     }
 
@@ -1615,9 +1641,6 @@ export class PagesHelper {
   }
 
   /**
-   * Receive all the pages which have not been touched
-   */
-  /**
    * Record a page this run is keeping but did not write, so the cleanup pass
    * leaves it alone
    * @param slug
@@ -1628,6 +1651,9 @@ export class PagesHelper {
     }
   }
 
+  /**
+   * Receive all the pages which have not been touched
+   */
   private static getUntouchedPages(): string[] {
     let untouched: string[] = [];
     for (const page of PagesHelper.pages) {
@@ -1641,6 +1667,17 @@ export class PagesHelper {
       }
     }
     return untouched;
+  }
+
+  /**
+   * Whether the page was in Site Pages when the run started
+   * @param relativeUrl the page's server relative url
+   */
+  private static isListedPage(relativeUrl: string): boolean {
+    const wanted = relativeUrl.toLowerCase();
+    return PagesHelper.pages.some(
+      (page: File) => page.FileRef?.toLowerCase() === wanted
+    );
   }
 
   private static isNotFoundError(message: string): boolean {

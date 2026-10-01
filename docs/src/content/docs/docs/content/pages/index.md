@@ -418,7 +418,7 @@ metadata:
   Owner: "john.doe@contoso.com"
 ```
 
-Outputs: `[{'Key':'i:0#.f|membership|john.doe@contoso.com'}]`
+Outputs: `[{"Key":"i:0#.f|membership|john.doe@contoso.com"}]`
 
 **Multi User Field** (`UserMulti`):
 
@@ -431,7 +431,7 @@ metadata:
     - "jane.smith@contoso.com"
 ```
 
-Outputs: `[{'Key':'i:0#.f|membership|john.doe@contoso.com'},{'Key':'i:0#.f|membership|jane.smith@contoso.com'}]`
+Outputs: `[{"Key":"i:0#.f|membership|john.doe@contoso.com"},{"Key":"i:0#.f|membership|jane.smith@contoso.com"}]`
 
 Every name on a person column is resolved against the tenant before the page is written, and the
 login name SharePoint answers with is the one that ends up on the page — so a guest or a group gets
@@ -446,9 +446,10 @@ it.
 ##### DateTime Fields
 
 Input accepts multiple formats:
-- ISO 8601: `"2024-01-15T10:30:45Z"` (converted to local time)
-- Date only: `"2024-01-15"` (treated as local midnight)
 - Already normalized: `"2024-01-15 10:30:45"` (passed through unchanged)
+- Date only: `"2024-01-15"`, or `2024-01-15` without quotes (midnight on that day)
+- ISO 8601 without a time zone: `"2024-01-15T10:30"` (the date and time as written)
+- ISO 8601 with a time zone: `"2024-01-20T14:30:00Z"` or `"2024-01-20T16:30:00+02:00"` (converted to UTC)
 
 ```yaml
 metadata:
@@ -457,7 +458,7 @@ metadata:
   ApprovalDate: "2024-01-22 09:00:00"
 ```
 
-All date-only values are normalized to `yyyy-MM-dd HH:mm:ss` format with local-midnight semantics. Invalid or ambiguous values are logged as debug messages and passed through unchanged, allowing SharePoint to handle the validation.
+SharePoint reads the result in the **site's** time zone. `Doctor` never uses the time zone of the machine it runs on for the formats above, so the same markdown publishes the same value from your laptop and from a pipeline. A value that is not a date — or not a real one, like `2024-02-30` — is reported as a problem and the page is skipped, rather than passed to SharePoint to be refused after the page has been written.
 
 ##### Lookup Fields
 
@@ -522,9 +523,9 @@ metadata:
     - "Feature C"
 ```
 
-Empty strings in a **Choice** array are filtered out.
+Empty entries in a **Choice** array are left out, and a number or `true`/`false` is written as text — `- 2026` is the choice `2026`.
 
-Every other multi-value column takes the list as a whole: if one entry cannot be read — a person
+Every multi-value column takes the list as a whole: if one entry cannot be read — a choice which is a list or an object, a person
 column entry which is not a user principal name, a lookup entry which is not an item id, a managed
 metadata entry which is neither a label nor a `{ label, termGuid }` pair — the column is reported as
 a problem and the page is skipped. `Doctor` does not write the entries it could read and leave the

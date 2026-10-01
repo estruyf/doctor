@@ -372,16 +372,6 @@ export class DoctorTranspiler {
   }
 
   /**
-   * Merges the page its menu definition into the navigation structure that gets
-   * applied after all pages have been processed. Draft pages are ignored, as
-   * they cannot be added to the site navigation.
-   * @param webUrl
-   * @param output
-   * @param data The front matter of the page
-   * @param slug
-   * @param title
-   */
-  /**
    * Everything a page still has to contribute when it is not published on this
    * run — because it did not change, or because its metadata could not be
    * worked out.
@@ -403,6 +393,16 @@ export class DoctorTranspiler {
     this.addToNavigation(webUrl, output, data, slug, title);
   }
 
+  /**
+   * Merges the page its menu definition into the navigation structure that gets
+   * applied after all pages have been processed. Draft pages are ignored, as
+   * they cannot be added to the site navigation.
+   * @param webUrl
+   * @param output
+   * @param data The front matter of the page
+   * @param slug
+   * @param title
+   */
   private static addToNavigation(
     webUrl: string,
     output: PublishOutput,
@@ -827,23 +827,6 @@ export class DoctorTranspiler {
   }
 
   /**
-   * Process images referenced in the file
-   * @param $
-   * @param imgElms
-   * @param filePath
-   * @param contents
-   * @param options
-   * @param output
-   * @param task
-   */
-  /**
-   * The images on the page that have a file to upload.
-   *
-   * A `data:` source carries its image with it — shortcodes use those for the
-   * diagrams they draw — and an absolute one already lives somewhere. Shared
-   * with the capability gate, so what is checked is what would be uploaded.
-   */
-  /**
    * Everything on the page that has to reach the asset library before the page
    * can be published as its markdown describes it.
    *
@@ -881,6 +864,13 @@ export class DoctorTranspiler {
     return needs;
   }
 
+  /**
+   * The images on the page that have a file to upload.
+   *
+   * A `data:` source carries its image with it — shortcodes use those for the
+   * diagrams they draw — and an absolute one already lives somewhere. Shared
+   * with the capability gate, so what is checked is what would be uploaded.
+   */
   private static getUploadableImages(
     $: CheerioAPI,
     imgElms: Element[],
@@ -893,6 +883,16 @@ export class DoctorTranspiler {
       .map((img) => $(img).attr("src")!);
   }
 
+  /**
+   * Process images referenced in the file
+   * @param $
+   * @param imgElms
+   * @param filePath
+   * @param contents
+   * @param options
+   * @param output
+   * @param task
+   */
   private static async processImages(
     $: CheerioAPI,
     imgElms: Element[],
@@ -947,14 +947,6 @@ export class DoctorTranspiler {
   }
 
   /**
-   * Process the links referenced in the markdown files
-   * @param $
-   * @param linkElms
-   * @param filePath
-   * @param content
-   * @param options
-   */
-  /**
    * The hash a page is tracked by.
    *
    * The one entry point for it, because `status` answers the question "would
@@ -1008,6 +1000,14 @@ export class DoctorTranspiler {
     }`;
   }
 
+  /**
+   * Process the links referenced in the markdown files
+   * @param $
+   * @param linkElms
+   * @param filePath
+   * @param content
+   * @param options
+   */
   private static async processLinks(
     $: CheerioAPI,
     linkElms: Element[],

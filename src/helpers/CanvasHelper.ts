@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { AccessToken } from "./AccessToken.js";
 import { ApiHelper } from "./ApiHelper.js";
 import { Logger } from "./Logger.js";
+import { toODataPath } from "@utils";
 
 /**
  * The canvas is SharePoint's own `CanvasContent1` structure. It is kept as
@@ -83,9 +84,7 @@ const escapeForRegex = (value: string): string =>
 const trimUrl = (webUrl: string): string => webUrl.replace(/\/+$/, "");
 
 const pageApiUrl = (webUrl: string, slug: string): string =>
-  `${trimUrl(webUrl)}/_api/sitepages/pages/GetByUrl('sitepages/${encodeURIComponent(
-    slug,
-  )}')`;
+  `${trimUrl(webUrl)}/_api/sitepages/pages/GetByUrl('sitepages/${toODataPath(slug)}')`;
 
 export class CanvasHelper {
   /** The available web parts per site, which never change during a run */

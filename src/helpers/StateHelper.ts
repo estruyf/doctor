@@ -249,20 +249,16 @@ export class StateHelper {
   }
 
   /**
-   * Always returns true when state has not been loaded.
-   */
-  /**
    * Record the hash of the settings and shortcodes every page renders through.
    * When it differs from the last run, every page counts as changed: the pages
    * themselves did not move, but what they publish as did.
    *
-   * @returns whether it differs from the state that was loaded
-   */
-  /**
-   * Note: this is for reporting, not for deciding. The settings are folded into
+   * This is for reporting, not for deciding. The settings are folded into
    * every page's own hash by `DependencyHelper`, which is what actually makes
    * them republish — recording the new hash here before the pages have caught
    * up used to strand every page a failed run never reached.
+   *
+   * @returns whether it differs from the state that was loaded
    */
   public static setConfigHash(configHash: string): boolean {
     if (!StateHelper.state) {
@@ -280,6 +276,10 @@ export class StateHelper {
     return StateHelper.configChanged;
   }
 
+  /**
+   * Whether a page differs from what was last published. Always true when the
+   * state has not been loaded, or when the settings changed since it was.
+   */
   public static hasChanged(slug: string, contentHash: string): boolean {
     if (StateHelper.configChanged) {
       return true;

@@ -154,3 +154,65 @@ test("TermsHelper stops when a page points at itself", async (t) => {
   );
   assert.ok(calls <= 10, "gave up instead of looping");
 });
+
+test("TermsHelper does not ask a leaf for children, and reads under a deprecated term", async (t) => {
+  const realGet = ApiHelper.getOrThrow;
+  const realToken = AccessToken.get;
+  t.after(() => {
+    ApiHelper.getOrThrow = realGet;
+    AccessToken.get = realToken;
+    TermsHelper.reset();
+  });
+  TermsHelper.reset();
+  AccessToken.get = async () => "token";
+
+  const labels = (name) => [{ name, isDefault: true }];
+  const children = {
+    root: [
+      { id: "leaf", labels: labels("Leaf"), childrenCount: 0 },
+      { id: "parent", labels: labels("Parent"), childrenCount: 1 },
+      { id: "old", labels: labels("Old"), isDeprecated: true, childrenCount: 1 },
+    ],
+    parent: [{ id: "child", labels: labels("Child"), childrenCount: 0 }],
+    old: [{ id: "kept", labels: labels("Kept"), childrenCount: 0 }],
+  };
+
+  const requested = [];
+  ApiHelper.getOrThrow = async (url) => {
+    requested.push(url);
+    const parent = /\/terms\/([^/]+)\/children/.exec(url)?.[1] ?? "root";
+    return { value: children[parent] ?? [] };
+  };
+
+  const site = "https://contoso.sharepoint.com/sites/docs";
+  assert.equal((await TermsHelper.resolve(site, "set-1", "Kept")).id, "kept");
+  await assert.rejects(TermsHelper.resolve(site, "set-1", "Old"), /does not exist/);
+
+  assert.equal(requested.length, 3, `asked: ${requested.join("\n")}`);
+  assert.ok(!requested.some((url) => url.includes("/terms/leaf/") || url.includes("/terms/child/")));
+});
+
+test("TermsHelper still walks a store that refuses childrenCount", async (t) => {
+  const realGet = ApiHelper.getOrThrow;
+  const realToken = AccessToken.get;
+  t.after(() => {
+    ApiHelper.getOrThrow = realGet;
+    AccessToken.get = realToken;
+    TermsHelper.reset();
+  });
+  TermsHelper.reset();
+  AccessToken.get = async () => "token";
+
+  ApiHelper.getOrThrow = async (url) => {
+    if (url.includes("childrenCount")) {
+      throw new Error(`GET ${url} failed with status 400 (Bad Request)`);
+    }
+    if (url.includes("/terms/")) {
+      return { value: [] };
+    }
+    return { value: [{ id: "t1", labels: [{ name: "Finance", isDefault: true }] }] };
+  };
+
+  const resolved = await TermsHelper.resolve("https://contoso.sharepoint.com/sites/docs", "set-1", "Finance");
+  assert.equal(resolved.id, "t1");
+});

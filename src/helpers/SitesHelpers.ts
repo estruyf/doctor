@@ -26,13 +26,6 @@ const getErrorMessage = (error: any): string => {
 
 export class SiteHelpers {
   /**
-   * The look of the site is set with calls that need rights on the web, which
-   * an account allowed to publish pages does not necessarily have. None of it
-   * is worth losing a run over — the pages are already written by then — so a
-   * refusal reports what was left alone and the publish carries on. Anything
-   * else is a real failure and still stops the run.
-   */
-  /**
    * Where the site logo actually is.
    *
    * The path used to be taken relative to the content folder, which is not
@@ -105,6 +98,13 @@ export class SiteHelpers {
     );
   }
 
+  /**
+   * The look of the site is set with calls that need rights on the web, which
+   * an account allowed to publish pages does not necessarily have. None of it
+   * is worth losing a run over — the pages are already written by then — so a
+   * refusal reports what was left alone and the publish carries on. Anything
+   * else is a real failure and still stops the run.
+   */
   private static skipIfNotAllowed(
     error: unknown,
     what: string,
