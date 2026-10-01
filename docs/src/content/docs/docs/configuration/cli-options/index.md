@@ -298,7 +298,7 @@ This flag can only be added to the command execution. Using it in the `doctor.js
 :::
 
 `--skipSiteDesign`:
-: This flag allows you to skip setting the site its look and feel in the publish flow.
+: This flag allows you to skip setting the site's look and feel in the publish flow.
 
 :::caution[Important]
 This flag can only be added to the command execution. Using it in the `doctor.json` file has no effect.
@@ -397,7 +397,7 @@ Pass the `--removeDeleted` flag to act on them:
 doctor publish --removeDeleted --confirm
 ```
 
-Every page which is tracked in the state, but has no markdown file anymore, gets recycled and dropped from the state. The pages end up in the site its recycle bin, so you can still restore them from SharePoint itself.
+Every page which is tracked in the state, but has no markdown file anymore, gets recycled and dropped from the state. The pages end up in the site's recycle bin, so you can still restore them from SharePoint itself.
 
 :::caution[Important]
 The removal needs to be confirmed. When you do not pass the `--confirm` flag, `doctor` asks you to confirm it before the publishing run starts. In a CI/CD pipeline you always need to pass `--confirm`, as there is nobody to answer the question.

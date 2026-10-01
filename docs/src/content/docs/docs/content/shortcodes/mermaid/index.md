@@ -29,7 +29,7 @@ The file is named after the contents of the diagram, so it lands in a `mermaid` 
 Because the diagram is drawn on your machine, the page needs no script, no CDN, and no tenant configuration to show it. The Mermaid version is the one `Doctor` ships, so your diagrams do not change when SharePoint updates its own.
 
 :::note[Why the diagram is drawn while publishing]
-`Doctor` hands its HTML to the SharePoint Markdown web part, which injects it into the page. A `<script>` tag that arrives that way never runs, so a diagram cannot be rendered in the browser from `Doctor` its output. SharePoint has its own Mermaid support and would pick up the diagram instead, with whichever version SharePoint ships. Rendering while publishing avoids both problems.
+`Doctor` hands its HTML to the SharePoint Markdown web part, which injects it into the page. A `<script>` tag that arrives that way never runs, so a diagram cannot be rendered in the browser from `Doctor`'s output. SharePoint has its own Mermaid support and would pick up the diagram instead, with whichever version SharePoint ships. Rendering while publishing avoids both problems.
 :::
 
 ## Why an uploaded image

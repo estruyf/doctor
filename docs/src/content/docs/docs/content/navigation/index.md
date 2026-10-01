@@ -42,7 +42,7 @@ The `menu` property in the `doctor.json` file is what enables the navigation. Wh
 There are two supported locations, and you can use both at the same time:
 
 - **`QuickLaunch`**: the navigation on the left side of your site. `doctor` creates a maximum of three levels here (`root/sub/sub-sub`), as that is what SharePoint supports. Deeper items are ignored.
-- **`TopNavigationBar`**: the horizontal navigation at the top of your site. How many levels are visible depends on the site its header configuration. The mega menu shows three levels, the cascading navigation shows two. Check the [`disableMegaMenu`](../../configuration/doctor-json/#site-look-and-feel) option to switch between both.
+- **`TopNavigationBar`**: the horizontal navigation at the top of your site. How many levels are visible depends on the site's header configuration. The mega menu shows three levels, the cascading navigation shows two. Check the [`disableMegaMenu`](../../configuration/doctor-json/#site-look-and-feel) option to switch between both.
 
 Any other key you add under `menu` is ignored.
 
@@ -67,7 +67,7 @@ Write here the Doctor page content.
 The item supports the following properties:
 
 - **id**: `string` (required) - The identifier of the navigation item. Other pages use this value to place themselves underneath this page. Write it in **lowercase without spaces**: a `parent` is lowercased and its spaces removed before it is looked up, and an id written any other way is not always found — when a child page is processed first, `Getting Started` and the placeholder `gettingstarted` end up as two items.
-- **name**: `string` (optional) - The title of the navigation item. When it is not defined, the page its `title` is used.
+- **name**: `string` (optional) - The title of the navigation item. When it is not defined, the page's `title` is used.
 - **weight**: `number` (optional) - Defines the position of the item within its level. Check the [ordering](#ordering) section.
 - **parent**: `string` (optional) - The `id` of the item underneath which this page needs to be placed. When it is not defined, the page ends up at the root of the navigation. Check the [hierarchy](#hierarchy) section.
 
