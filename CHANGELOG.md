@@ -3,7 +3,7 @@
 ## [2.3.0]
 
 
-- New: a shortcode can set `kind: "control"` to become a SharePoint web part of its own instead of returning HTML. The page is cut at the tag, so one Markdown file can publish as `[markdown] [web part] [markdown]` — for instance a Highlighted content web part between two pieces of text. Besides `webPartProperties`, a control shortcode can return `webPartData` for the web parts which keep state outside their properties. Pages without a control shortcode publish exactly as before.
+- New: a shortcode can set `kind: "webpart"` to become a SharePoint web part of its own instead of returning HTML. The page is cut at the tag, so one Markdown file can publish as `[markdown] [web part] [markdown]` — for instance a Highlighted content web part between two pieces of text. Besides `webPartProperties`, a control shortcode can return `webPartData` for the web parts which keep state outside their properties. Pages without a control shortcode publish exactly as before.
 - A page's controls are now written in one call instead of one per web part, which also means the web parts you added on the SharePoint side keep their place on the page.
 - Fix: managed metadata fields can be set from a term label again. The term lookup called the CLI without a term group, so it never resolved and the field was silently left empty — only an explicit `termGuid` worked. Labels are now resolved against the column's term set through the site term store.
 - Managed metadata: a column pinned to an anchor term only resolves labels inside that sub-tree, a term can be written by any of its labels, and a duplicate label can be written as a path (`Regions > Europe`).
@@ -53,6 +53,7 @@
 - Fix: a DateTime value which is not a date is reported before anything is written, instead of being passed to SharePoint to refuse after the page content has already changed. A date written without quotes in the front matter is parsed by YAML itself and is still accepted as it was.
 - A lookup column takes a list item id, so `0` and negative numbers are reported rather than sent to SharePoint to be refused after the page has been written.
 - The permissions report describes what happens to an `author` more precisely: one given as a site user id is skipped when the site users cannot be read, while one given as a name is set without checking it exists first.
+- The shortcode kind which becomes its own SharePoint web part is called `webpart` rather than `control`, so it is named after what it produces. The kind never shipped under the old name.
 
 ## [2.2.0]
 
