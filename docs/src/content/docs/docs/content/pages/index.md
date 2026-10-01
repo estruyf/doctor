@@ -17,14 +17,14 @@ Your article content starts here.
 - **title**: `string` - The title of the page.
 
 :::note[Info]
-Front Matter is the page its metadata.
+Front matter is the metadata of the page.
 :::
 
 ### Optional front matter
 
 Optional Front Matter properties are:
 
-- **slug**: `string` - If a slug is not defined, the title and current folder struture will be used. You can add the slug with our without `.aspx` file extension. The tool will automatically add it.
+- **slug**: `string` - If a slug is not defined, the folder the file is in and its title are used: `guides/setup.md` titled *Set up* becomes `guides/set-up.aspx`. You can add the slug with or without the `.aspx` file extension; `doctor` adds it when it is missing.
 - **draft**: `boolean` - defines if you want to publish the article during the publishing phase. Default: if not defined, the page will always be published.
 - **description**: `string` - the page description to add. _Be aware_: description is limited to 255 characters.
 - **comments**: `boolean` - with this setting you can enable/disable page commenting. By default comments are enabled, unless you disabled them for the whole site with the [`disableComments`](../../configuration/doctor-json/#disablecomments) option. This page level setting always wins over the global one.
@@ -63,11 +63,11 @@ A complete explanation of how the navigation gets created can be found on the [n
   - `QuickLaunch` OR `TopNavigationBar` - Default is `QuickLaunch`
     - **id**: `string` (required) - Navigation id. This can be used to create a hierarchy in your navigation.
     - **name**: `string` (optional) - When this property is defined, it will be used for the navigation item title, otherwise the page title will be used.
-    - **weight**: `number` (optional) - The weight of the navigation item. If you want to have it first or last.
-    - **parent**: `string` (optional) - Defines the hierarchy of you page in the menu. If not provided, the items will be added to the root of the navigation. When defined, it should contain the `id` value of the parent page. You can also add multi-level navigation like: `<parent-id>/<sub-parent-id>`.
+    - **weight**: `number` (optional) - The order. Items with a weight come first, lowest first; items without one follow, alphabetically. `0` counts as no weight.
+    - **parent**: `string` (optional) - Defines the hierarchy of your page in the menu. If not provided, the item is added to the root of the navigation. When defined, it is the `id` of the parent: another page's menu `id`, or a [static item](../../configuration/doctor-json/#global-navigation-structure) in `doctor.json`. You can also add multi-level navigation like: `<parent-id>/<sub-parent-id>`. It is lowercased and its spaces removed before it is looked up.
 
 :::caution[Important 1]
-During the publishing process, the navigation will be re-created each time.
+The navigation is rebuilt on every publish, from the pages and the static items in `doctor.json`. A top-level node with the same title as one `doctor` creates is replaced; other nodes are left alone unless you use `cleanQuickLaunch` or `cleanTopNavigation` — see [how the navigation is updated](../../configuration/doctor-json/#global-navigation-structure).
 :::
 
 :::caution[Important 2]
@@ -246,9 +246,9 @@ ordinary page instead. The publish still succeeds, so it is worth reading the wa
 a run rather than assuming a template was applied.
 :::
 
-A page created from a template keeps the template's **banner**: the `header` front matter is not
-applied to it, so the template stays in charge of how the top of the page looks. The page content
-still comes from the markdown as always.
+A page that names a template keeps the template's **banner** when its front matter has no `header`,
+so the template stays in charge of how the top of the page looks. Give it a `header` and that is
+applied, as on any other page. The page content still comes from the markdown as always.
 
 The [`doctor-sample`](https://github.com/estruyf/doctor-sample) repository shows the setting in use.
 
@@ -412,7 +412,8 @@ A few things are worth knowing:
 - **An unknown or ambiguous term skips the page** — see [below](#what-happens-when-a-value-cannot-be-set).
   The warning names the term and, when it is ambiguous, the paths it matched. Give an explicit
   `termGuid` to bypass the lookup entirely.
-- **Deprecated terms are ignored**, since SharePoint does not accept them on an item anyway.
+- **Deprecated terms are ignored**, since SharePoint does not accept them on an item anyway. The
+  terms under a deprecated term still can be used.
 
 ##### User Fields
 
@@ -491,7 +492,7 @@ metadata:
     - 8
 ```
 
-Non-numeric values are logged as debug messages and skipped; the field is only set if at least one valid ID is found.
+An id has to be a whole number above zero. A value which is not one is reported as a problem and the page is skipped; in a list, one such entry is enough — see below.
 
 ##### URL Fields
 
@@ -512,7 +513,7 @@ metadata:
     url: "https://contoso.com"
 ```
 
-If an object has no `url` property, the field is skipped with a debug message.
+An object without a `url` is reported as a problem, and the page is skipped.
 
 ##### Multi-Choice Fields
 
@@ -576,17 +577,17 @@ does mean the warnings at the end of a run are worth reading.
   answer about the name: it fails that page, and the next page asks again. If the account is not
   allowed to look users up at all, `doctor` says so once and carries on without the check — an
   unknown name then fails its page while it is being written, instead of being reported before.
-
-None of this runs when the account is not allowed to set columns on the Site Pages library at all. In
-that case the `metadata` and `author` front matter is skipped for every page, reported once, and the
-pages themselves are published as normal — see
-[available permissions](../../configuration/cli-options/#available-permissions).
 - **Terms are resolved against the column's own term set**, honouring its anchor term, the term's
   other labels and a `Parent > Child` path. A label which matches more than one term is reported as
   a problem rather than guessed at.
 - **SharePoint still validates on its side.** A value which passes these checks can still be refused
   by the library itself — that is a publishing error like any other, and it fails the page rather
   than skipping it.
+
+None of this runs when the account is not allowed to set columns on the Site Pages library at all. In
+that case the `metadata` and `author` front matter is skipped for every page, reported once, and the
+pages themselves are published as normal — see
+[available permissions](../../configuration/cli-options/#available-permissions).
 
 #### Example with Multiple Field Types
 

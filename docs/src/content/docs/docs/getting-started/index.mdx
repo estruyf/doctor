@@ -85,7 +85,7 @@ Once `doctor` is installed and your app registration and certificate are in plac
 3. Check what the next publishing run will do:
 
    ```sh
-   doctor status
+   doctor status --certificate ./cert.pfx
    ```
 
 4. Publish your content to SharePoint:
@@ -94,8 +94,10 @@ Once `doctor` is installed and your app registration and certificate are in plac
    doctor publish --certificate ./cert.pfx
    ```
 
+When the certificate has a password, `doctor` asks for it — the input shows as dots.
+
 :::note[Info]
-The `appId`, `tenant`, and `url` values can live in the `doctor.json` file, so you only need to pass the `certificate` (and its `password`) on each run. Keep those secrets out of source control. More information can be found in the [configuration](../configuration) section.
+The `appId`, `tenant`, and `url` values live in the `doctor.json` file, and so can the path to the certificate — `"certificate": "./cert.pfx"` — so `doctor status` and `doctor publish` are all you type. Keep the certificate file itself out of source control, and its password out of `doctor.json`: set it in the `DOCTOR_CERTIFICATE_PASSWORD` environment variable, or let `doctor` ask for it. More information can be found in the [configuration](../configuration) section.
 :::
 
 ## Next steps

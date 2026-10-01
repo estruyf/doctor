@@ -21,7 +21,7 @@ To use the extended syntax, you have to let `Doctor` render the HTML by enabling
 ```
 
 :::caution[Important]
-everything on this page requires `allowHtml` to be enabled. Without it, SharePoint keeps rendering your content and the extended syntax is ignored.
+Everything on this page requires `allowHtml` to be enabled. Without it, SharePoint keeps rendering your content and the extended syntax is ignored.
 :::
 
 ### Extended syntax

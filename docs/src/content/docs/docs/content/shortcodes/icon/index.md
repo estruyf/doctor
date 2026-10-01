@@ -20,7 +20,7 @@ Example:
 <icon name="settings_28_regular" />
 ```
 
-The following HTML attributes are supported for the callout:
+The following HTML attributes are supported for the icon:
 
 - **name**: The name of the icon to use
 

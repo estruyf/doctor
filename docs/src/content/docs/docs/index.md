@@ -34,7 +34,7 @@ Under the hood, it makes use of the [CLI for Microsoft 365](https://pnp.github.i
 | --- | --- |
 | [Getting started](./getting-started) | Installing `doctor`, setting up the Entra app registration with its certificate, and publishing your first page. |
 | [Content](./content) | Everything about your Markdown source: page front matter, navigation, markdown syntax, shortcodes, partials, and multilingual pages. |
-| [CLI](./cli) | The commands you can run: `init`, `publish`, `status`, `cleanup`, `workflow`, and `setup`. |
+| [CLI](./cli) | The commands you can run: `init`, `publish`, `status`, `workflow`, `setup`, `cleanup`, and `version`. |
 | [Configuration](./configuration) | Every option you can pass as a command argument, and every setting you can define in the `doctor.json` file. |
 | [CI/CD](./ci-cd) | Running `doctor` on Azure DevOps or GitHub Actions, so your documentation gets published automatically. |
 | [About](./about) | Feedback, contributing, the disclaimer, and the license. |

@@ -8,7 +8,9 @@ sidebar:
 Shortcodes are HTML snippets inside your content files calling built-in or custom templates. You can use these shortcodes like custom HTML elements. Similar like custom web components.
 
 :::caution[Important]
-When allowing `Doctor` to take over for rendering the HTML, be aware that the pages can best not be modified on SharePoint. Otherwise the web part will override the HTML completly.
+Shortcodes only work when `Doctor` renders the HTML, which you turn on with [`markdown.allowHtml`](../../configuration/doctor-json/#markdown-publishing-settings). Without it, SharePoint renders your markdown and a shortcode ends up on the page as plain text.
+
+Edit those pages in markdown only: the content is rebuilt from the file on every publish, so an edit made on SharePoint is overwritten.
 :::
 
 `Doctor` has built-in shortcodes, but also supports you to create your own shortcodes. If you are missing something, or have a special requirement, this will allow you to make it possible.
@@ -57,7 +59,7 @@ module.exports = {
 :::
 
 `beforeMarkdown`
-: This is an optional property introduced to specify if you want to parse the shortcode before or after the Markdown gets processed. In case you include your own Markdown code with your shortcode, you can set this property to `true`. Otherwise you keep ot set to `false` or do not include it.
+: This is an optional property introduced to specify if you want to parse the shortcode before or after the Markdown gets processed. In case you include your own Markdown code with your shortcode, you can set this property to `true`. Otherwise keep it set to `false`, or leave it out.
 
 `kind`
 : Optional, `"inline"` by default. Set it to `"webpart"` to have the shortcode become its own SharePoint web part rather than HTML inside the Markdown web part — see [web part shortcodes](./webpart/). Any other value stops the publish with an error.

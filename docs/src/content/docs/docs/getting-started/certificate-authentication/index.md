@@ -64,8 +64,8 @@ the site-level steps it is not allowed to take rather than failing the run — s
 
 ![](./assets/app-certificate-upload.png)
 
-- Converted the certificate into the `PKCS` format using `openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem`
-  - It will ask for a password. This is yours to pick. Be aware, if you specify a password, you will also need to pass it to the `doctor` command with the `--password <password>` argument.
+- Convert the certificate into the `PKCS` format using `openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem`
+  - It will ask for a password. This is yours to pick. When you set one, `doctor` needs it too — see [the certificate password](#the-certificate-password).
 
 ## Use the certificate with doctor
 
@@ -85,7 +85,7 @@ Next to `.pfx`, the `.p12` and `.pem` extensions are supported as well.
 
 This is the easiest option to use in a CI/CD pipeline, as you can store the certificate as a secret.
 
-- Get the `base64` string from the `pfx` file. Execute: `cat cert.pfx | base64`
+- Get the `base64` string from the `pfx` file. On macOS: `base64 -i cert.pfx`. On Linux: `base64 -w 0 cert.pfx` — without `-w 0` the output is wrapped every 76 characters, and the line breaks end up in your secret.
 - Use the `Base64` output as the input for the `--certificate <certificate>` argument.
 
 ```sh
@@ -93,13 +93,23 @@ doctor publish --certificate <base64String> --appId <appId> --tenant <tenant> --
 ```
 
 :::note[Info]
-When you specified a password while creating the certificate, you also need to pass it with the `--password <password>` argument.
-:::
-
-:::note[Info]
-You can store the `appId` and `tenant` settings in the `doctor.json` file, so you do not need to repeat them on every run. More information can be found under the [doctor.json](../../configuration/doctor-json) section.
+You can store the `appId` and `tenant` settings in the `doctor.json` file, so you do not need to repeat them on every run — and the path to the certificate file too. More information can be found under the [doctor.json](../../configuration/doctor-json) section.
 :::
 
 :::caution[Important]
-Keep the `certificate` and its `password` out of the `doctor.json` file when you commit it to source control. Pass them on the command line from a secret instead.
+Keep the certificate itself out of source control: neither the file nor its base64 contents belong in a committed `doctor.json`. A path to a file kept outside the repository is fine.
 :::
+
+### The certificate password
+
+When the certificate has a password, `doctor` takes it from the first of these that has one:
+
+1. the `--password <password>` argument;
+2. `password` in the `doctor.json` file;
+3. the `DOCTOR_CERTIFICATE_PASSWORD` environment variable.
+
+When none of them has one, `doctor` asks for it in the terminal, with the input shown as dots, and checks it against the certificate before it signs in. That is the most convenient on your own machine; the environment variable is the one for a CI/CD pipeline, where there is nobody to ask. Avoid `--password` where you can: the value is shown in the terminal that runs it, and stays in the process list for the whole run.
+
+```sh
+DOCTOR_CERTIFICATE_PASSWORD='…' doctor publish
+```

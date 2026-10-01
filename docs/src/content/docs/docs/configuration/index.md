@@ -14,7 +14,7 @@ Everything you can configure for `doctor` lives in two places: the **arguments**
 | Best for | Secrets and one-off runs | Everything which stays the same on every run |
 | Scope | The command you are running | All commands in the project |
 
-`doctor init` creates the `doctor.json` file for you, so you usually only need to pass the certificate (and its password) on each run.
+`doctor init` creates the `doctor.json` file for you. Add the path to your certificate to it as well, and a run is just `doctor publish`; when the certificate has a password, `doctor` reads it from the `DOCTOR_CERTIFICATE_PASSWORD` environment variable, or asks for it.
 
 :::caution[Important]
 Arguments always win over the values defined in the `doctor.json` file. A couple of flags can **only** be passed as an argument. These are marked in the [CLI options](./cli-options) reference.
@@ -23,7 +23,7 @@ Arguments always win over the values defined in the `doctor.json` file. A couple
 ## Sections
 
 - [CLI options](./cli-options): every argument you can pass to a `doctor` command, grouped per authentication, all commands, and the publish command.
-- [doctor.json](./doctor-json): the settings which are configured as objects in the configuration file, like multilingual, site design, markdown rendering, partials, and the static navigation.
+- [doctor.json](./doctor-json): every setting of the configuration file — what it does, its default, and what to know before you change it.
 
 ## Minimal configuration
 

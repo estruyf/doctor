@@ -66,7 +66,7 @@ Write here the Doctor page content.
 
 The item supports the following properties:
 
-- **id**: `string` (required) - The identifier of the navigation item. Other pages use this value to place themselves underneath this page. The value is lowercased and spaces are removed, so `Getting Started` and `gettingstarted` refer to the same item.
+- **id**: `string` (required) - The identifier of the navigation item. Other pages use this value to place themselves underneath this page. Write it in **lowercase without spaces**: a `parent` is lowercased and its spaces removed before it is looked up, and an id written any other way is not always found — when a child page is processed first, `Getting Started` and the placeholder `gettingstarted` end up as two items.
 - **name**: `string` (optional) - The title of the navigation item. When it is not defined, the page its `title` is used.
 - **weight**: `number` (optional) - Defines the position of the item within its level. Check the [ordering](#ordering) section.
 - **parent**: `string` (optional) - The `id` of the item underneath which this page needs to be placed. When it is not defined, the page ends up at the root of the navigation. Check the [hierarchy](#hierarchy) section.
@@ -125,7 +125,7 @@ When the parent page is never processed - it does not exist, it is a draft, or i
 
 Within each level of the navigation, the items are sorted as follows:
 
-1. First all items **with** a `weight`, sorted from low to high.
+1. First all items **with** a `weight`, sorted from low to high. A weight of `0` counts as no weight.
 2. Then all items **without** a `weight`, sorted alphabetically on their name.
 
 This sorting happens per level, so a weight of `1` only makes the item first within its own parent.
@@ -172,7 +172,12 @@ Static items use the same `id`, `name`, and `weight` properties as the page leve
 - **url**: `string` - The link of the item. Use an empty value when you want a grouping label which is not clickable.
 - **items**: `array` - The child items of this item. Static items define their children inline, instead of using the `parent` property.
 
-Pages can hook into a static item by using its `id` as their `parent`.
+Pages can hook into a static item by using its `id` as their `parent`. A few things work differently from page items:
+
+- **`name` is required.** A static item without one is skipped, and every page underneath it with it.
+- **`parent` is ignored.** Static items are always at the top of the navigation; nest them with `items`.
+- **The `id` is compared exactly as written**, while a page's `parent` is lowercased and stripped of spaces first. A static `id` with capitals or spaces can therefore never be a parent — `doctor` adds a placeholder by the lowercased name next to it instead.
+- **A page can take a static item over** by using its `id` without a `parent`: the item then gets the page's name and links to the page. That is how a grouping label can link to an overview page.
 
 :::note[Note]
 The page level definition takes a **single item** underneath the location, the `doctor.json` definition takes an **array of items** underneath the `items` property. That difference is easy to overlook when you copy an example from one to the other.
@@ -194,25 +199,17 @@ If you want `doctor` to be the only owner of the navigation, wipe it before the 
 
 With [`--skipNavigation`](../../configuration/cli-options/#publish-command-specific-options) you skip the navigation step completely. Handy when you only want to push content changes, as it also saves you a couple of calls to SharePoint.
 
+Changing the navigation needs more rights than publishing pages (**Manage Web** on the site). An account which does not have them gets a warning, the navigation is left as it is, and the pages are still published — see [available permissions](../../configuration/cli-options/#available-permissions).
+
 ## Navigation and change detection
 
-Since `v2.0.0`, `doctor` only processes pages which are new or changed. A page which is skipped does not add itself to the navigation structure, as its front matter is never processed.
+`doctor` only publishes pages which are new or changed, but **every** page adds itself to the navigation, also the ones it skips because they did not change, or because their metadata could not be worked out. The navigation is rebuilt from all of them on every run, so you do not need `--forceAll` to keep it complete.
 
-For most runs this is not a problem, because untouched branches of the navigation are not rebuilt either. It does matter as soon as a page in the **same branch** changed: that root item gets recreated from what `doctor` knows in this run, which does not include the skipped pages.
-
-So when you changed something about your navigation - a new `parent`, other weights, a renamed item - publish everything once:
+What the rebuild does not do is remove items: a node of an item you renamed or deleted stays on the site, because `doctor` only replaces the nodes whose title it is about to create. Use `--cleanQuickLaunch` and/or `--cleanTopNavigation` when you want those gone:
 
 ```sh
-doctor publish --forceAll
+doctor publish --cleanQuickLaunch
 ```
-
-Combine it with `--cleanQuickLaunch` and/or `--cleanTopNavigation` when you also want to get rid of items which are no longer defined:
-
-```sh
-doctor publish --forceAll --cleanQuickLaunch
-```
-
-Check the [change detection](../../configuration/cli-options/#change-detection--publish-state) section for more information about the publish state.
 
 ## Full example
 
@@ -297,7 +294,7 @@ Support              -> https://github.com/estruyf/doctor/issues
 : Verify that your `doctor.json` file contains the `menu` property, and that you did not use the `--skipNavigation` flag. Without the `menu` property, the page level definitions are ignored.
 
 **A page is missing from the navigation**
-: The page is probably a draft (`draft: true`), or it was skipped because it did not change. Run `doctor publish --forceAll` to rebuild the complete structure.
+: The page is probably a draft (`draft: true`), its `parent` points at an id that does not exist, or the account is not allowed to change the navigation — check the warnings at the end of the run.
 
 **An item shows up in lowercase and does not link anywhere**
 : This is a placeholder for a `parent` which was never processed. Check the [hierarchy](#hierarchy) section.
@@ -305,8 +302,11 @@ Support              -> https://github.com/estruyf/doctor/issues
 **An old item stays in the navigation after a rename**
 : `doctor` matches existing nodes on their title, so the old node is not recognized anymore. Use `--cleanQuickLaunch` or `--cleanTopNavigation` to start from a clean navigation.
 
-**Third level items are missing in the Quick Launch**
+**Items below the third level are missing in the Quick Launch**
 : SharePoint supports three levels in the Quick Launch. Anything deeper is ignored.
+
+**A static item is missing, or a page sits under a copy of it**
+: A static item needs a `name`, and pages can only find its `id` when it is lowercase without spaces. Check the [static navigation items](#static-navigation-items) section.
 
 **Nothing seems to happen, but no errors are shown**
 : Run the publish command with the `--debug` flag. The navigation structure which `doctor` created is written to the output, which makes it easier to see which items were picked up.

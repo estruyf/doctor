@@ -76,13 +76,13 @@ Certificate authentication uses application permissions, which work for every AP
 : The URL of the site collection to use.
 
 `--library <library>`
-: Specified the library which you want to use in SharePoint to store your referenced images.
+: The library in SharePoint where `doctor` keeps your referenced images, the site logo, the rendered Mermaid diagrams and the publish state. Check [`library`](../doctor-json/#library) for where each of them goes.
 
 `-f, --folder <folder>`
 : The folder location in where you will create your markdown files.
 
 `--webPartTitle <webPartTitle>`
-: This defined the title of the markdown web part to be created/updated on the page. Default value is: `doctor-placeholder`.
+: The title `doctor` gives the Markdown web part it puts on each page, which is how it recognises that web part on a page it has no recorded ids for. Default value is: `doctor-placeholder`. Pick it once — check [`webPartTitle`](../doctor-json/#webparttitle) for why.
 
 `--overwriteImages`
 : Uploads every image referenced in the markdown files again, replacing the file in the SharePoint library. Without it, only images which are new or changed since the last publish are uploaded.
@@ -91,7 +91,7 @@ Certificate authentication uses application permissions, which work for every AP
 : Provides more information of what is happening during command execution. You can also enable this by setting the `DEBUG=true` environment variable, which is useful in CI/CD pipelines.
 
 :::caution[Important]
-This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+This flag can only be added to the command execution. Using it in the `doctor.json` file has no effect.
 :::
 
 `--verbose`
@@ -234,28 +234,28 @@ The `--debug` output goes to stderr, so it never ends up in the document you par
 : When providing this option, the processed markdown files will be generated in this folder.
 
 :::caution[Important]
-This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+This flag can only be added to the command execution. Using it in the `doctor.json` file has no effect.
 :::
 
 `--cleanEnd`
 : Removes the pages which the run did not want, at the end of the whole process. A page which was *skipped* — as unchanged, or because its metadata could not be worked out — is still a page `doctor` wants, and is left alone. What gets removed is what has no markdown file behind it any more.
 
 :::caution[Important]
-This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+This flag can only be added to the command execution. Using it in the `doctor.json` file has no effect.
 :::
 
 `--cleanStart`
 : Removes all pages before creation. This ensures that you that all changes made to your documentation get removed.
 
 :::caution[Important]
-This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+This flag can only be added to the command execution. Using it in the `doctor.json` file has no effect.
 :::
 
 `--confirm`
 : Don't prompt for confirming removing the files when you specified to clean up pages and assets before publishing.
 
 :::caution[Important]
-This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+This flag can only be added to the command execution. Using it in the `doctor.json` file has no effect.
 :::
 
 `--skipExistingPages`
@@ -281,27 +281,27 @@ Since v2.0.0 the theme is no longer applied automatically. SharePoint returns an
 :::
 
 `--retryWhenFailed`
-: Specifying this flag will retry the command if it failed. In some cases it can be that SharePoint failes to process your request, and this allows you to try again without running the whole flow from scratch.
+: Specifying this flag will retry the command if it failed. In some cases it can be that SharePoint fails to process your request, and this allows you to try again without running the whole flow from scratch.
 
 `--skipPages`:
 : This flag allows you to skip the pages provisioning in the publish flow.
 
 :::caution[Important]
-This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+This flag can only be added to the command execution. Using it in the `doctor.json` file has no effect.
 :::
 
 `--skipNavigation`:
 : This flag allows you to skip setting the navigation in the publish flow.
 
 :::caution[Important]
-This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+This flag can only be added to the command execution. Using it in the `doctor.json` file has no effect.
 :::
 
 `--skipSiteDesign`:
 : This flag allows you to skip setting the site its look and feel in the publish flow.
 
 :::caution[Important]
-This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+This flag can only be added to the command execution. Using it in the `doctor.json` file has no effect.
 :::
 
 `--cleanQuickLaunch`

@@ -71,7 +71,7 @@ And `doctor.json` points at the folder, which is `./partials` unless you say oth
 }
 ```
 
-The rest of this page explains each of these pieces. Keep the `partials` folder next to your sources folder instead of inside it, as explained in [what it means for publishing](#what-it-means-for-publishing).
+The rest of this page explains each of these pieces. The `partials` folder can sit next to your sources folder or inside it — see [what it means for publishing](#what-it-means-for-publishing).
 
 ## Including a partial
 
@@ -210,5 +210,5 @@ The partials are part of your page, which means they are processed like the rest
 - A page is republished when one of the partials it uses has changed. The [`doctor status`](../../cli/#status) command shows those pages as modified as well.
 
 :::caution[Important]
-Store your partials outside of your sources folder, or `Doctor` will publish them as pages. When they do live inside it, `Doctor` excludes the configured `partials.folder` from the pages it picks up.
+`Doctor` leaves the configured `partials.folder` out of the pages it publishes, also when it sits inside your sources folder. A partial kept anywhere **else** inside your sources folder — one you include with `./` from a page next to it, say — is a markdown file like any other, and is published as a page too. Keep your partials in `partials.folder`, or outside your sources folder.
 :::
