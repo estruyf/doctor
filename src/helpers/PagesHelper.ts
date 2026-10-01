@@ -253,6 +253,9 @@ export class PagesHelper {
    * @param webUrl
    * @param slug
    * @param title
+   * @param mustExist the page is known to exist, so it is never created — a
+   * translation, whose page SharePoint made, possibly moments ago and so after
+   * the list of pages was read
    */
   public static async createPageIfNotExists(
     webUrl: string,
@@ -263,7 +266,8 @@ export class PagesHelper {
     description: string = "",
     template: string | null = null,
     skipExistingPages: boolean = false,
-    reapplyTemplates: boolean = false
+    reapplyTemplates: boolean = false,
+    mustExist: boolean = false
   ): Promise<boolean> {
     // Whether SharePoint answered for the page. Everything after that is an
     // update of a page that is there, and a failure in it is not a reason to
@@ -289,7 +293,8 @@ export class PagesHelper {
       const { stdout: pageDataOutput } = await executeWithRetry(
         "spo page get",
         { webUrl, name: slug, metadataOnly: true, output: "json" },
-        CliCommand.getRetry() && PagesHelper.isListedPage(webUrl, slug)
+        CliCommand.getRetry() &&
+          (mustExist || PagesHelper.isListedPage(webUrl, slug))
       );
       found = true;
       let pageData: Page = JSON.parse(pageDataOutput);
@@ -358,7 +363,7 @@ export class PagesHelper {
         throw e;
       }
 
-      if (PagesHelper.isListedPage(webUrl, slug)) {
+      if (mustExist || PagesHelper.isListedPage(webUrl, slug)) {
         throw new Error(
           `The page "${slug}" exists on the site, but could not be read, so it was left as it is rather than created again. ${
             e instanceof Error ? e.message : `${e}`

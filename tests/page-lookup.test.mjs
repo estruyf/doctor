@@ -144,3 +144,26 @@ test("skipExistingPages finds a page on a root site without asking for it", { sk
   assert.equal(existed, true);
   assert.deepEqual(await calls(), []);
 });
+
+test("a translation is never created by doctor, even when it is not listed yet", { skip }, async (t) => {
+  // SharePoint creates a translation's page during the run, after the list of
+  // pages was read, so the list cannot vouch for it
+  const calls = await setup(t, { pageGet: "unreachable" });
+
+  await assert.rejects(
+    PagesHelper.createPageIfNotExists(
+      webUrl,
+      "nl/setup.aspx",
+      "Installatie",
+      "Article",
+      false,
+      "",
+      null,
+      false,
+      false,
+      true,
+    ),
+    /exists on the site, but could not be read/,
+  );
+  assert.deepEqual(await calls(), ["spo page get"]);
+});

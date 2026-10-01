@@ -679,6 +679,9 @@ export class DoctorTranspiler {
             template || options.pageTemplate,
             skipExistingPages && !languagePageSlug,
             options.reapplyTemplates,
+            // SharePoint made the translation's page; creating one with doctor
+            // would add an ordinary page and move it over the translation
+            !!languagePageSlug,
           );
 
           Logger.debug(
