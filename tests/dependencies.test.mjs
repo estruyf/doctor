@@ -41,6 +41,31 @@ test("a page's hash changes when an image it uses changes", async () => {
   assert.notEqual(before, after, "the page should count as changed");
 });
 
+test("a page's hash changes when its banner image changes", async () => {
+  const { startFolder, options } = await setup();
+  const file = join(startFolder, "index.md");
+  const image = join(startFolder, "assets", "banner.png");
+  const contents = `---\ntitle: Home\nheader:\n  image: ./assets/banner.png\n---\n\nText\n`;
+
+  await writeFile(file, contents);
+  await writeFile(image, "first");
+  const before = await hashOf(file, contents, options);
+
+  await writeFile(image, "second");
+  const after = await hashOf(file, contents, options);
+
+  assert.notEqual(before, after, "an edited banner should count as a change");
+});
+
+test("a banner image on a URL is not read from disk", async () => {
+  const { startFolder, options } = await setup();
+  const file = join(startFolder, "index.md");
+  const contents = `---\ntitle: Home\nheader:\n  image: https://contoso.com/banner.png\n---\n\nText\n`;
+
+  await writeFile(file, contents);
+  assert.equal(await hashOf(file, contents, options), await hashOf(file, contents, options));
+});
+
 test("an image is hashed once per run, not per page that uses it", async () => {
   const { startFolder } = await setup();
   const image = join(startFolder, "assets", "logo.png");

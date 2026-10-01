@@ -187,7 +187,9 @@ Useful for seeding a site once and handing the pages over to their owners afterw
 
 Uploads every referenced image again, replacing the file in the [`library`](#library). The same goes for the site logo and the Mermaid diagrams.
 
-When it is off, an image whose file name already exists in its folder in the library is not uploaded again. Editing an image while keeping its name then publishes the pages using it again, but they keep showing the old image until you turn this on for a run, or give the image a new name.
+When it is off, an image is only uploaded when its folder in the library does not have it yet, or when it changed since `doctor` last uploaded it. `doctor` records a hash of every file it uploads in the [publish state](#change-detection), so editing an image while keeping its name uploads the new version and republishes the pages using it, while an unchanged image is left alone.
+
+The first publish with a state that holds no hash for an image yet — a new state file, or one written before `doctor` 2.3.0 — uploads that image once more, as there is nothing to tell whether the file in the library is the current one. With [`disableStatePersistence`](#disablestatepersistence) nothing is recorded, so an image whose file name already exists in the library is never uploaded again; turn this option on for a run, or give the image a new name.
 
 ### `disableComments`
 

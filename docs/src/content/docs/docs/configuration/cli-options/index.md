@@ -79,7 +79,7 @@ Certificate authentication uses application permissions, which work for every AP
 : This defined the title of the markdown web part to be created/updated on the page. Default value is: `doctor-placeholder`.
 
 `--overwriteImages`
-: Specifies if you allow `doctor` to overwrite the images in the SharePoint library that are referenced in the markdown files.
+: Uploads every image referenced in the markdown files again, replacing the file in the SharePoint library. Without it, only images which are new or changed since the last publish are uploaded.
 
 `--debug`
 : Provides more information of what is happening during command execution. You can also enable this by setting the `DEBUG=true` environment variable, which is useful in CI/CD pipelines.
@@ -328,7 +328,7 @@ You can override this by specifying the `comments` option on page level.
 
 ### Change detection / publish state
 
-`doctor` keeps track of what it published in a state file which is stored on your SharePoint site. For every page it stores a hash of everything the page is built from, the timestamp of when it got published, and the instance ids of the web parts `doctor` put on it — which is how it recognises its own controls on the next run and leaves the ones you added in SharePoint alone. The file also carries a hash of the publish settings and your custom shortcodes, so changing one of those marks every page as changed.
+`doctor` keeps track of what it published in a state file which is stored on your SharePoint site. For every page it stores a hash of everything the page is built from, the timestamp of when it got published, and the instance ids of the web parts `doctor` put on it — which is how it recognises its own controls on the next run and leaves the ones you added in SharePoint alone. The file also carries a hash of the publish settings and your custom shortcodes, so changing one of those marks every page as changed, and a hash of every image and diagram `doctor` uploaded to the library, so a changed one is uploaded again and an unchanged one is not.
 
 On the next run, `doctor` compares the hash of each local file with the one in the state file:
 
@@ -346,7 +346,7 @@ The hash covers everything the published page is built from, not just the file y
 | --- | --- |
 | The markdown file | that page is modified |
 | A [partial](../doctor-json/#reusable-content-partials) it uses | every page using that partial is modified |
-| An **image** it references | every page referencing that image is modified. The image itself is only uploaded again with [`--overwriteImages`](../doctor-json/#overwriteimages) — otherwise the file already in the library is kept |
+| An **image** it references, in its text or as its `header.image` banner | every page referencing that image is modified, and the image is uploaded again. The state records a hash of every file `doctor` uploads, so an unchanged image is not — unless [`--overwriteImages`](../doctor-json/#overwriteimages) is set |
 | The **slug of a page it links to** | every page linking to it is modified, so its links keep pointing at the right page |
 | A **custom shortcode's** code | every page is modified — a shortcode decides what its pages render |
 | A publish **setting** in `doctor.json` (`markdown.*`, `webPartTitle`, `partials.*`, `library`, the template options) | every page is modified |

@@ -73,6 +73,7 @@ export class DependencyHelper {
         file,
         content,
         options,
+        contents,
       );
     }
 
@@ -92,17 +93,42 @@ export class DependencyHelper {
   }
 
   /**
+   * The local banner image a page's `header.image` front matter names, if any.
+   * Front matter that cannot be parsed has none here; the pre-check and the
+   * page itself report it.
+   */
+  private static getHeaderImage(raw: string): string | null {
+    try {
+      const image = (matter(raw).data as PageFrontMatter)?.header?.image;
+      return typeof image === "string" && isLocal(image) ? image : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * The images a page uses, and the slugs of the pages it links to. A link's
    * slug is part of this because renaming a page changes the URL every page
    * linking to it is published with.
+   *
+   * The banner image counts as well. Its path is in the front matter, so a new
+   * path was already a change, but an edited file behind the same path was not
+   * — and the page kept the old banner.
    */
   private static async getDependencies(
     file: string,
     content: string,
     options: CommandArguments,
+    raw: string = "",
   ): Promise<string> {
     const $ = cheerio.load(reader.render(content));
     const parts: string[] = [];
+
+    const header = DependencyHelper.getHeaderImage(raw);
+    if (header) {
+      const path = join(dirname(file), header);
+      parts.push(`header:${header}:${await DependencyHelper.hashFile(path)}`);
+    }
 
     const images = [
       ...new Set(

@@ -31,6 +31,18 @@ export interface DoctorState {
   site: string;
   configHash: string | null;
   pages: Record<string, DoctorStateEntry>;
+  /**
+   * The SHA-256 of every file doctor put in the asset library, by its path in
+   * the library (lower case, as SharePoint does not tell `Logo.png` from
+   * `logo.png`). An image with the same name as one already in the library was
+   * never uploaded again without `--overwriteImages`, so a page republished
+   * because its image changed kept showing the old one. With the hash of what
+   * was uploaded, a changed image goes up again and an unchanged one does not.
+   *
+   * Optional: state written before this was tracked has none, and older
+   * versions keep it untouched when they rewrite the file.
+   */
+  assets?: Record<string, string>;
 }
 
 const DEFAULT_STATE_FILE = ".doctor/state.json";
@@ -333,6 +345,49 @@ export class StateHelper {
     }
 
     StateHelper.dirty = true;
+  }
+
+  /**
+   * Whether uploads can be tracked: only when the state was loaded, as it is
+   * then also saved. With `--disableStatePersistence` a recorded hash would be
+   * gone by the next run, and every image would be uploaded every time.
+   */
+  public static tracksAssets(): boolean {
+    return StateHelper.loaded && !!StateHelper.state;
+  }
+
+  /**
+   * The hash of the file doctor last uploaded to this path in the asset
+   * library, or `null` when it never recorded one.
+   * @param path the file's path in the library, starting with the library
+   */
+  public static getAssetHash(path: string): string | null {
+    return StateHelper.state?.assets?.[StateHelper.toAssetKey(path)] ?? null;
+  }
+
+  /**
+   * Record what the asset library now holds at this path.
+   * @param path the file's path in the library, starting with the library
+   * @param hash the SHA-256 of the file's contents
+   */
+  public static setAssetHash(path: string, hash: string): void {
+    if (!StateHelper.state) return;
+
+    const key = StateHelper.toAssetKey(path);
+    const assets = (StateHelper.state.assets ??= {});
+    if (assets[key] !== hash) {
+      assets[key] = hash;
+      StateHelper.dirty = true;
+    }
+  }
+
+  private static toAssetKey(path: string): string {
+    return path
+      .replace(/\\/g, "/")
+      .split("/")
+      .filter(Boolean)
+      .join("/")
+      .toLowerCase();
   }
 
   /**

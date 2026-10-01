@@ -33,6 +33,10 @@
       },
       {
         "id": null,
+        "title": "Fix: an image you edit is uploaded again, even without `--overwriteImages`. Change detection already republished the pages using it, but the upload kept the file already in the library, so those pages still showed the old image. The publish state now records a hash of every file doctor uploads — images, the site logo and Mermaid diagrams — so a changed file goes up again and an unchanged one does not. An edited banner image (`header.image`) now marks its page as modified as well, like an image in the text. The first publish with a state that has no hash for a file yet uploads it once more. With `--disableStatePersistence` nothing is recorded, and a file already in the library is kept as before."
+      },
+      {
+        "id": null,
         "title": "New `--reapplyTemplates` option, which applies a page template to pages which already exist instead of only to the ones Doctor creates. The template's sections become the page layout on every publish and the page's content is written into the slot the template reserves for it — a Markdown web part in the template itself, or a new section below it when the template has none — while the page keeps its own banner — and so its own title — along with its id, URL, history and column values. Off by default, because it also means a section added to a templated page in SharePoint does not survive the next publish."
       },
       {
