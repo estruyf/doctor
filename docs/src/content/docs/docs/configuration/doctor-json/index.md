@@ -436,7 +436,7 @@ The `partials` setting configures the markdown snippets you reuse across pages. 
 : Default `./partials`, relative to the `doctor.json` folder. Where a partial named without a path — `<include file="banner" />` — is looked up.
 
 `header`
-: The partial added at the top of every page. A name, like `banner`, is looked up in `folder`, with `.md` added when there is no extension. A path starting with `./` or `../` is taken from the `doctor.json` folder — unlike an `<include>`, which is taken from the page's folder.
+: The partial added at the top of every page. A name, like `banner`, is looked up in `folder`, with `.md` added when there is no extension. A path starting with `./` or `../` is taken from the `doctor.json` folder — unlike an `<include>`, which is taken from the page's folder — and one starting with `/` from [`folder`](#folder), your sources folder.
 
 `footer`
 : The partial added at the bottom of every page, found the same way as `header`.

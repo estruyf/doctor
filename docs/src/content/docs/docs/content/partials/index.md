@@ -85,7 +85,7 @@ The `file` attribute is looked up as follows:
 
 - `navigation`: in the partials folder. The `.md` extension is optional.
 - `./navigation` or `../navigation`: relative to the file which includes it.
-- `/navigation`: relative to your sources folder (`./src` by default).
+- `/navigation`: relative to your sources folder (`./src` by default). When that file doesn't exist, an absolute path like `/home/me/partials/navigation` is used as is.
 
 Partials can include other partials, as long as they don't end up including themselves.
 
@@ -156,6 +156,8 @@ When a partial belongs on all of your pages, let `Doctor` add it for you with th
 ```
 
 The `header` partial is added at the top of every page, the `footer` partial at the bottom. As they have no `include` tag, the parameters they use need a default value in their front matter.
+
+They are looked up like the `file` attribute of an [include tag](#including-a-partial), with one difference: `./banner` and `../banner` are relative to your project folder (where `doctor.json` lives), as there is no including file. Use `/banner` for a partial in your sources folder.
 
 Pages which don't need them can opt out in their front matter:
 

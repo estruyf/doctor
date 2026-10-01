@@ -229,6 +229,10 @@
       },
       {
         "id": null,
+        "title": "Fix: a partial starting with a `/`, like `<include file=\"/navigation\" />`, is looked up in your sources folder as documented, instead of at the root of the file system. An absolute path to a partial outside the sources folder keeps working."
+      },
+      {
+        "id": null,
         "title": "Docs: the `doctor.json` page now explains every setting — what it does, its default and flag, and what to know before changing it, such as why `webPartTitle` should be picked once, what `library` holds, and why a static navigation `id` must be lowercase without spaces."
       }
     ]

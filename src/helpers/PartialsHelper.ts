@@ -300,7 +300,7 @@ export class PartialsHelper {
     options: CommandArguments,
     params: PartialParams = {},
   ): Promise<string> {
-    const partialPath = PartialsHelper.getPartialPath(
+    const partialPath = await PartialsHelper.getPartialPath(
       reference,
       sourceDir,
       options,
@@ -370,27 +370,43 @@ export class PartialsHelper {
    * @param sourceDir
    * @param options
    */
-  private static getPartialPath(
+  private static async getPartialPath(
     reference: string,
     sourceDir: string,
     options: CommandArguments,
-  ): string {
-    let partialPath: string;
+  ): Promise<string> {
+    const withExtension = (path: string) =>
+      extname(path) ? path : `${path}.md`;
 
-    if (isAbsolute(reference)) {
-      partialPath = reference;
-    } else if (reference.startsWith("./") || reference.startsWith("../")) {
-      partialPath = resolve(sourceDir, reference);
-    } else if (reference.startsWith("/")) {
-      partialPath = join(
-        resolve(process.cwd(), options.startFolder),
-        reference,
+    // `/x` is absolute for Node on every platform, so it has to be checked
+    // before `isAbsolute`. It means the start folder, as documented, but a real
+    // absolute path also starts with a `/` on POSIX. Those keep working by
+    // falling back to the absolute path when the start folder has no such file.
+    if (reference.startsWith("/")) {
+      const fromStartFolder = withExtension(
+        join(resolve(process.cwd(), options.startFolder), reference),
       );
-    } else {
-      partialPath = join(PartialsHelper.folder, reference);
+      const absolute = withExtension(reference);
+
+      if (
+        !(await existsAsync(fromStartFolder)) &&
+        (await existsAsync(absolute))
+      ) {
+        return absolute;
+      }
+
+      return fromStartFolder;
     }
 
-    return extname(partialPath) ? partialPath : `${partialPath}.md`;
+    if (isAbsolute(reference)) {
+      return withExtension(reference);
+    }
+
+    if (reference.startsWith("./") || reference.startsWith("../")) {
+      return withExtension(resolve(sourceDir, reference));
+    }
+
+    return withExtension(join(PartialsHelper.folder, reference));
   }
 
   /**

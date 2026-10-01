@@ -125,8 +125,8 @@ Fixed on both sides in this release.
 The last two rows copy *behaviour* rather than a list, which makes them the easiest to break without
 noticing: the editor warns about what doctor does, so a change to how doctor resolves a path or
 builds the navigation turns those warnings into wrong advice. Both were written from the code, and
-both found a gap in it along the way — the `/x` partial form the docs describe is read as an absolute
-path, and a static `id` with capitals or spaces can never be a page's `parent`.
+both found a gap in it along the way — the `/x` partial form the docs describe was read as an absolute
+path (fixed in 2.3.0), and a static `id` with capitals or spaces can never be a page's `parent`.
 
 A change to either side of a row without the other is a bug which does not show up until a page is
 published.
