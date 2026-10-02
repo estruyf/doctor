@@ -1,3 +1,4 @@
+import { toComparablePath } from "@utils";
 import { PageFrontMatter } from "@models";
 
 export class FrontMatterHelper {
@@ -12,11 +13,21 @@ export class FrontMatterHelper {
   ): string {
     let { slug, title } = data;
 
-    const uniStartPath = startFolder.replace(/\\/g, "/");
-    const pathSlug = filePath
-      .replace(/\\/g, "/")
-      .replace(uniStartPath, "")
-      .split("/");
+    // Both sides are brought to one form first. They are written differently
+    // depending on where they came from — the configured folder, fast-glob, or
+    // path.join — and stripping one out of the other by plain text match only
+    // worked when they happened to agree: a content folder written as `src`
+    // rather than `./src` left a `./` at the front of every page URL.
+    // Rooted at the working directory, so a relative folder and an absolute
+    // file path (or the other way round) still describe the same place
+    const root = process.cwd().replace(/\\/g, "/");
+    const uniStartPath = toComparablePath(startFolder, root);
+    const uniFilePath = toComparablePath(filePath, root);
+    const pathSlug = (
+      uniStartPath && uniFilePath.startsWith(`${uniStartPath}/`)
+        ? uniFilePath.slice(uniStartPath.length + 1)
+        : uniFilePath
+    ).split("/");
     pathSlug.pop();
     const spFilePath = pathSlug.filter((s) => s).join("/");
 

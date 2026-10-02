@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import * as cheerio from "cheerio";
 
 import { MarkdownHelper } from "../dist/helpers/MarkdownHelper.js";
 import { CliCommand } from "../dist/helpers/CliCommand.js";
@@ -84,4 +85,52 @@ test("getHtmlData keeps the container structure and code highlighting", async ()
   assert.match(html, /<div class="doctor__container">/);
   assert.match(html, /<div class="doctor__container__markdown">/);
   assert.match(html, /<pre class="hljs js">/);
+});
+
+test("getHtmlData wraps the content in an ExternalClass ancestor", async () => {
+  // SharePoint sometimes rewrites the stylesheet as `.ExternalClass .callout`.
+  // The class has to be on an ancestor of the container, or the scoped
+  // `.ExternalClass .doctor__container` rule matches nothing.
+  const html = await render(`<callout type="tip">Tip</callout>\n`, {
+    allowHtml: true,
+  });
+
+  assert.match(
+    html,
+    /^\s*<div class="ExternalClass">\s*<div class="doctor__container">/,
+  );
+  assert.match(html, /<\/div>\s*<\/div>\s*<\/div>\s*<style>/);
+
+  // The selectors as SharePoint rewrote them on a published page
+  const $ = cheerio.load(html);
+  for (const selector of [
+    ".ExternalClass .doctor__container",
+    ".ExternalClass .doctor__container__markdown",
+    ".ExternalClass .callout",
+    ".ExternalClass .callout-tip",
+    ".ExternalClass .callout h5",
+  ]) {
+    assert.ok($(selector).length > 0, `${selector} matches nothing`);
+  }
+});
+
+test("getHtmlData carries the stylesheet only when it is asked for", async () => {
+  // A page split by web part shortcodes renders one Markdown web part per
+  // segment into the same document, so only the first one brings the CSS
+  const withStyles = await render(`# Heading\n`, { allowHtml: true });
+  assert.match(withStyles, /<style>/);
+
+  CliCommand.reset();
+  CliCommand.init({ commandName: "m365", markdown: { allowHtml: true } });
+  const withoutStyles = await MarkdownHelper.getHtmlData(
+    `# Heading\n`,
+    OPTIONS,
+    false,
+  );
+  CliCommand.reset();
+
+  assert.doesNotMatch(withoutStyles, /<style>/);
+  // Nothing but the stylesheet is dropped
+  assert.match(withoutStyles, /<h1 id="heading"/);
+  assert.equal(withStyles.startsWith(withoutStyles), true);
 });

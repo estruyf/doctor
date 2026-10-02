@@ -2,6 +2,8 @@ import { Listr } from "listr2";
 import kleur from "kleur";
 import { Authenticate, Version } from "@commands";
 import {
+  CapabilitiesHelper,
+  DependencyHelper,
   DoctorTranspiler,
   FileHelpers,
   Logger,
@@ -92,8 +94,26 @@ export class Publish {
         },
         {
           title: `Load publish state`,
-          task: async () =>
-            await StateHelper.load(webUrl, options.assetLibrary, options.stateFile),
+          task: async (_, task) => {
+            await StateHelper.load(
+              webUrl,
+              options.assetLibrary,
+              options.stateFile
+            );
+
+            // The settings and the shortcodes decide what every page publishes
+            // as, so a change to them counts as a change to all of them
+            const changed = StateHelper.setConfigHash(
+              await DependencyHelper.getConfigHash(options)
+            );
+
+            if (changed) {
+              task.output = `The settings changed since the last run, so every page is published again`;
+              OutputHelper.warning(
+                `The publish settings or the shortcodes changed since the last run, so every page is published again.`
+              );
+            }
+          },
           enabled: () => !options.disableStatePersistence && !options.skipPages,
         },
         {
@@ -106,6 +126,29 @@ export class Publish {
               PartialsHelper.getIgnorePatterns(options)
             ),
           enabled: () => !options.skipPages,
+          rendererOptions: { persistentOutput: true },
+        },
+        {
+          title: `Check the available permissions`,
+          task: async (_, task) => {
+            task.output = `Reading the permissions of ${webUrl}`;
+            const capabilities = await CapabilitiesHelper.probe(webUrl, options);
+            CapabilitiesHelper.report(capabilities, options);
+
+            // Only fatal for a run which was going to publish pages. With
+            // --skipPages the run is there to set the navigation or the site
+            // design, and has no business needing Site Pages rights.
+            if (
+              capabilities.determined &&
+              !capabilities.publishPages &&
+              !options.skipPages
+            ) {
+              throw new Error(
+                `This account cannot create or update pages in the Site Pages library of ${webUrl}, so there is nothing doctor can publish. It needs at least "Add Items" and "Edit Items" there.`
+              );
+            }
+          },
+          enabled: () => !options.skipPrecheck,
           rendererOptions: { persistentOutput: true },
         },
         {
@@ -198,12 +241,17 @@ export class Publish {
           title: `Updating navigation`,
           task: async () =>
             await NavigationHelper.update(webUrl, ouput.navigation ?? undefined),
-          enabled: () => !options.skipNavigation,
+          enabled: () =>
+            !options.skipNavigation &&
+            CapabilitiesHelper.get().manageNavigation,
         },
         {
           title: `Change the look of the site`,
           task: async (ctx, task) => await SiteHelpers.changeLook(task, options),
-          enabled: () => !!options.siteDesign && !options.skipSiteDesign,
+          enabled: () =>
+            !!options.siteDesign &&
+            !options.skipSiteDesign &&
+            CapabilitiesHelper.get().manageSiteDesign,
         },
         {
           title: `Post cleanup`,

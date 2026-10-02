@@ -67,7 +67,7 @@ jobs:
             skipPages="--skipExistingPages"
           fi
 
-          doctor publish --auth certificate --certificateBase64Encoded "${{ secrets.CERTIFICATEBASE64ENCODED }}" --password "${{ secrets.PASSWORD }}" --appId "${{ secrets.APPID }}" --tenant "${{ secrets.TENANT }}" --url "${{ secrets[matrix.siteUrl] }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd --confirm $startClean $skipPages
+          doctor publish --auth certificate --certificate "${{ secrets.CERTIFICATEBASE64ENCODED }}" --password "${{ secrets.PASSWORD }}" --appId "${{ secrets.APPID }}" --tenant "${{ secrets.TENANT }}" --url "${{ secrets[matrix.siteUrl] }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd --confirm $startClean $skipPages
         env:
           DEBUG: ${{ secrets.DEBUG }}
           TRANSLATOR_KEY: ${{ secrets.TRANSLATOR_KEY }}

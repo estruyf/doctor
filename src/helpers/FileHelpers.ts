@@ -6,7 +6,8 @@ import {
   Logger,
 } from "@helpers";
 import { basename } from "path";
-import { executeCommand } from "@pnp/cli-microsoft365";
+import { DependencyHelper } from "./DependencyHelper.js";
+import { StateHelper } from "./StateHelper.js";
 
 export class FileHelpers {
   private static allPages: File[] = [];
@@ -31,7 +32,14 @@ export class FileHelpers {
   }
 
   /**
-   * Create the file on SharePoint
+   * Create the file on SharePoint.
+   *
+   * Without `override`, a file is uploaded when the library does not have it
+   * yet, or when its contents differ from what the publish state says was
+   * uploaded last. Going by the name alone kept the old image in the library
+   * when it was edited, so its pages were republished and still showed it.
+   * A file the state has no hash for — state written by an older version, or
+   * a fresh one — is uploaded once, since nothing tells what the library holds.
    * @param crntFolder
    * @param imgPath
    * @param webUrl
@@ -49,27 +57,66 @@ export class FileHelpers {
       "%20"
     )}`;
     if (this.checkedFiles && this.checkedFiles.indexOf(cacheKey) === -1) {
+      const filePath = `${crntFolder}/${basename(imgPath)}`;
+      const hash = await this.getTrackedHash(imgPath);
+      const recorded = hash ? StateHelper.getAssetHash(filePath) : null;
+
       if (override) {
         await this.upload(webUrl, crntFolder, imgPath);
-      } else {
-        try {
-          // Check if file exists
-          const filePath = `${crntFolder}/${basename(imgPath)}`;
-          const relativeUrl = this.getRelUrl(webUrl, filePath);
-          const fileData = await executeCommand("spo file get", {
-            webUrl,
-            url: relativeUrl,
-          });
-          Logger.debug(`File data retrieved: ${JSON.stringify(fileData)}`);
-        } catch (e) {
-          await this.upload(webUrl, crntFolder, imgPath);
-        }
+      } else if (hash && recorded !== hash) {
+        Logger.debug(
+          recorded
+            ? `File "${filePath}" changed since it was uploaded`
+            : `No upload of "${filePath}" recorded in the publish state`
+        );
+        await this.upload(webUrl, crntFolder, imgPath);
+      } else if (!(await this.exists(webUrl, filePath))) {
+        await this.upload(webUrl, crntFolder, imgPath);
+      }
+
+      if (hash) {
+        StateHelper.setAssetHash(filePath, hash);
       }
 
       this.checkedFiles.push(cacheKey);
     }
 
     return `${webUrl}/${crntFolder}/${basename(imgPath)}`.replace(/ /g, "%20");
+  }
+
+  /**
+   * The hash of a local file, when uploads are tracked in the publish state.
+   * A file that cannot be read gets none: it is then left to the library check
+   * as before, instead of failing an upload that has nothing to send.
+   */
+  private static async getTrackedHash(path: string): Promise<string | null> {
+    if (!StateHelper.tracksAssets()) {
+      return null;
+    }
+
+    const hash = await DependencyHelper.hashFile(path);
+    return hash === "missing" ? null : hash;
+  }
+
+  /**
+   * Whether the library has a file at this path. Any failure counts as not
+   * there, which uploads it; not retried, as a missing file is the usual reason.
+   */
+  private static async exists(webUrl: string, filePath: string) {
+    try {
+      const fileData = await executeWithRetry(
+        "spo file get",
+        {
+          webUrl,
+          url: this.getRelUrl(webUrl, filePath),
+        },
+        false
+      );
+      Logger.debug(`File data retrieved: ${JSON.stringify(fileData)}`);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**

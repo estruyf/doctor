@@ -75,7 +75,7 @@ jobs:
             skipPages="--skipExistingPages"
           fi
 
-          doctor publish --auth certificate --certificateBase64Encoded "${{ secrets.CERTIFICATEBASE64ENCODED }}" --password "${{ secrets.PASSWORD }}" --appId "${{ secrets.APPID }}" --tenant "${{ secrets.TENANT }}" -u "${{ secrets[matrix.siteUrl] }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd --confirm $startClean $skipPages
+          doctor publish --auth certificate --certificate "${{ secrets.CERTIFICATEBASE64ENCODED }}" --password "${{ secrets.PASSWORD }}" --appId "${{ secrets.APPID }}" --tenant "${{ secrets.TENANT }}" -u "${{ secrets[matrix.siteUrl] }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd --confirm $startClean $skipPages
         env:
           DEBUG: ${{ secrets.DEBUG }}
           TRANSLATOR_KEY: ${{ secrets.TRANSLATOR_KEY }}
@@ -137,7 +137,7 @@ jobs:
             $skipPages="--skipExistingPages"
           }
 
-          doctor publish --auth certificate --certificateBase64Encoded "${{ secrets.CERTIFICATEBASE64ENCODED }}" --password "${{ secrets.PASSWORD }}" --appId "${{ secrets.APPID }}" --tenant "${{ secrets.TENANT }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd --confirm $startClean $skipPages
+          doctor publish --auth certificate --certificate "${{ secrets.CERTIFICATEBASE64ENCODED }}" --password "${{ secrets.PASSWORD }}" --appId "${{ secrets.APPID }}" --tenant "${{ secrets.TENANT }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd --confirm $startClean $skipPages
         shell: powershell
         env:
           DEBUG: ${{ secrets.DEBUG }}
@@ -191,7 +191,7 @@ jobs:
 
           IF "%GITHUB_EVENT_NAME%"=="schedule" (SET skipPages="--skipExistingPages")
 
-          doctor publish --auth certificate --certificateBase64Encoded "${{ secrets.CERTIFICATEBASE64ENCODED }}" --password "${{ secrets.PASSWORD }}" --appId "${{ secrets.APPID }}" --tenant "${{ secrets.TENANT }}" -u "${{ secrets.SITEURL_WINDOWS }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd  --confirm %startClean% %skipPages%
+          doctor publish --auth certificate --certificate "${{ secrets.CERTIFICATEBASE64ENCODED }}" --password "${{ secrets.PASSWORD }}" --appId "${{ secrets.APPID }}" --tenant "${{ secrets.TENANT }}" -u "${{ secrets.SITEURL_WINDOWS }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd  --confirm %startClean% %skipPages%
         shell: cmd
         env:
           DEBUG: ${{ secrets.DEBUG }}

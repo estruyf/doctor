@@ -46,6 +46,29 @@ test("ShortcodesHelpers publishes a Mermaid diagram without inline styles", asyn
   assert.match(svg, /fill:#e1f5fe !important/);
 });
 
+test("ShortcodesHelpers keeps a sequence diagram a well-formed SVG", async () => {
+  // A sequence diagram styles its text with `font-family: "trebuchet ms", …`,
+  // which arrives as `&quot;trebuchet ms&quot;`. Lifting it into the
+  // stylesheet cut every `&quot;` at its `;`, and the image did not load.
+  const output = await ShortcodesHelpers.parseBefore(
+    [
+      "<mermaid>",
+      "sequenceDiagram",
+      "    participant D as doctor",
+      "    participant S as SharePoint",
+      "    D->>S: Is the page there?",
+      "    Note over D,S: published &lt;br/&gt; after",
+      "</mermaid>",
+    ].join("\n")
+  );
+
+  const svg = decodeDiagram(output);
+  // Every `&` starts a complete entity, or the SVG is not XML
+  assert.doesNotMatch(svg, /&(?!(?:#\d+|#x[0-9a-f]+|[a-z]+);)/i);
+  assert.doesNotMatch(svg, /&quot !important/);
+  assert.match(svg, /font-family: "trebuchet ms", verdana, arial, sans-serif !important/);
+});
+
 test("ShortcodesHelpers sizes a Mermaid diagram with attributes", async () => {
   const output = await ShortcodesHelpers.parseBefore(
     `<mermaid>\nflowchart TD\n  A --> B\n</mermaid>`
@@ -137,11 +160,11 @@ test("ShortcodesHelpers keeps a Mermaid diagram it cannot render", async () => {
   // Doctor renders without a browser, which does not cover every diagram type.
   // Those still have to reach the page, so SharePoint can try to render them.
   const output = await ShortcodesHelpers.parseBefore(
-    `<mermaid>\nmindmap\n  root((doctor))\n    Pages\n</mermaid>`
+    `<mermaid>\nC4Context\n  Person(author, "Author")\n</mermaid>`
   );
 
   assert.match(output, /<pre class="mermaid">/);
-  assert.match(output, /root\(\(doctor\)\)/);
+  assert.match(output, /Person\(author/);
 });
 
 test("ShortcodesHelpers renders the diagrams that need a layout engine", async () => {

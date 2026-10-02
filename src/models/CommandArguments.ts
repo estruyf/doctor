@@ -59,6 +59,11 @@ export interface PublishOptions {
   forceAll: boolean;
   removeDeleted: boolean;
   pageTemplate: string | null;
+  /**
+   * Re-apply the page template to pages which already exist, instead of only
+   * to the ones doctor creates.
+   */
+  reapplyTemplates: boolean;
 }
 
 export interface ContentOptions {

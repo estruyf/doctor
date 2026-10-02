@@ -96,7 +96,11 @@ rather than falling back, so a typo can't hand a pipeline human output to parse.
 
 [StateHelper](src/helpers/StateHelper.ts) stores `.doctor/state.json` **in the SharePoint asset library, not
 on disk** (path relative to `--library`, configurable with `--stateFile`). It holds a SHA-256 hash per slug
-of the resolved page source (front matter + content + partials). This drives three behaviours: skipping
+of everything the page is built from — front matter, content, partials, the images it references, the
+slugs of the pages it links to, and (with `--reapplyTemplates`) its page template — plus the instance
+ids of the controls doctor put on the page and a `configHash` of the publish settings and the custom
+shortcodes, which marks every page changed when it moves.
+[DependencyHelper](src/helpers/DependencyHelper.ts) works those inputs out, once per run per file. This drives three behaviours: skipping
 unchanged pages, the `status` command's new/modified/unchanged/deleted/orphaned report, and `--removeDeleted`
 (recycles pages present in state but absent locally — only with `--confirm`, and never when slugs cannot be
 resolved for every file). `--forceAll` bypasses the hash check; `--disableStatePersistence` turns the whole
@@ -122,6 +126,24 @@ mechanism off. Anything that changes what a page renders from must feed the hash
   resolves partials, renders Markdown (`markdown-it` + plugins), post-processes the HTML with `cheerio`,
   uploads referenced images, and drives [PagesHelper](src/helpers/PagesHelper.ts) to create/update the page
   and its controls.
+- [SegmentsHelper](src/helpers/SegmentsHelper.ts) cuts the markdown at every `kind: "control"` shortcode, so
+  one page can become several web parts. A page without one yields a single segment holding the whole
+  document — byte-for-byte the input the Markdown web part has always received. Pure and stateless.
+- [CanvasHelper](src/helpers/CanvasHelper.ts) owns `CanvasContent1`: it composes the full control array and
+  writes it with **one** `SavePageAsDraft`, rather than looping the CLI's add/set/remove commands (which
+  cannot move an existing control, and republish the page on every remove). `compose()` is pure and is where
+  the tests live; doctor's own controls are matched by the instance ids in the state file, falling back to
+  the `--webPartTitle` scheme. Doctor's content section is rewritten to exactly what the markdown says, so
+  a web part added *in that section* on the SharePoint side is removed; every other section is never
+  touched. Everything that can fail on the content alone (`PagesHelper.prepareSegments`) runs before the
+  page is created or checked out.
+- [MetadataHelper](src/helpers/MetadataHelper.ts) turns front matter values into the shapes
+  `ValidateUpdateListItem` accepts per column type (taxonomy, person claims, DateTime, Lookup, URL,
+  MultiChoice). Pure — anything needing a question answered by SharePoint stays in `PagesHelper`.
+- [TermsHelper](src/helpers/TermsHelper.ts) resolves a managed metadata label to its term through the site
+  term store (`_api/v2.1/termStore`), honouring a column's anchor term, synonyms and `Parent > Child` paths.
+  A term it cannot resolve, or that matches more than one, fails the page rather than leaving the column
+  empty.
 - [PartialsHelper](src/helpers/PartialsHelper.ts) resolves `<include file="..." />` plus the configured
   `partials.header`/`partials.footer`, rewrites relative links inside included snippets, and contributes to
   the page hash so a changed partial re-publishes its pages.
@@ -131,7 +153,7 @@ mechanism off. Anything that changes what a page renders from must feed the hash
 - [MermaidHelper](src/helpers/MermaidHelper.ts) renders diagrams **during publish**, in the Mermaid version
   this package ships, and uploads them as images to a `mermaid` folder in the asset library — SharePoint
   strips inline SVG and never executes the script tag. Diagram types that need a real browser
-  (`mindmap`, `C4Context`, `block-beta`) are left to SharePoint.
+  (`C4Context`, `block-beta`) are left to SharePoint.
 - [TempDataHelper](src/helpers/TempDataHelper.ts) writes scratch files to `./temp` for command payloads,
   generated assets and machine-translated pages; it cleans up at the end of `cli()`, including on failure.
 
@@ -143,10 +165,14 @@ mechanism off. Anything that changes what a page renders from must feed the hash
   and one 5s-delayed retry when `--retryWhenFailed` is set. Add new SharePoint calls here, not with ad-hoc
   `spawn`/`exec`.
 - [ApiHelper](src/helpers/ApiHelper.ts) + [AccessToken](src/helpers/AccessToken.ts) cover the direct REST
-  calls. Use the `*OrThrow` variants when a call must succeed — the plain ones swallow the SharePoint error
-  message.
+  calls — the page canvas and the term store go this way, because the CLI has no command that does the job.
+  Use the `*OrThrow` variants when a call must succeed — the plain ones swallow the SharePoint error
+  message. `AccessToken.get()` caches per site for ten minutes, since fetching one runs two CLI commands.
 - [Authenticate](src/commands/authenticate.ts) handles login; a `--certificate` value ending in
-  `.pfx`/`.p12`/`.pem` is treated as a file path, anything else as base64 contents.
+  `.pfx`/`.p12`/`.pem` is treated as a file path, anything else as base64 contents. A certificate that
+  needs a password and was given none is asked for one in the terminal (masked, checked locally with
+  `checkCertificatePassword` before the sign-in) — only with a TTY and never with `--output json`, so a
+  pipeline gets an error rather than a prompt that hangs it.
 
 ### Logging secrets
 
