@@ -212,6 +212,8 @@ An [Astro Starlight](https://starlight.astro.build/) site with its own `package.
 - **Releases** publish from the `dev` branch: a commit message containing `#release` triggers the npm publish
   workflow, and pushes from `dev` publish under the `next` tag (a full release comes from a published GitHub
   release or a manual run). CI also runs a real publish against the `doctor-sample` site on macOS and Ubuntu.
+  npm publishing uses **trusted publishing** (OIDC, no `NPM_TOKEN`), which npm ties to one workflow file —
+  [main.yml](.github/workflows/main.yml). Don't add `npm publish` to any other workflow; it will fail to authenticate.
 
 ## Definition of done
 
