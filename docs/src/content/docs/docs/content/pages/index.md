@@ -400,6 +400,13 @@ metadata:
 When a term GUID is omitted, `Doctor` resolves the label against the column's term set, reading the
 term store through the site (`_api/v2.1/termStore`). Terms are read once per term set per run.
 
+:::note[Permission]
+Looking a label up needs the **TermStore.Read.All** application permission from SharePoint on the
+app registration — `Sites.FullControl.All` does not include it. Without it, a page which sets a
+managed metadata column by its label is skipped. See
+[the term store](../../getting-started/certificate-authentication/#the-term-store).
+:::
+
 A few things are worth knowing:
 
 - **Anchored columns.** When the column is pinned to a sub-tree of its term set (an anchor term),

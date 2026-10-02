@@ -131,12 +131,23 @@ export class MarkdownHelper {
     // The blank lines around the markdown are required. Without them markdown-it
     // treats the opening `div` and the first block of the content as a single
     // HTML block, which leaves that first block unparsed.
+    //
+    // The outer `ExternalClass` div is a guard. Now and then SharePoint
+    // re-sanitizes the stored HTML when a page is checked in, and scopes every
+    // rule of the stylesheet under `.ExternalClass` — which nothing on a modern
+    // page carries, so the callouts, code and table of contents lost their
+    // styling. It cannot be triggered on demand, so it cannot be avoided; with
+    // the class on an ancestor, the rules match whether they were scoped or
+    // not. It has to wrap the container rather than sit on it, since a scoped
+    // `.ExternalClass .doctor__container` only matches a descendant.
     let htmlMarkup = await ShortcodesHelpers.parseBefore(`
+<div class="ExternalClass">
 <div class="doctor__container">
 <div class="doctor__container__markdown">
 
 ${markdown}
 
+</div>
 </div>
 </div>`);
     htmlMarkup = converter.render(htmlMarkup);

@@ -440,14 +440,30 @@ export class DoctorTranspiler {
     );
   }
 
+  /**
+   * Keep a page this run did not write in the run's picture of the site: out
+   * of the cleanup pass, and in the menu.
+   *
+   * A page skipped over a problem (its metadata, its assets) may never have
+   * been created. Its menu item would then point at a page that is not there,
+   * and SharePoint refuses to add a navigation node for a missing page — which
+   * failed the whole navigation step. It joins the menu on the run that
+   * publishes it. An unchanged page is in the publish state, so it exists.
+   * @param mayNotExist Whether the page can be missing from the site
+   */
   private static skipPage(
     webUrl: string,
     output: PublishOutput,
     data: PageFrontMatter | undefined,
     slug: string,
     title: string,
+    mayNotExist = false,
   ) {
     PagesHelper.markKnown(slug);
+    if (mayNotExist && !PagesHelper.isListedPage(webUrl, slug)) {
+      Logger.debug(`Not adding ${slug} to the navigation, it does not exist yet.`);
+      return;
+    }
     this.addToNavigation(webUrl, output, data, slug, title);
   }
 
@@ -634,7 +650,7 @@ export class DoctorTranspiler {
           );
           setProgress(`Skipped (assets): ${relPath}`);
           StatusHelper.addPageSkipped();
-          this.skipPage(webUrl, output, markup.data as PageFrontMatter, slug, title);
+          this.skipPage(webUrl, output, markup.data as PageFrontMatter, slug, title, true);
           return;
         }
 
@@ -720,7 +736,7 @@ export class DoctorTranspiler {
             );
             setProgress(`Skipped (metadata): ${relPath}`);
             StatusHelper.addPageSkipped();
-            this.skipPage(webUrl, output, markup.data as PageFrontMatter, slug, title);
+            this.skipPage(webUrl, output, markup.data as PageFrontMatter, slug, title, true);
             return;
           }
 

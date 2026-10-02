@@ -152,6 +152,8 @@ test("A page skipped for a metadata problem keeps its menu entry", async (t) => 
   t.after(() => PagesHelper.reset());
   PagesHelper.reset();
 
+  PagesHelper.pages = [{ FileRef: "/sites/docs/SitePages/tests/codeblocks.aspx" }];
+
   const output = { navigation: { QuickLaunch: { items: [] } } };
 
   DoctorTranspiler.skipPage(
@@ -160,6 +162,7 @@ test("A page skipped for a metadata problem keeps its menu entry", async (t) => 
     { title: "Codeblocks", menu: { QuickLaunch: { id: "codeblocks", parent: "tests" } } },
     "tests/codeblocks.aspx",
     "Codeblocks",
+    true,
   );
 
   const [root] = output.navigation.QuickLaunch.items;
@@ -168,6 +171,27 @@ test("A page skipped for a metadata problem keeps its menu entry", async (t) => 
     root.items.map((i) => i.name),
     ["Codeblocks"],
   );
+});
+
+test("A page skipped before it was ever created stays out of the menu", async (t) => {
+  // SharePoint refuses a navigation node for a page that is not there, which
+  // failed the whole navigation step over one page with a metadata problem
+  t.after(() => PagesHelper.reset());
+  PagesHelper.reset();
+
+  const output = { navigation: { QuickLaunch: { items: [] } } };
+
+  DoctorTranspiler.skipPage(
+    WEB_URL,
+    output,
+    { title: "Metadata", menu: { QuickLaunch: { id: "metadata", parent: "tests" } } },
+    "tests/metadata.aspx",
+    "Metadata",
+    true,
+  );
+
+  assert.deepEqual(output.navigation.QuickLaunch.items, []);
+  assert.deepEqual(PagesHelper.getUntouchedPages(), []);
 });
 
 test("A skipped page is not treated as one whose markdown file is gone", async (t) => {

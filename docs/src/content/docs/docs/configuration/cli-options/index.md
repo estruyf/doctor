@@ -451,6 +451,9 @@ failure at the very end of a run, with every page already written.
     publish.
   - Without rights to **set columns**, the `metadata` and `author` front matter is skipped — and not
     even worked out, so the term store and the user lookups are not paid for either.
+  - Without access to the **term store**, a page which sets a managed metadata column by its label is
+    skipped whole. The app registration needs the **TermStore.Read.All** permission from SharePoint —
+    see [the term store](../../getting-started/certificate-authentication/#the-term-store).
   - Without rights to **write to the asset library**, a page which has to upload something is skipped
     whole rather than published with its pictures pointing at nothing — that means a page with an
     image, with a `header.image`, or with a Mermaid diagram, since `doctor` draws those during the

@@ -62,6 +62,7 @@ To quickly get started, we provided a [sample repository](https://github.com/est
 
 1. Create an app registration in the [Azure Portal](https://portal.azure.com).
 2. Add the **Sites.FullControl.All** application permission from SharePoint, and grant admin consent for your tenant. To scope the app to a single site instead, use **Sites.Selected** and grant it rights on that site — see [scoping the app to a single site](./certificate-authentication/#scoping-the-app-to-a-single-site).
+   If your pages set [managed metadata](../content/pages/#taxonomy-fields-managed-metadata) columns by their label, also add **TermStore.Read.All** from SharePoint.
 3. Generate a certificate, upload it to the app registration, and convert it to the `PKCS` format so you can pass it to `doctor`.
 
 The [certificate authentication](./certificate-authentication) section walks you through each of these steps with the required commands and screenshots.

@@ -325,19 +325,21 @@ export class PagesHelper {
         setOptions.layoutType = layout;
       }
 
-      if (
-        pageData &&
-        (pageData as Page).commentsDisabled !== commentsDisabled
-      ) {
-        setOptions.commentsEnabled = !commentsDisabled;
-      }
-
       if (Object.keys(setOptions).length > 2) {
         await executeWithRetry(
           "spo page set",
           setOptions,
           CliCommand.getRetry()
         );
+      }
+
+      // Not through `spo page set`, which addresses the page by an unescaped
+      // path here — see `CanvasHelper.publish`
+      if (
+        pageData &&
+        (pageData as Page).commentsDisabled !== commentsDisabled
+      ) {
+        await CanvasHelper.setCommentsDisabled(webUrl, slug, commentsDisabled);
       }
 
       // A template is applied when doctor creates the page. Reaching here means
@@ -409,15 +411,7 @@ export class PagesHelper {
             },
             CliCommand.getRetry()
           );
-          await executeWithRetry(
-            "spo page set",
-            {
-              webUrl,
-              name: slug,
-              publish: true,
-            },
-            CliCommand.getRetry()
-          );
+          await CanvasHelper.publish(webUrl, slug);
           return await this.createPageIfNotExists(
             webUrl,
             slug,
@@ -1240,6 +1234,14 @@ export class PagesHelper {
       return MetadataHelper.toTaxonomyValue(term.label, term.termGuid);
     }
 
+    // Known before the first lookup, so the page's warning says what is wrong
+    // rather than repeating SharePoint's 403 once per column
+    if (!CapabilitiesHelper.get().readTermStore) {
+      throw new Error(
+        `the term "${term.label}" cannot be looked up, because this account is not allowed to read the term store. Add the SharePoint application permission TermStore.Read.All to the app registration, or write the term as { label, termGuid }`
+      );
+    }
+
     const resolved = await this.resolveTerm(webUrl, fieldInfo, term.label);
     return MetadataHelper.toTaxonomyValue(resolved.label, resolved.id);
   }
@@ -1755,15 +1757,7 @@ export class PagesHelper {
     } catch (e) {
       // Might be that the file doesn't need to be checked in
     }
-    await executeWithRetry(
-      "spo page set",
-      {
-        name: slug,
-        webUrl,
-        publish: true,
-      },
-      CliCommand.getRetry()
-    );
+    await CanvasHelper.publish(webUrl, slug);
   }
 
   /**

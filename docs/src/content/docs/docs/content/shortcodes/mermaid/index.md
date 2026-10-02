@@ -19,12 +19,12 @@ The shortcode renders the finished diagram, uploads it to your asset library and
 
 ```html
 <div class="doctor__mermaid">
-  <img src="https://<tenant>.sharepoint.com/<assets>/mermaid/doctor-mermaid-a1b2c3d4e5.svg"
+  <img src="https://<tenant>.sharepoint.com/<assets>/mermaid/doctor-mermaid-a1b2c3d4e5-f6a7b8c9.svg"
        width="527" height="548" alt="Mermaid diagram" />
 </div>
 ```
 
-The file is named after the contents of the diagram, so it lands in a `mermaid` folder in the asset library you already publish images to, and re-publishing the same diagram reuses the same file.
+The file lands in a `mermaid` folder in the asset library you already publish images to. It is named after both the diagram's definition and the drawing itself, so re-publishing the same diagram reuses the same file, while a diagram that a newer `Doctor` draws differently gets a new file. You do not need `--overwriteImages` to replace it.
 
 Because the diagram is drawn on your machine, the page needs no script, no CDN, and no tenant configuration to show it. The Mermaid version is the one `Doctor` ships, so your diagrams do not change when SharePoint updates its own.
 
@@ -69,7 +69,7 @@ flowchart LR
 
 | Supported                                                                                                   | Not supported                                 |
 | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| `flowchart`, `sequenceDiagram`, `classDiagram`, `stateDiagram-v2`, `erDiagram`, `pie`, `gitGraph`, `journey`, `timeline`, `quadrantChart`, `xychart-beta`, `architecture-beta`, `gantt`, `sankey-beta` | `mindmap`, `C4Context`, `block-beta` |
+| `flowchart`, `sequenceDiagram`, `classDiagram`, `stateDiagram-v2`, `erDiagram`, `pie`, `gitGraph`, `journey`, `timeline`, `quadrantChart`, `xychart-beta`, `architecture-beta`, `gantt`, `sankey-beta`, `mindmap` | `C4Context`, `block-beta` |
 
 A diagram type `Doctor` cannot draw is published as a `<pre class="mermaid">` block instead, together with a warning during the publish. SharePoint renders those with its own Mermaid support, when your tenant has it.
 

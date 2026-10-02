@@ -238,7 +238,7 @@ export class CapabilitiesHelper {
     say(
       capabilities.readTermStore,
       "Read the term store",
-      "pages with a managed metadata column are skipped",
+      "pages with a managed metadata column are skipped; the app registration needs the SharePoint permission TermStore.Read.All",
     );
     say(
       capabilities.readSiteUsers,

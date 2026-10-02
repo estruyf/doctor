@@ -153,7 +153,7 @@ mechanism off. Anything that changes what a page renders from must feed the hash
 - [MermaidHelper](src/helpers/MermaidHelper.ts) renders diagrams **during publish**, in the Mermaid version
   this package ships, and uploads them as images to a `mermaid` folder in the asset library — SharePoint
   strips inline SVG and never executes the script tag. Diagram types that need a real browser
-  (`mindmap`, `C4Context`, `block-beta`) are left to SharePoint.
+  (`C4Context`, `block-beta`) are left to SharePoint.
 - [TempDataHelper](src/helpers/TempDataHelper.ts) writes scratch files to `./temp` for command payloads,
   generated assets and machine-translated pages; it cleans up at the end of `cli()`, including on failure.
 

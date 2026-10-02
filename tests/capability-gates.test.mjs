@@ -149,3 +149,22 @@ test("The asset gate ignores what it does not have to upload", () => {
   // A diagram shown as a code sample is not a diagram
   assert.deepEqual(gate("Write `<mermaid>` to draw one", {}), []);
 });
+
+test("A term label says the term store cannot be read, rather than repeating its 403", async (t) => {
+  withCapabilities(t, ALL_BUT({ readTermStore: false }));
+
+  // Private, but it is where the term store would be asked
+  await assert.rejects(
+    () => PagesHelper["toTaxonomyValue"](WEB_URL, { internalName: "Dept" }, { label: "Finance" }),
+    /not allowed to read the term store/,
+  );
+
+  // A term given with its id needs no lookup, so it still works
+  assert.match(
+    await PagesHelper["toTaxonomyValue"](WEB_URL, { internalName: "Dept" }, {
+      label: "Finance",
+      termGuid: "8ed8c9ea-7052-4c1d-a4d7-b9c10bffea6f",
+    }),
+    /Finance/,
+  );
+});

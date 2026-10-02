@@ -24,7 +24,24 @@ Since v2.0.0 the `deviceCode` and `password` authentication types are removed. C
 
 ![](./assets/app-permissions.png)
 
+- If your pages set managed metadata columns, add the **TermStore.Read.All** application permission
+  scope from SharePoint as well — see [the term store](#the-term-store)
 - Click on **Grant admin consent for <tenant>**, and accept
+
+### The term store
+
+`doctor` looks a managed metadata label up in the term store to find the term it stands for. Neither
+`Sites.FullControl.All` nor rights on the site cover the term store, so without **TermStore.Read.All**
+SharePoint refuses the lookup, the permissions report says `no  Read the term store`, and every page
+which sets a managed metadata column by its label is skipped.
+
+Add it from **SharePoint**, not from Microsoft Graph: `doctor` reads the term store through the site
+(`_api/v2.1/termStore`), with a SharePoint token. Reading is all it does, so `TermStore.ReadWrite.All`
+is not needed, and neither is making the app a term store administrator. The permission is
+tenant-wide, and works the same with `Sites.Selected`.
+
+Not using managed metadata, or writing every term as `{ label, termGuid }`, needs no term store access
+at all.
 
 ### Scoping the app to a single site
 

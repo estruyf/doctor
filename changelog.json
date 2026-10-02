@@ -13,6 +13,18 @@
     "updates": [
       {
         "id": null,
+        "title": "Fix: callouts, code blocks and the table of contents keep their styling when SharePoint rewrites a page's stylesheet. Now and then SharePoint re-sanitizes a page as it is published and scopes every rule under `.ExternalClass`, which nothing on a modern page carries, so the page showed its content unstyled. `Doctor` now wraps its HTML in an element with that class, so the rules match either way. Pages pick it up the next time they are published."
+      },
+      {
+        "id": null,
+        "title": "Fix: a Mermaid sequence diagram shows on the page again, instead of a broken image. Its font is written as `\"trebuchet ms\"`, and moving the diagram's inline styles into its stylesheet cut that quote in half, which left an SVG the browser would not load. An uploaded diagram is now named after what was drawn as well as its definition, so a diagram drawn differently replaces the old file without `--overwriteImages`."
+      },
+      {
+        "id": null,
+        "title": "Docs: the app registration setup now says that resolving a managed metadata label needs the `TermStore.Read.All` application permission from SharePoint — `Sites.FullControl.All` does not cover the term store. The permissions report and the warning of a skipped page name that permission too."
+      },
+      {
+        "id": null,
         "title": "New: a shortcode can set `kind: \"webpart\"` to become a SharePoint web part of its own instead of returning HTML. The page is cut at the tag, so one Markdown file can publish as `[markdown] [web part] [markdown]` — for instance a Highlighted content web part between two pieces of text. Besides `webPartProperties`, a control shortcode can return `webPartData` for the web parts which keep state outside their properties. Pages without a control shortcode publish exactly as before."
       },
       {
@@ -97,7 +109,7 @@
       },
       {
         "id": null,
-        "title": "Fix: a page which is skipped keeps its place in the site navigation. The menu is rebuilt from what a run saw, so a page skipped as unchanged in a translation run, or skipped because its metadata could not be worked out, lost its entry — the page itself was left untouched, but it disappeared from the Quick Launch."
+        "title": "Fix: a page which is skipped keeps its place in the site navigation. The menu is rebuilt from what a run saw, so a page skipped as unchanged in a translation run, or skipped because its metadata could not be worked out, lost its entry — the page itself was left untouched, but it disappeared from the Quick Launch. A page skipped before it was ever created gets its menu item on the run that publishes it, rather than failing the navigation step on a link to a page that is not there."
       },
       {
         "id": null,
@@ -245,7 +257,7 @@
       },
       {
         "id": null,
-        "title": "Fix: a page or translation whose slug holds an apostrophe (`what's-new.aspx`) is addressed correctly in the REST calls doctor makes, which used to fail on it."
+        "title": "Fix: a page or translation whose slug holds an apostrophe (`what's-new.aspx`) is addressed correctly in the REST calls doctor makes, which used to fail on it. Publishing such a page, and turning its comments on or off, no longer goes through `spo page set`, which puts the page's path into the request unescaped and failed after the page had been written."
       },
       {
         "id": null,
@@ -262,7 +274,7 @@
     "updates": [
       {
         "id": 206,
-        "title": "New: Mermaid diagrams are drawn by `Doctor` while publishing, in the Mermaid version it ships. They used to be left to a script tag the Markdown web part never executes, so SharePoint rendered them with its own older Mermaid, or not at all."
+        "title": "New: Mermaid diagrams are drawn by `Doctor` while publishing, in the Mermaid version it ships. They used to be left to a script tag the Markdown web part never executes, so SharePoint rendered them with its own older Mermaid, or not at all. That includes `mindmap`. The `C4Context` and `block-beta` types still need a browser, so they are left to SharePoint with a warning that says so."
       }
     ]
   },

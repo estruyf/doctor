@@ -88,6 +88,16 @@ const trimUrl = (webUrl: string): string => webUrl.replace(/\/+$/, "");
 const pageApiUrl = (webUrl: string, slug: string): string =>
   `${trimUrl(webUrl)}/_api/sitepages/pages/GetByUrl('sitepages/${toODataPath(slug, true)}')`;
 
+// The page as a file, for what the pages API does not offer. The site path is
+// read from the URL itself, which holds on a root site and on any cloud.
+const pageFileApiUrl = (webUrl: string, slug: string): string => {
+  const site = new URL(webUrl).pathname.replace(/\/+$/, "");
+  return `${trimUrl(webUrl)}/_api/web/GetFileByServerRelativePath(DecodedUrl='${toODataPath(
+    `${site}/sitepages/${slug}`,
+    true,
+  )}')`;
+};
+
 export class CanvasHelper {
   /** The available web parts per site, which never change during a run */
   private static definitions: { [webUrl: string]: any[] } = {};
@@ -528,6 +538,40 @@ export class CanvasHelper {
     // — which is what a checkout left behind by an interrupted run looks like.
     Logger.debug(`Checking out the page ${slug} before rewriting its canvas.`);
     return await ApiHelper.postOrThrow(`${url}/checkoutpage`, headers);
+  }
+
+  /**
+   * Publish the page as a major version.
+   *
+   * Done here rather than with `spo page set --publish`, which puts the page's
+   * path into `GetFileByServerRelativePath(DecodedUrl='…')` unescaped: a page
+   * titled "What's new" ended the OData string early, and the publish failed
+   * after the page had been written. The steps are the CLI's own — take the
+   * checkout, then check in as a major version.
+   */
+  public static async publish(webUrl: string, slug: string): Promise<void> {
+    await CanvasHelper.checkout(webUrl, slug);
+
+    Logger.debug(`Publishing the page ${slug}.`);
+    await ApiHelper.postOrThrow(
+      `${pageFileApiUrl(webUrl, slug)}/CheckIn(comment=@a1,checkintype=@a2)?@a1=''&@a2=1`,
+      await CanvasHelper.getHeaders(webUrl),
+    );
+  }
+
+  /**
+   * Turn the page's comments on or off. `spo page set --commentsEnabled` has
+   * the same unescaped path as its publish, so this goes direct as well.
+   */
+  public static async setCommentsDisabled(
+    webUrl: string,
+    slug: string,
+    disabled: boolean,
+  ): Promise<void> {
+    await ApiHelper.postOrThrow(
+      `${pageFileApiUrl(webUrl, slug)}/ListItemAllFields/SetCommentsDisabled(${disabled})`,
+      await CanvasHelper.getHeaders(webUrl),
+    );
   }
 
   /**
