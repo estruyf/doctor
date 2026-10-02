@@ -2,6 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { MetadataHelper } from "../dist/helpers/MetadataHelper.js";
+import { PagesHelper } from "../dist/helpers/PagesHelper.js";
+import { ApiHelper } from "../dist/helpers/ApiHelper.js";
+import { AccessToken } from "../dist/helpers/AccessToken.js";
 
 const CLAIM = "i:0#.f|membership|";
 
@@ -111,83 +114,113 @@ test("The claim for a UPN is lower cased, the way SharePoint stores it", () => {
 
 test("DateTime: an already normalized value is left alone", () => {
   assert.equal(
-    MetadataHelper.transformDateTime("2026-03-15 14:30:00"),
+    MetadataHelper.parseDateTime("2026-03-15 14:30:00"),
     "2026-03-15 14:30:00",
   );
 });
 
 test("DateTime: a date without a time becomes midnight", () => {
   assert.equal(
-    MetadataHelper.transformDateTime("2026-03-15"),
+    MetadataHelper.parseDateTime("2026-03-15"),
     "2026-03-15 00:00:00",
   );
 });
 
 test("DateTime: an ISO 8601 value is reformatted", () => {
   assert.equal(
-    MetadataHelper.transformDateTime("2026-03-15T14:30:00"),
+    MetadataHelper.parseDateTime("2026-03-15T14:30:00"),
     "2026-03-15 14:30:00",
   );
 });
 
-test("DateTime: a value with a zone is written in UTC, wherever doctor runs", () => {
-  // Reformatted in the machine's local time, the same markdown published a
-  // different value from a laptop than from a pipeline running in UTC
-  assert.equal(
-    MetadataHelper.transformDateTime("2026-03-15T14:30:00Z"),
-    "2026-03-15 14:30:00",
-  );
-  assert.equal(
-    MetadataHelper.transformDateTime("2026-03-15T14:30:00+02:00"),
-    "2026-03-15 12:30:00",
-  );
-  assert.equal(
-    MetadataHelper.transformDateTime("2026-03-15T00:30:00+0200"),
-    "2026-03-14 22:30:00",
-  );
+test("DateTime: a value with a zone is a moment, for the site to place in its time zone", () => {
+  // SharePoint reads `YYYY-MM-DD HH:MM:SS` in the site's time zone, so writing
+  // the UTC time put a zoned value off by the site's offset
+  for (const [value, iso] of [
+    ["2026-03-15T14:30:00Z", "2026-03-15T14:30:00.000Z"],
+    ["2026-03-15T14:30:00+02:00", "2026-03-15T12:30:00.000Z"],
+    ["2026-03-15T00:30:00+0200", "2026-03-14T22:30:00.000Z"],
+  ]) {
+    const parsed = MetadataHelper.parseDateTime(value);
+    assert.ok(parsed instanceof Date, `${value} is a moment`);
+    assert.equal(parsed.toISOString(), iso);
+  }
+});
+
+test("DateTime: the site's answer is written the way SharePoint takes it", () => {
+  assert.equal(MetadataHelper.fromSiteTime("2026-03-15T15:30:00"), "2026-03-15 15:30:00");
+  assert.equal(MetadataHelper.fromSiteTime("2026-03-15T15:30:00.000Z"), "2026-03-15 15:30:00");
+  assert.equal(MetadataHelper.fromSiteTime("nonsense"), undefined);
+});
+
+test("DateTime: a moment is converted by the site, once per value", async (t) => {
+  const realGet = ApiHelper.getOrThrow;
+  const realToken = AccessToken.get;
+  t.after(() => {
+    ApiHelper.getOrThrow = realGet;
+    AccessToken.get = realToken;
+    PagesHelper.reset();
+  });
+  PagesHelper.reset();
+
+  const requested = [];
+  AccessToken.get = async () => "token";
+  // A site in Brussels: UTC+1 in March
+  ApiHelper.getOrThrow = async (url) => {
+    requested.push(url);
+    return { value: "2026-03-15T11:00:00" };
+  };
+
+  const web = "https://contoso.sharepoint.com/sites/docs";
+  const moment = MetadataHelper.parseDateTime("2026-03-15T10:00:00Z");
+  assert.equal(await PagesHelper.toSiteTime(web, moment), "2026-03-15 11:00:00");
+  assert.equal(await PagesHelper.toSiteTime(web, moment), "2026-03-15 11:00:00");
+
+  assert.equal(requested.length, 1);
+  assert.match(requested[0], /RegionalSettings\/TimeZone\/utcToLocalTime\(@date\)\?@date='2026-03-15T10%3A00%3A00.000Z'$/);
 });
 
 test("DateTime: a value without a zone is written as it stands", () => {
   assert.equal(
-    MetadataHelper.transformDateTime("2026-03-15T14:30"),
+    MetadataHelper.parseDateTime("2026-03-15T14:30"),
     "2026-03-15 14:30:00",
   );
   assert.equal(
-    MetadataHelper.transformDateTime("2026-03-15T14:30:45.123"),
+    MetadataHelper.parseDateTime("2026-03-15T14:30:45.123"),
     "2026-03-15 14:30:45",
   );
-  assert.equal(MetadataHelper.transformDateTime("2026-02-30T10:00"), undefined);
+  assert.equal(MetadataHelper.parseDateTime("2026-02-30T10:00"), undefined);
 });
 
 test("DateTime: an impossible date is reported in every form it can be written in", () => {
   // The date-only and the already normalized forms were passed through on their
   // shape alone, so 2026-02-30 reached SharePoint
-  assert.equal(MetadataHelper.transformDateTime("2026-02-30"), undefined);
-  assert.equal(MetadataHelper.transformDateTime("2026-02-30 10:00:00"), undefined);
-  assert.equal(MetadataHelper.transformDateTime("2026-13-01"), undefined);
-  assert.equal(MetadataHelper.transformDateTime("2026-03-15 25:00:00"), undefined);
-  assert.equal(MetadataHelper.transformDateTime("2026-02-28"), "2026-02-28 00:00:00");
-  assert.equal(MetadataHelper.transformDateTime("2028-02-29 23:59:59"), "2028-02-29 23:59:59");
+  assert.equal(MetadataHelper.parseDateTime("2026-02-30"), undefined);
+  assert.equal(MetadataHelper.parseDateTime("2026-02-30 10:00:00"), undefined);
+  assert.equal(MetadataHelper.parseDateTime("2026-13-01"), undefined);
+  assert.equal(MetadataHelper.parseDateTime("2026-03-15 25:00:00"), undefined);
+  assert.equal(MetadataHelper.parseDateTime("2026-02-28"), "2026-02-28 00:00:00");
+  assert.equal(MetadataHelper.parseDateTime("2028-02-29 23:59:59"), "2028-02-29 23:59:59");
 });
 
 test("DateTime: something that is not a date is reported, not passed through", () => {
   // Passing it through meant SharePoint refused it *after* the page canvas had
   // been written, which is what resolving before writing exists to prevent
-  assert.equal(MetadataHelper.transformDateTime("not a date"), undefined);
-  assert.equal(MetadataHelper.transformDateTime(42), undefined);
-  assert.equal(MetadataHelper.transformDateTime({}), undefined);
-  assert.equal(MetadataHelper.transformDateTime(new Date("nope")), undefined);
+  assert.equal(MetadataHelper.parseDateTime("not a date"), undefined);
+  assert.equal(MetadataHelper.parseDateTime(42), undefined);
+  assert.equal(MetadataHelper.parseDateTime({}), undefined);
+  assert.equal(MetadataHelper.parseDateTime(new Date("nope")), undefined);
 });
 
 test("DateTime: a date YAML already parsed keeps the day it was written on", () => {
   // `Modified: 2026-03-15` without quotes is a Date by the time it gets here,
   // a UTC midnight. Read in local time it moved to the 14th west of Greenwich.
   assert.equal(
-    MetadataHelper.transformDateTime(new Date("2026-03-15T00:00:00.000Z")),
+    MetadataHelper.parseDateTime(new Date("2026-03-15T00:00:00.000Z")),
     "2026-03-15 00:00:00",
   );
   assert.equal(
-    MetadataHelper.transformDateTime(new Date("2026-03-15T14:30:00.000Z")),
+    MetadataHelper.parseDateTime(new Date("2026-03-15T14:30:00.000Z")),
     "2026-03-15 14:30:00",
   );
 });

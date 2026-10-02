@@ -97,12 +97,18 @@ export class TermsHelper {
   public static match(terms: ResolvedTerm[], label: string): ResolvedTerm[] {
     const wanted = label.trim().toLowerCase();
 
-    const byPath = terms.filter(
-      (term) =>
-        [...term.path, term.label].join(" > ").toLowerCase() === wanted ||
-        [...term.path, term.label].join(">").toLowerCase() ===
-          wanted.replace(/\s*>\s*/g, ">"),
-    );
+    // Only something written as a path is matched as one. A root term's path
+    // is its bare label, so matching every label as a path made a root term
+    // win outright over a nested one sharing its label — exactly the
+    // ambiguity that has to be reported rather than settled by guessing.
+    const byPath = !wanted.includes(">")
+      ? []
+      : terms.filter(
+          (term) =>
+            [...term.path, term.label].join(" > ").toLowerCase() === wanted ||
+            [...term.path, term.label].join(">").toLowerCase() ===
+              wanted.replace(/\s*>\s*/g, ">"),
+        );
     if (byPath.length > 0) {
       return byPath;
     }

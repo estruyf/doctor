@@ -45,6 +45,13 @@ test("TermsHelper reports every term sharing an ambiguous label", () => {
   assert.deepEqual(ids(TermsHelper.match(TERMS, "Europe")), ["3", "6"]);
 });
 
+test("TermsHelper reports a root term sharing its label with a nested one", () => {
+  // A root term's path is its bare label, so the path match used to pick it
+  // outright instead of reporting the ambiguity
+  const withRoot = [...TERMS, term("9", "Europe")];
+  assert.deepEqual(ids(TermsHelper.match(withRoot, "Europe")), ["3", "6", "9"]);
+});
+
 test("TermsHelper resolves an ambiguous label by its path", () => {
   assert.deepEqual(ids(TermsHelper.match(TERMS, "Regions > Europe")), ["3"]);
   assert.deepEqual(ids(TermsHelper.match(TERMS, "Products > Europe")), ["6"]);

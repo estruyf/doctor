@@ -133,7 +133,10 @@ mechanism off. Anything that changes what a page renders from must feed the hash
   writes it with **one** `SavePageAsDraft`, rather than looping the CLI's add/set/remove commands (which
   cannot move an existing control, and republish the page on every remove). `compose()` is pure and is where
   the tests live; doctor's own controls are matched by the instance ids in the state file, falling back to
-  the `--webPartTitle` scheme, so controls added on the SharePoint side are never touched.
+  the `--webPartTitle` scheme. Doctor's content section is rewritten to exactly what the markdown says, so
+  a web part added *in that section* on the SharePoint side is removed; every other section is never
+  touched. Everything that can fail on the content alone (`PagesHelper.prepareSegments`) runs before the
+  page is created or checked out.
 - [MetadataHelper](src/helpers/MetadataHelper.ts) turns front matter values into the shapes
   `ValidateUpdateListItem` accepts per column type (taxonomy, person claims, DateTime, Lookup, URL,
   MultiChoice). Pure — anything needing a question answered by SharePoint stays in `PagesHelper`.

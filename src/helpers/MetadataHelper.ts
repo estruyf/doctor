@@ -114,13 +114,23 @@ export class MetadataHelper {
    * zone.
    *
    * The result must not depend on the machine running doctor, or the same
-   * markdown publishes a different date from a laptop than from a pipeline
-   * running in UTC. So a time that names its zone — `Z`, `+02:00`, or a date
-   * YAML already parsed — is written in UTC, and one that names none is
-   * written as it stands. A date without a time is midnight.
+   * markdown publishes a different date from a laptop than from a pipeline.
+   * A time that names no zone is written as it stands, and a date without a
+   * time is midnight — both are already what the site should show.
+   *
+   * A time that names its zone — `Z`, `+02:00` — is a moment rather than a
+   * wall-clock time, and only the site knows what its clock read then. So it
+   * comes back as a `Date`, for the caller to convert in the site's own time
+   * zone; writing it as UTC put it off by the site's offset.
+   *
+   * A date YAML already parsed is the exception. YAML reads an unquoted
+   * `2026-03-15 14:30:00` as UTC too, so a `Date` cannot tell a zone that was
+   * written from one that was not, and it is taken as the time as written.
    * @param value
+   * @returns the value to write, a `Date` to convert to the site's time, or
+   * `undefined` when it is not a date
    */
-  public static transformDateTime(value: any): any {
+  public static parseDateTime(value: any): string | Date | undefined {
     // A date written without quotes is parsed by YAML itself, so it arrives as
     // a Date — a moment in UTC. Read back in UTC, `2026-03-15` stays the 15th
     // wherever doctor runs; in local time it moved to the 14th west of
@@ -172,7 +182,7 @@ export class MetadataHelper {
         `${date}T${hours}:${minutes}:${seconds}${withColon.toUpperCase()}`,
       );
       if (!Number.isNaN(moment.getTime())) {
-        return MetadataHelper.formatUtc(moment);
+        return moment;
       }
     }
 
@@ -345,6 +355,18 @@ export class MetadataHelper {
   private static notADate(value: unknown): undefined {
     Logger.debug(`DateTime value '${value}' is not a real date.`);
     return undefined;
+  }
+
+  /**
+   * The value SharePoint wants for a site-local time it answered with, such as
+   * `2026-03-15T11:00:00` from `utcToLocalTime`.
+   * @param value
+   */
+  public static fromSiteTime(value: string): string | undefined {
+    const match = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}):(\d{2}):(\d{2})/.exec(
+      `${value ?? ""}`.trim(),
+    );
+    return match ? `${match[1]} ${match[2]}:${match[3]}:${match[4]}` : undefined;
   }
 
   private static formatUtc(value: Date): string {

@@ -11,23 +11,21 @@ import {
   PageSegment,
   PageLocalization,
 } from "@models";
-import {
-  CapabilitiesHelper,
-  FileHelpers,
-  FolderHelpers,
-  DependencyHelper,
-  FrontMatterHelper,
-  HeaderHelper,
-  Logger,
-  MultilingualHelper,
-  NavigationHelper,
-  PagesHelper,
-  OutputHelper,
-  SegmentsHelper,
-  ShortcodesHelpers,
-  StateHelper,
-  StatusHelper,
-} from "@helpers";
+import { CapabilitiesHelper } from "./CapabilitiesHelper.js";
+import { DependencyHelper } from "./DependencyHelper.js";
+import { FileHelpers } from "./FileHelpers.js";
+import { FolderHelpers } from "./FolderHelpers.js";
+import { FrontMatterHelper } from "./FrontMatterHelper.js";
+import { HeaderHelper } from "./HeaderHelper.js";
+import { Logger } from "./Logger.js";
+import { MultilingualHelper } from "./MultilingualHelper.js";
+import { NavigationHelper } from "./NavigationHelper.js";
+import { OutputHelper } from "./OutputHelper.js";
+import { PagesHelper } from "./PagesHelper.js";
+import { SegmentsHelper } from "./SegmentsHelper.js";
+import { ShortcodesHelpers } from "./ShortcodesHelpers.js";
+import { StateHelper } from "./StateHelper.js";
+import { StatusHelper } from "./StatusHelper.js";
 import { basename, join, dirname } from "path";
 import {
   existsAsync,
@@ -382,6 +380,66 @@ export class DoctorTranspiler {
    * page it was not told about. Leaving either out turns "the page was left
    * untouched" into the page losing its menu entry, or being deleted outright.
    */
+  /**
+   * Cut the page into segments and build the control for each, without
+   * touching the page. Everything that can fail on the content alone fails
+   * here, before the page is created or checked out.
+   */
+  private static async prepareControls(
+    content: string,
+    file: string,
+    relPath: string,
+    slug: string,
+    webUrl: string,
+    webPartTitle: string,
+    frontMatter: { [key: string]: any },
+    options: CommandArguments,
+  ) {
+    // A web part shortcode cuts the page into several web parts. A page
+    // without one yields a single segment holding the whole document,
+    // which is the input the Markdown web part has always received.
+    const webPartTags = ShortcodesHelpers.getWebPartTags();
+    const wasAlreadyParsed = file.endsWith(`.machinetranslated.md`);
+
+    // A machine translated page reaches this point as HTML, so there is
+    // no markdown left to cut up
+    if (wasAlreadyParsed && SegmentsHelper.hasTag(content, webPartTags)) {
+      throw new Error(
+        `The translated page "${relPath}" uses a web part shortcode, which doctor cannot place on a machine translated page. Remove it from the source page, or translate that page by hand.`,
+      );
+    }
+
+    const segments: PageSegment[] = wasAlreadyParsed
+      ? [{ type: "markdown", content }]
+      : SegmentsHelper.split(content, webPartTags);
+
+    // Every markdown segment is rendered on its own, so a table of
+    // contents would only list the headings of the segment it sits in
+    if (
+      segments.some((segment) => segment.type === "webpart") &&
+      segments.some(
+        (segment) =>
+          segment.type === "markdown" &&
+          SegmentsHelper.hasTag(segment.content, ["toc"]),
+      )
+    ) {
+      throw new Error(
+        `The page "${relPath}" combines a table of contents with a web part shortcode. A web part shortcode splits the page into separate web parts, each rendered on its own, so the table of contents can only see the headings next to it.`,
+      );
+    }
+
+    return await PagesHelper.prepareSegments(
+      webPartTitle,
+      segments,
+      slug,
+      webUrl,
+      options,
+      options.markdown ?? null,
+      wasAlreadyParsed,
+      { frontMatter, slug, webUrl },
+    );
+  }
+
   private static skipPage(
     webUrl: string,
     output: PublishOutput,
@@ -666,6 +724,29 @@ export class DoctorTranspiler {
             return;
           }
 
+          // The page's controls are built before anything is written as well:
+          // a web part shortcode that cannot be resolved, or content doctor
+          // cannot place, fails the page while it is still untouched rather
+          // than after it was created empty or checked out. A page that is
+          // going to be skipped as existing is not built at all.
+          const prepareControls = () =>
+            this.prepareControls(
+              markup.content,
+              file,
+              relPath,
+              slug,
+              webUrl,
+              webPartTitle,
+              markup.data ?? {},
+              options,
+            );
+          let controls =
+            skipExistingPages &&
+            !languagePageSlug &&
+            PagesHelper.isListedPage(webUrl, slug)
+              ? null
+              : await prepareControls();
+
           setProgress(`Checking if page exists: ${slug}`);
 
           // Check if the page already exists
@@ -699,42 +780,6 @@ export class DoctorTranspiler {
               : `Creating new page: ${title}`,
             );
 
-            // A web part shortcode cuts the page into several web parts. A page
-            // without one yields a single segment holding the whole document,
-            // which is the input the Markdown web part has always received.
-            const webPartTags = ShortcodesHelpers.getWebPartTags();
-            const wasAlreadyParsed = file.endsWith(`.machinetranslated.md`);
-
-            // A machine translated page reaches this point as HTML, so there is
-            // no markdown left to cut up
-            if (
-              wasAlreadyParsed &&
-              SegmentsHelper.hasTag(markup.content, webPartTags)
-            ) {
-              throw new Error(
-                `The translated page "${relPath}" uses a web part shortcode, which doctor cannot place on a machine translated page. Remove it from the source page, or translate that page by hand.`,
-              );
-            }
-
-            const segments: PageSegment[] = wasAlreadyParsed
-              ? [{ type: "markdown", content: markup.content }]
-              : SegmentsHelper.split(markup.content, webPartTags);
-
-            // Every markdown segment is rendered on its own, so a table of
-            // contents would only list the headings of the segment it sits in
-            if (
-              segments.some((segment) => segment.type === "webpart") &&
-              segments.some(
-                (segment) =>
-                  segment.type === "markdown" &&
-                  SegmentsHelper.hasTag(segment.content, ["toc"]),
-              )
-            ) {
-              throw new Error(
-                `The page "${relPath}" combines a table of contents with a web part shortcode. A web part shortcode splits the page into separate web parts, each rendered on its own, so the table of contents can only see the headings next to it.`,
-              );
-            }
-
             // With --reapplyTemplates, a page that already exists is laid out
             // from its template again instead of keeping whatever layout it
             // has. A page doctor just created already came from the template.
@@ -744,15 +789,14 @@ export class DoctorTranspiler {
                 ? await PagesHelper.getTemplateCanvas(webUrl, pageTemplate)
                 : null;
 
-            await PagesHelper.applySegments(
+            // Only a page the site did not list ends up here unprepared
+            controls = controls ?? (await prepareControls());
+
+            await PagesHelper.writeControls(
               webPartTitle,
-              segments,
+              controls,
               slug,
               webUrl,
-              options,
-              options.markdown ?? null,
-              wasAlreadyParsed,
-              { frontMatter: markup.data ?? {}, slug, webUrl },
               templateCanvas,
               existed,
             );

@@ -6,31 +6,28 @@ import {
   CommandArguments,
   WebPartSegment,
   WebPartShortcodeContext,
+  WebPartShortcodeResult,
   PageSegment,
   TaskOutput,
   MARKDOWN_WEB_PART_ID,
   STANDARD_WEB_PARTS,
 } from "@models";
-import {
-  AccessToken,
-  ApiHelper,
-  CanvasHelper,
-  CliCommand,
-  executeWithRetry,
-  FileHelpers,
-  FolderHelpers,
-  ListHelpers,
-  Logger,
-  OutputHelper,
-  MarkdownHelper,
-  MetadataHelper,
-  ShortcodesHelpers,
-  StateHelper,
-  StatusHelper,
-  TermsHelper,
-  ResolvedTerm,
-  WebPartControl,
-} from "@helpers";
+import { AccessToken } from "./AccessToken.js";
+import { ApiHelper } from "./ApiHelper.js";
+import { CanvasHelper, WebPartControl } from "./CanvasHelper.js";
+import { CliCommand } from "./CliCommand.js";
+import { FileHelpers } from "./FileHelpers.js";
+import { FolderHelpers } from "./FolderHelpers.js";
+import { ListHelpers } from "./ListHelpers.js";
+import { Logger } from "./Logger.js";
+import { MarkdownHelper } from "./MarkdownHelper.js";
+import { MetadataHelper } from "./MetadataHelper.js";
+import { OutputHelper } from "./OutputHelper.js";
+import { executeWithRetry } from "./RunCommand.js";
+import { ShortcodesHelpers } from "./ShortcodesHelpers.js";
+import { StateHelper } from "./StateHelper.js";
+import { StatusHelper } from "./StatusHelper.js";
+import { TermsHelper, ResolvedTerm } from "./TermsHelper.js";
 import { CapabilitiesHelper } from "./CapabilitiesHelper.js";
 import { isPermissionError } from "@utils";
 import { executeCommand } from "@pnp/cli-microsoft365";
@@ -97,6 +94,8 @@ export class PagesHelper {
   private static userClaims: { [key: string]: string | Error } = {};
   /** The canvas of each page template, which does not change during a run */
   private static templateCanvas: { [name: string]: any[] | null } = {};
+  /** Site-local times per site and moment, as SharePoint converted them */
+  private static siteTimes: { [key: string]: string } = {};
 
   /**
    * Reset all static state
@@ -112,6 +111,7 @@ export class PagesHelper {
     PagesHelper.metadataSkipReported = false;
     PagesHelper.userClaims = {};
     PagesHelper.templateCanvas = {};
+    PagesHelper.siteTimes = {};
   }
 
   /**
@@ -552,10 +552,7 @@ export class PagesHelper {
   /**
    * Write the page's controls: one Markdown web part per markdown segment and
    * one web part per web part shortcode, in the order they appear in the source.
-   *
-   * The whole canvas is composed and written in one call rather than looping
-   * the CLI's add/set/remove commands, because those cannot move an existing
-   * control and each of them re-saves and republishes the page.
+   * `prepareSegments` and `writeControls` in one go.
    */
   public static async applySegments(
     webPartTitle: string,
@@ -569,10 +566,51 @@ export class PagesHelper {
     templateCanvas: any[] | null = null,
     existed: boolean = true
   ) {
+    const controls = await PagesHelper.prepareSegments(
+      webPartTitle,
+      segments,
+      slug,
+      webUrl,
+      options,
+      mdOptions,
+      wasAlreadyParsed,
+      context
+    );
+
+    await PagesHelper.writeControls(
+      webPartTitle,
+      controls,
+      slug,
+      webUrl,
+      templateCanvas,
+      existed
+    );
+  }
+
+  /**
+   * Build the controls for the page's segments without touching the page.
+   *
+   * Everything that can fail on the page's content alone happens here — a web
+   * part shortcode that is not registered or returns nothing usable, a
+   * standard web part name that does not exist, a web part that is not
+   * deployed on the site — so it can run before the page is created or checked
+   * out. A page that cannot be built is then left exactly as it was, rather
+   * than created empty or left checked out to the publishing account.
+   */
+  public static async prepareSegments(
+    webPartTitle: string,
+    segments: PageSegment[],
+    slug: string,
+    webUrl: string,
+    options: CommandArguments,
+    mdOptions: MarkdownSettings | null,
+    wasAlreadyParsed: boolean = false,
+    context: WebPartShortcodeContext | null = null
+  ): Promise<WebPartControl[]> {
     const hasWebParts = segments.some((segment) => segment.type === "webpart");
 
     Logger.debug(
-      `Writing ${segments.length} segment(s) for the page ${slug} - Was already parsed: ${wasAlreadyParsed}`
+      `Preparing ${segments.length} segment(s) for the page ${slug} - Was already parsed: ${wasAlreadyParsed}`
     );
 
     // The state file is the only record of which controls are doctor's. Without
@@ -583,6 +621,57 @@ export class PagesHelper {
         `The page "${slug}" uses a web part shortcode, which needs the publish state to recognise its web parts on a next run. Remove '--disableStatePersistence' to publish it.`
       );
     }
+
+    const controls: WebPartControl[] = [];
+    let markdownSegment = 0;
+
+    for (const segment of segments) {
+      if (segment.type === "markdown") {
+        const index = markdownSegment++;
+        const title = PagesHelper.getSegmentTitle(webPartTitle, index);
+
+        controls.push({
+          webPartId: MARKDOWN_WEB_PART_ID,
+          webPartData: await MarkdownHelper.getWebPartData(
+            title,
+            segment.content,
+            mdOptions,
+            options,
+            wasAlreadyParsed,
+            index === 0
+          ),
+        });
+      } else {
+        const webPart = await PagesHelper.getSegmentWebPart(
+          segment,
+          webUrl,
+          slug,
+          context
+        );
+
+        controls.push({ webPartId: webPart.id, webPartData: webPart.data });
+      }
+    }
+
+    return controls;
+  }
+
+  /**
+   * Place the prepared controls on the page.
+   *
+   * The whole canvas is composed and written in one call rather than looping
+   * the CLI's add/set/remove commands, because those cannot move an existing
+   * control and each of them re-saves and republishes the page.
+   */
+  public static async writeControls(
+    webPartTitle: string,
+    prepared: WebPartControl[],
+    slug: string,
+    webUrl: string,
+    templateCanvas: any[] | null = null,
+    existed: boolean = true
+  ) {
+    Logger.debug(`Writing ${prepared.length} control(s) for the page ${slug}`);
 
     const page = await CanvasHelper.checkout(webUrl, slug);
     const existing: any[] = page?.CanvasContent1
@@ -614,41 +703,10 @@ export class PagesHelper {
     const takeInstanceId = (webPartId: string): string =>
       reusable[webPartId.toLowerCase()]?.shift() ?? randomUUID();
 
-    const controls: WebPartControl[] = [];
-    let markdownSegment = 0;
-
-    for (const segment of segments) {
-      if (segment.type === "markdown") {
-        const index = markdownSegment++;
-        const title = PagesHelper.getSegmentTitle(webPartTitle, index);
-
-        controls.push({
-          webPartId: MARKDOWN_WEB_PART_ID,
-          webPartData: await MarkdownHelper.getWebPartData(
-            title,
-            segment.content,
-            mdOptions,
-            options,
-            wasAlreadyParsed,
-            index === 0
-          ),
-          instanceId: takeInstanceId(MARKDOWN_WEB_PART_ID),
-        });
-      } else {
-        const webPartId = await PagesHelper.getSegmentWebPart(
-          segment,
-          webUrl,
-          slug,
-          context
-        );
-
-        controls.push({
-          webPartId: webPartId.id,
-          webPartData: webPartId.data,
-          instanceId: takeInstanceId(webPartId.id),
-        });
-      }
-    }
+    const controls: WebPartControl[] = prepared.map((control) => ({
+      ...control,
+      instanceId: takeInstanceId(control.webPartId),
+    }));
 
     // Compose from the page as it stands at the moment of writing. A save that
     // is refused because the page moved on is worth one more attempt from a
@@ -761,11 +819,36 @@ export class PagesHelper {
       );
     }
 
-    // Whatever the shortcode returns wins over the web part's defaults, the
-    // same way the CLI merges its `--webPartData`
-    const merged = result.webPartData
-      ? { ...(data ?? {}), ...result.webPartData }
-      : data;
+    return { id, data: PagesHelper.mergeWebPartData(data, result) };
+  }
+
+  /**
+   * The data of a web part shortcode's instance: the web part's defaults, with
+   * what the shortcode returned merged over them.
+   *
+   * Whatever the shortcode returns wins over the defaults, the same way the CLI
+   * merges its `--webPartData`. The properties are merged on their own, so a
+   * `webPartData` carrying `properties` adds to `webPartProperties` instead of
+   * replacing them, and `webPartProperties` still counts for a web part that
+   * has no defaults at all. `webPartProperties` wins over both, being the more
+   * specific of the two.
+   *
+   * @param defaults the web part's defaults, `null` when it declares none
+   * @param result what the shortcode returned
+   */
+  public static mergeWebPartData(
+    defaults: any | null,
+    result: WebPartShortcodeResult
+  ): any {
+    const merged = { ...(defaults ?? {}), ...(result.webPartData ?? {}) };
+    const properties = {
+      ...(defaults?.properties ?? {}),
+      ...(result.webPartData?.properties ?? {}),
+      ...(result.webPartProperties ?? {}),
+    };
+    if (Object.keys(properties).length > 0) {
+      merged.properties = properties;
+    }
 
     if (result.title) {
       merged.title = result.title;
@@ -775,7 +858,7 @@ export class PagesHelper {
     delete merged.id;
     delete merged.instanceId;
 
-    return { id, data: merged };
+    return merged;
   }
 
   /**
@@ -818,7 +901,16 @@ export class PagesHelper {
     author: any = undefined
   ): Promise<{ values: { [fieldName: string]: any }; problems: string[] }> {
     const hasMetadata = !!metadata && Object.keys(metadata).length > 0;
-    const hasAuthor = typeof author !== "undefined" && author !== null;
+    // Static site generators use `author` for a display name, and content
+    // written for one of them carries it. A value that is neither a site user
+    // id nor a UPN cannot be meant for the Author column, so it is left alone
+    // rather than skipping a page that published fine before doctor read it.
+    const hasAuthor = PagesHelper.isAuthorReference(author);
+    if (!hasAuthor && typeof author !== "undefined" && author !== null) {
+      OutputHelper.warning(
+        `The 'author' of "${slug}" is '${author}', which is not a SharePoint site user id or a user principal name, so the page's Author column is left as it is.`
+      );
+    }
 
     if (!hasMetadata && !hasAuthor) {
       return { values: {}, problems: [] };
@@ -1033,8 +1125,12 @@ export class PagesHelper {
         return await PagesHelper.transformUserSingle(webUrl, value);
       case "UserMulti":
         return await PagesHelper.transformUserMulti(webUrl, value);
-      case "DateTime":
-        return MetadataHelper.transformDateTime(value);
+      case "DateTime": {
+        const parsed = MetadataHelper.parseDateTime(value);
+        return parsed instanceof Date
+          ? await PagesHelper.toSiteTime(webUrl, parsed)
+          : parsed;
+      }
       case "Lookup":
         return MetadataHelper.transformLookupSingle(
           value,
@@ -1236,6 +1332,60 @@ export class PagesHelper {
         matches(t.Title) ||
         matches(t.FileName) ||
         (/^\d+$/.test(normalized) && t.Id === parseInt(normalized, 10))
+    );
+  }
+
+  /**
+   * The wall-clock time the site shows for a moment, in the
+   * `YYYY-MM-DD HH:MM:SS` form a DateTime column takes.
+   *
+   * SharePoint reads that form in the site's time zone, so a moment written
+   * with a zone has to be converted to it — writing it in UTC put it off by
+   * the site's offset. SharePoint does the conversion itself, because only it
+   * knows the site's zone and when its daylight saving time starts.
+   */
+  public static async toSiteTime(webUrl: string, moment: Date): Promise<string> {
+    const base = webUrl.replace(/\/+$/, "");
+    const iso = moment.toISOString();
+    const key = `${base.toLowerCase()}|${iso}`;
+
+    if (!PagesHelper.siteTimes[key]) {
+      const response = await ApiHelper.getOrThrow(
+        `${base}/_api/web/RegionalSettings/TimeZone/utcToLocalTime(@date)?@date='${encodeURIComponent(iso)}'`,
+        {
+          Authorization: `Bearer ${(await AccessToken.get(webUrl)).trim()}`,
+          accept: "application/json;odata=nometadata",
+        }
+      );
+
+      const local = MetadataHelper.fromSiteTime(
+        response?.value ?? response?.UTCToLocalTime
+      );
+      if (!local) {
+        throw new Error(
+          `${iso} could not be converted to the time zone of ${base}.`
+        );
+      }
+
+      PagesHelper.siteTimes[key] = local;
+    }
+
+    return PagesHelper.siteTimes[key];
+  }
+
+  /**
+   * Whether the `author` front matter names a SharePoint user: a site user id
+   * (a number, or a string of digits) or a user principal name.
+   * @param author the `author` front matter value
+   */
+  public static isAuthorReference(author: any): boolean {
+    if (typeof author === "number") {
+      return true;
+    }
+
+    return (
+      typeof author === "string" &&
+      (/^\d+$/.test(author.trim()) || author.includes("@"))
     );
   }
 
@@ -1690,7 +1840,7 @@ export class PagesHelper {
    * @param webUrl
    * @param slug
    */
-  private static isListedPage(webUrl: string, slug: string): boolean {
+  public static isListedPage(webUrl: string, slug: string): boolean {
     return !!PagesHelper.findListedPage(webUrl, slug);
   }
 

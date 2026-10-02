@@ -49,6 +49,37 @@ test("a page with a quote in its slug is addressed by a well-formed URL", async 
   ]);
 });
 
+test("a page in a folder is addressed with its slashes kept", async (t) => {
+  const realPost = ApiHelper.postOrThrow;
+  const realGet = ApiHelper.getOrThrow;
+  const realToken = AccessToken.get;
+  t.after(() => {
+    ApiHelper.postOrThrow = realPost;
+    ApiHelper.getOrThrow = realGet;
+    AccessToken.get = realToken;
+  });
+
+  const requested = [];
+  AccessToken.get = async () => "token";
+  ApiHelper.postOrThrow = async (url) => {
+    requested.push(url);
+    return {};
+  };
+  ApiHelper.getOrThrow = async (url) => {
+    requested.push(url);
+    return {};
+  };
+
+  const web = "https://contoso.sharepoint.com/sites/docs";
+  await CanvasHelper.checkout(web, "nl/what's new.aspx");
+  await CanvasHelper.read(web, "templates/guide.aspx");
+
+  assert.deepEqual(requested, [
+    `${web}/_api/sitepages/pages/GetByUrl('sitepages/nl/what''s%20new.aspx')/checkoutpage`,
+    `${web}/_api/sitepages/pages/GetByUrl('sitepages/templates/guide.aspx')`,
+  ]);
+});
+
 test("the permission probe quotes a library path holding a quote", async (t) => {
   const realGet = ApiHelper.getOrThrow;
   const realToken = AccessToken.get;

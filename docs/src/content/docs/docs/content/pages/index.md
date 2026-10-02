@@ -302,6 +302,10 @@ before — the same thing setting the column would have done. What it gets back 
 SharePoint stored, which is what ends up on the page: that matters for guests and groups, whose
 claims are not the `i:0#.f|membership|` shape a UPN is assembled into.
 
+Any other value — a display name such as `author: Jane Doe`, which content written for another static
+site generator often carries — is not taken for a user: `Doctor` warns and leaves the `Author` column
+as it is, and the page is published.
+
 If the id does not exist on the site, or the name does not exist in the tenant, the page is skipped —
 see [below](#what-happens-when-a-value-cannot-be-set). For an id, the warning lists a few that do
 exist.
@@ -457,7 +461,7 @@ Input accepts multiple formats:
 - Already normalized: `"2024-01-15 10:30:45"` (passed through unchanged)
 - Date only: `"2024-01-15"`, or `2024-01-15` without quotes (midnight on that day)
 - ISO 8601 without a time zone: `"2024-01-15T10:30"` (the date and time as written)
-- ISO 8601 with a time zone: `"2024-01-20T14:30:00Z"` or `"2024-01-20T16:30:00+02:00"` (converted to UTC)
+- ISO 8601 with a time zone: `"2024-01-20T14:30:00Z"` or `"2024-01-20T16:30:00+02:00"` (converted to the site's time zone, by SharePoint)
 
 ```yaml
 metadata:
@@ -466,7 +470,7 @@ metadata:
   ApprovalDate: "2024-01-22 09:00:00"
 ```
 
-SharePoint reads the result in the **site's** time zone. `Doctor` never uses the time zone of the machine it runs on for the formats above, so the same markdown publishes the same value from your laptop and from a pipeline. A value that is not a date — or not a real one, like `2024-02-30` — is reported as a problem and the page is skipped, rather than passed to SharePoint to be refused after the page has been written.
+SharePoint reads the result in the **site's** time zone. `Doctor` never uses the time zone of the machine it runs on for the formats above, so the same markdown publishes the same value from your laptop and from a pipeline. A value with a time zone names a moment, so `Doctor` asks the site what its clock read at that moment and writes that: `"2024-01-20T14:30:00Z"` becomes `15:30` on a site in Brussels. Quote such a value — written without quotes, YAML parses it before `Doctor` sees it and the zone is lost, so the time is taken as written. A value that is not a date — or not a real one, like `2024-02-30` — is reported as a problem and the page is skipped, rather than passed to SharePoint to be refused after the page has been written.
 
 ##### Lookup Fields
 

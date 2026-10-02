@@ -97,3 +97,71 @@ test("ShortcodesHelpers still loads a shortcode without a kind as inline", async
     },
   );
 });
+
+//
+// The instance data
+//
+
+test("webPartProperties survives a webPartData that carries properties of its own", async () => {
+  const { PagesHelper } = await import("../dist/helpers/PagesHelper.js");
+
+  const merged = PagesHelper.mergeWebPartData(
+    { title: "Default", properties: { listId: "default", layout: 1 } },
+    {
+      webPartProperties: { listId: "abc" },
+      webPartData: { properties: { query: "x" }, dynamicDataValues: { a: 1 } },
+    },
+  );
+
+  assert.deepEqual(merged.properties, { listId: "abc", layout: 1, query: "x" });
+  assert.deepEqual(merged.dynamicDataValues, { a: 1 });
+  assert.equal(merged.title, "Default");
+});
+
+test("webPartProperties counts for a web part without defaults", async () => {
+  const { PagesHelper } = await import("../dist/helpers/PagesHelper.js");
+
+  const merged = PagesHelper.mergeWebPartData(null, {
+    webPartId: "spfx",
+    webPartProperties: { listId: "abc" },
+    webPartData: { dataVersion: "1.0", id: "pinned", instanceId: "pinned" },
+  });
+
+  assert.deepEqual(merged.properties, { listId: "abc" });
+  assert.equal(merged.dataVersion, "1.0");
+  assert.equal(merged.id, undefined);
+  assert.equal(merged.instanceId, undefined);
+});
+
+test("a page whose web part shortcode cannot be built is never checked out", async (t) => {
+  const { PagesHelper } = await import("../dist/helpers/PagesHelper.js");
+  const { ApiHelper } = await import("../dist/helpers/ApiHelper.js");
+
+  const realPost = ApiHelper.postOrThrow;
+  t.after(() => {
+    ApiHelper.postOrThrow = realPost;
+  });
+
+  const requested = [];
+  ApiHelper.postOrThrow = async (url) => {
+    requested.push(url);
+    return {};
+  };
+
+  await assert.rejects(
+    () =>
+      PagesHelper.applySegments(
+        "doctor",
+        [
+          { type: "markdown", content: "intro" },
+          { type: "webpart", shortcode: "not-registered", attributes: {} },
+        ],
+        "page.aspx",
+        "https://contoso.sharepoint.com/sites/docs",
+        { webPartTitle: "doctor" },
+        null,
+      ),
+    /is not registered/,
+  );
+  assert.deepEqual(requested, []);
+});

@@ -1,16 +1,14 @@
 import { join } from "path";
 import { existsAsync, isPermissionError } from "@utils";
 import { CommandArguments, TaskOutput } from "@models";
-import {
-  AccessToken,
-  ApiHelper,
-  CliCommand,
-  executeWithRetry,
-  FileHelpers,
-  FolderHelpers,
-  Logger,
-  OutputHelper,
-} from "@helpers";
+import { AccessToken } from "./AccessToken.js";
+import { ApiHelper } from "./ApiHelper.js";
+import { CliCommand } from "./CliCommand.js";
+import { FileHelpers } from "./FileHelpers.js";
+import { FolderHelpers } from "./FolderHelpers.js";
+import { Logger } from "./Logger.js";
+import { OutputHelper } from "./OutputHelper.js";
+import { executeWithRetry } from "./RunCommand.js";
 
 const getErrorMessage = (error: any): string => {
   if (!error) {
@@ -55,6 +53,29 @@ export class SiteHelpers {
   }
 
   /**
+   * The server relative path `setsitelogo` takes, from the absolute URL the
+   * upload hands back. That URL is percent-encoded — a library called
+   * `Shared Documents` comes back as `Shared%20Documents` — and the endpoint
+   * wants the path as SharePoint names it, so the encoding is undone.
+   * @param logoUrl the logo's absolute or server relative URL
+   */
+  public static toServerRelative(logoUrl: string): string {
+    let path = logoUrl;
+    try {
+      path = new URL(logoUrl).pathname;
+    } catch {
+      // Already relative
+    }
+
+    try {
+      return decodeURIComponent(path);
+    } catch {
+      // A `%` that is not an escape, so the path was never encoded
+      return path;
+    }
+  }
+
+  /**
    * Point the site at its logo.
    *
    * Done directly rather than with `spo site set`, which reaches the tenant
@@ -72,14 +93,7 @@ export class SiteHelpers {
   ): Promise<void> {
     const base = webUrl.replace(/\/+$/, "");
 
-    // The endpoint takes a server relative path, not the absolute URL the
-    // upload hands back
-    let relativeLogoUrl = logoUrl;
-    try {
-      relativeLogoUrl = new URL(logoUrl).pathname;
-    } catch {
-      // Already relative
-    }
+    const relativeLogoUrl = SiteHelpers.toServerRelative(logoUrl);
 
     Logger.debug(`Setting the site logo to ${relativeLogoUrl}`);
 

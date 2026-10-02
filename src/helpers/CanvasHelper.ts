@@ -83,8 +83,10 @@ const escapeForRegex = (value: string): string =>
 
 const trimUrl = (webUrl: string): string => webUrl.replace(/\/+$/, "");
 
+// A slug in a folder (`guides/setup.aspx`, `nl/page.aspx`, `templates/x.aspx`)
+// keeps its `/`: SharePoint cannot resolve a page addressed with a `%2F`.
 const pageApiUrl = (webUrl: string, slug: string): string =>
-  `${trimUrl(webUrl)}/_api/sitepages/pages/GetByUrl('sitepages/${toODataPath(slug)}')`;
+  `${trimUrl(webUrl)}/_api/sitepages/pages/GetByUrl('sitepages/${toODataPath(slug, true)}')`;
 
 export class CanvasHelper {
   /** The available web parts per site, which never change during a run */
