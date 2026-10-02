@@ -137,12 +137,18 @@ export class MetadataHelper {
     }
 
     const trimmed = value.trim();
-    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(trimmed)) {
-      return trimmed;
+    const normalized = /^(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(trimmed);
+    if (normalized) {
+      const [, date, hours, minutes, seconds] = normalized;
+      return MetadataHelper.isRealMoment(date, hours, minutes, seconds)
+        ? trimmed
+        : MetadataHelper.notADate(value);
     }
 
     if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-      return `${trimmed} 00:00:00`;
+      return MetadataHelper.isRealMoment(trimmed, "00", "00", "00")
+        ? `${trimmed} 00:00:00`
+        : MetadataHelper.notADate(value);
     }
 
     const iso =
@@ -152,15 +158,8 @@ export class MetadataHelper {
     if (iso) {
       const [, date, hours, minutes, seconds = "00", zone] = iso;
 
-      // Taken apart by hand rather than by Date, so it also has to be checked
-      // by hand: `2026-02-30` is the right shape and not a day
-      const asUtc = new Date(`${date}T${hours}:${minutes}:${seconds}Z`);
-      if (
-        Number.isNaN(asUtc.getTime()) ||
-        asUtc.toISOString().slice(0, 10) !== date
-      ) {
-        Logger.debug(`DateTime value '${value}' is not a real date.`);
-        return undefined;
+      if (!MetadataHelper.isRealMoment(date, hours, minutes, seconds)) {
+        return MetadataHelper.notADate(value);
       }
 
       if (!zone) {
@@ -321,6 +320,31 @@ export class MetadataHelper {
     }
 
     return choices.join(";#");
+  }
+
+  /**
+   * Whether a date and time taken apart by hand is one that exists. The three
+   * forms written as text are read by pattern rather than by `Date`, so they
+   * have to be checked by hand: `2026-02-30` is the right shape and not a day,
+   * and `Date` would quietly roll it over to the 2nd of March.
+   */
+  private static isRealMoment(
+    date: string,
+    hours: string,
+    minutes: string,
+    seconds: string,
+  ): boolean {
+    const moment = new Date(`${date}T${hours}:${minutes}:${seconds}Z`);
+    return (
+      !Number.isNaN(moment.getTime()) &&
+      moment.toISOString().slice(0, 10) === date &&
+      moment.getUTCHours() === Number(hours)
+    );
+  }
+
+  private static notADate(value: unknown): undefined {
+    Logger.debug(`DateTime value '${value}' is not a real date.`);
+    return undefined;
   }
 
   private static formatUtc(value: Date): string {

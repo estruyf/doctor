@@ -159,6 +159,17 @@ test("DateTime: a value without a zone is written as it stands", () => {
   assert.equal(MetadataHelper.transformDateTime("2026-02-30T10:00"), undefined);
 });
 
+test("DateTime: an impossible date is reported in every form it can be written in", () => {
+  // The date-only and the already normalized forms were passed through on their
+  // shape alone, so 2026-02-30 reached SharePoint
+  assert.equal(MetadataHelper.transformDateTime("2026-02-30"), undefined);
+  assert.equal(MetadataHelper.transformDateTime("2026-02-30 10:00:00"), undefined);
+  assert.equal(MetadataHelper.transformDateTime("2026-13-01"), undefined);
+  assert.equal(MetadataHelper.transformDateTime("2026-03-15 25:00:00"), undefined);
+  assert.equal(MetadataHelper.transformDateTime("2026-02-28"), "2026-02-28 00:00:00");
+  assert.equal(MetadataHelper.transformDateTime("2028-02-29 23:59:59"), "2028-02-29 23:59:59");
+});
+
 test("DateTime: something that is not a date is reported, not passed through", () => {
   // Passing it through meant SharePoint refused it *after* the page canvas had
   // been written, which is what resolving before writing exists to prevent
