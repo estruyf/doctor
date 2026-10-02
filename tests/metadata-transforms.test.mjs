@@ -1,0 +1,353 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+
+import { MetadataHelper } from "../dist/helpers/MetadataHelper.js";
+import { PagesHelper } from "../dist/helpers/PagesHelper.js";
+import { ApiHelper } from "../dist/helpers/ApiHelper.js";
+import { AccessToken } from "../dist/helpers/AccessToken.js";
+
+const CLAIM = "i:0#.f|membership|";
+
+//
+// Taxonomy (managed metadata)
+//
+
+test("Taxonomy: a plain string is the term label", () => {
+  assert.deepEqual(MetadataHelper.normalizeTaxonomyTerm("Finance"), {
+    label: "Finance",
+  });
+});
+
+test("Taxonomy: surrounding whitespace is not part of the label", () => {
+  assert.deepEqual(MetadataHelper.normalizeTaxonomyTerm("  Finance \n"), {
+    label: "Finance",
+  });
+});
+
+test("Taxonomy: an object can name the term outright", () => {
+  assert.deepEqual(
+    MetadataHelper.normalizeTaxonomyTerm({
+      label: "Finance",
+      termGuid: "550e8400-e29b-41d4-a716-446655440000",
+    }),
+    { label: "Finance", termGuid: "550e8400-e29b-41d4-a716-446655440000" },
+  );
+});
+
+test("Taxonomy: a value without a usable label is rejected", () => {
+  for (const value of [null, undefined, "", "   ", 123, false, {}, { termGuid: "x" }]) {
+    assert.equal(
+      MetadataHelper.normalizeTaxonomyTerm(value),
+      null,
+      `expected null for ${JSON.stringify(value)}`,
+    );
+  }
+});
+
+test("Taxonomy: a term is stored as label and guid, pipe separated", () => {
+  assert.equal(
+    MetadataHelper.toTaxonomyValue("Finance", "550e8400-e29b-41d4-a716-446655440000"),
+    "Finance|550e8400-e29b-41d4-a716-446655440000",
+  );
+});
+
+test("Taxonomy: the label written is the one it is given", () => {
+  // The caller passes the resolved term's own label, which differs from what
+  // the author wrote when the term was addressed by a synonym or by its path
+  assert.equal(MetadataHelper.toTaxonomyValue("Europe", "guid-1"), "Europe|guid-1");
+});
+
+test("Taxonomy: several terms are separated by a semicolon", () => {
+  // SharePoint separates taxonomy values with `;` — unlike lookup and choice
+  // columns below, which use `;#`
+  assert.equal(
+    MetadataHelper.joinTaxonomyValues(["A|guid-1", "B|guid-2"]),
+    "A|guid-1;B|guid-2",
+  );
+});
+
+test("Taxonomy: no terms means no value to set", () => {
+  assert.equal(MetadataHelper.joinTaxonomyValues([]), undefined);
+});
+
+//
+// People
+//
+
+test("Person: a claim becomes the value the column takes", () => {
+  assert.equal(
+    MetadataHelper.toPersonValue([`${CLAIM}user@contoso.com`]),
+    `[{"Key":"${CLAIM}user@contoso.com"}]`,
+  );
+});
+
+test("Person: several claims keep the order they were written in", () => {
+  assert.equal(
+    MetadataHelper.toPersonValue([`${CLAIM}a@contoso.com`, `${CLAIM}b@contoso.com`]),
+    `[{"Key":"${CLAIM}a@contoso.com"},{"Key":"${CLAIM}b@contoso.com"}]`,
+  );
+});
+
+test("Person: a claim is taken as given, not reassembled", () => {
+  // A guest or a group does not use the membership shape, so whatever the site
+  // handed back has to survive untouched
+  const guest = "i:0#.f|membership|guest_contoso.com#ext#@fabrikam.onmicrosoft.com";
+  assert.equal(MetadataHelper.toPersonValue([guest]), `[{"Key":"${guest}"}]`);
+});
+
+test("Person: nobody means no value to set", () => {
+  assert.equal(MetadataHelper.toPersonValue([]), undefined);
+});
+
+test("The claim for a UPN is lower cased, the way SharePoint stores it", () => {
+  assert.equal(
+    MetadataHelper.toClaimKey("  User@Contoso.com  "),
+    `${CLAIM}user@contoso.com`,
+  );
+  assert.equal(MetadataHelper.toClaimKey(42), undefined);
+  assert.equal(MetadataHelper.toClaimKey("   "), undefined);
+});
+
+//
+// DateTime
+//
+
+test("DateTime: an already normalized value is left alone", () => {
+  assert.equal(
+    MetadataHelper.parseDateTime("2026-03-15 14:30:00"),
+    "2026-03-15 14:30:00",
+  );
+});
+
+test("DateTime: a date without a time becomes midnight", () => {
+  assert.equal(
+    MetadataHelper.parseDateTime("2026-03-15"),
+    "2026-03-15 00:00:00",
+  );
+});
+
+test("DateTime: an ISO 8601 value is reformatted", () => {
+  assert.equal(
+    MetadataHelper.parseDateTime("2026-03-15T14:30:00"),
+    "2026-03-15 14:30:00",
+  );
+});
+
+test("DateTime: a value with a zone is a moment, for the site to place in its time zone", () => {
+  // SharePoint reads `YYYY-MM-DD HH:MM:SS` in the site's time zone, so writing
+  // the UTC time put a zoned value off by the site's offset
+  for (const [value, iso] of [
+    ["2026-03-15T14:30:00Z", "2026-03-15T14:30:00.000Z"],
+    ["2026-03-15T14:30:00+02:00", "2026-03-15T12:30:00.000Z"],
+    ["2026-03-15T00:30:00+0200", "2026-03-14T22:30:00.000Z"],
+  ]) {
+    const parsed = MetadataHelper.parseDateTime(value);
+    assert.ok(parsed instanceof Date, `${value} is a moment`);
+    assert.equal(parsed.toISOString(), iso);
+  }
+});
+
+test("DateTime: the site's answer is written the way SharePoint takes it", () => {
+  assert.equal(MetadataHelper.fromSiteTime("2026-03-15T15:30:00"), "2026-03-15 15:30:00");
+  assert.equal(MetadataHelper.fromSiteTime("2026-03-15T15:30:00.000Z"), "2026-03-15 15:30:00");
+  assert.equal(MetadataHelper.fromSiteTime("nonsense"), undefined);
+});
+
+test("DateTime: a moment is converted by the site, once per value", async (t) => {
+  const realGet = ApiHelper.getOrThrow;
+  const realToken = AccessToken.get;
+  t.after(() => {
+    ApiHelper.getOrThrow = realGet;
+    AccessToken.get = realToken;
+    PagesHelper.reset();
+  });
+  PagesHelper.reset();
+
+  const requested = [];
+  AccessToken.get = async () => "token";
+  // A site in Brussels: UTC+1 in March
+  ApiHelper.getOrThrow = async (url) => {
+    requested.push(url);
+    return { value: "2026-03-15T11:00:00" };
+  };
+
+  const web = "https://contoso.sharepoint.com/sites/docs";
+  const moment = MetadataHelper.parseDateTime("2026-03-15T10:00:00Z");
+  assert.equal(await PagesHelper.toSiteTime(web, moment), "2026-03-15 11:00:00");
+  assert.equal(await PagesHelper.toSiteTime(web, moment), "2026-03-15 11:00:00");
+
+  assert.equal(requested.length, 1);
+  assert.match(requested[0], /RegionalSettings\/TimeZone\/utcToLocalTime\(@date\)\?@date='2026-03-15T10%3A00%3A00.000Z'$/);
+});
+
+test("DateTime: a value without a zone is written as it stands", () => {
+  assert.equal(
+    MetadataHelper.parseDateTime("2026-03-15T14:30"),
+    "2026-03-15 14:30:00",
+  );
+  assert.equal(
+    MetadataHelper.parseDateTime("2026-03-15T14:30:45.123"),
+    "2026-03-15 14:30:45",
+  );
+  assert.equal(MetadataHelper.parseDateTime("2026-02-30T10:00"), undefined);
+});
+
+test("DateTime: an impossible date is reported in every form it can be written in", () => {
+  // The date-only and the already normalized forms were passed through on their
+  // shape alone, so 2026-02-30 reached SharePoint
+  assert.equal(MetadataHelper.parseDateTime("2026-02-30"), undefined);
+  assert.equal(MetadataHelper.parseDateTime("2026-02-30 10:00:00"), undefined);
+  assert.equal(MetadataHelper.parseDateTime("2026-13-01"), undefined);
+  assert.equal(MetadataHelper.parseDateTime("2026-03-15 25:00:00"), undefined);
+  assert.equal(MetadataHelper.parseDateTime("2026-02-28"), "2026-02-28 00:00:00");
+  assert.equal(MetadataHelper.parseDateTime("2028-02-29 23:59:59"), "2028-02-29 23:59:59");
+});
+
+test("DateTime: something that is not a date is reported, not passed through", () => {
+  // Passing it through meant SharePoint refused it *after* the page canvas had
+  // been written, which is what resolving before writing exists to prevent
+  assert.equal(MetadataHelper.parseDateTime("not a date"), undefined);
+  assert.equal(MetadataHelper.parseDateTime(42), undefined);
+  assert.equal(MetadataHelper.parseDateTime({}), undefined);
+  assert.equal(MetadataHelper.parseDateTime(new Date("nope")), undefined);
+});
+
+test("DateTime: a date YAML already parsed keeps the day it was written on", () => {
+  // `Modified: 2026-03-15` without quotes is a Date by the time it gets here,
+  // a UTC midnight. Read in local time it moved to the 14th west of Greenwich.
+  assert.equal(
+    MetadataHelper.parseDateTime(new Date("2026-03-15T00:00:00.000Z")),
+    "2026-03-15 00:00:00",
+  );
+  assert.equal(
+    MetadataHelper.parseDateTime(new Date("2026-03-15T14:30:00.000Z")),
+    "2026-03-15 14:30:00",
+  );
+});
+
+//
+// Lookup
+//
+
+test("Lookup: an item id is used as is", () => {
+  assert.equal(MetadataHelper.transformLookupSingle(7), 7);
+});
+
+test("Lookup: a numeric string is an id too", () => {
+  assert.equal(MetadataHelper.transformLookupSingle(" 7 "), 7);
+});
+
+test("Lookup: anything that is not an id is skipped", () => {
+  for (const value of ["seven", "7.5", 7.5, null, undefined, "", {}]) {
+    assert.equal(
+      MetadataHelper.transformLookupSingle(value),
+      undefined,
+      `expected undefined for ${JSON.stringify(value)}`,
+    );
+  }
+});
+
+test("LookupMulti: several ids are joined with ;#", () => {
+  assert.equal(MetadataHelper.transformLookupMulti([1, "2", 3]), "1;#2;#3");
+});
+
+test("LookupMulti: one entry that is not an id rejects the whole column", () => {
+  assert.equal(MetadataHelper.transformLookupMulti([1, "nope", 3]), undefined);
+});
+
+test("LookupMulti: nothing valid means no value to set", () => {
+  assert.equal(MetadataHelper.transformLookupMulti([]), undefined);
+  assert.equal(MetadataHelper.transformLookupMulti(["nope"]), undefined);
+});
+
+//
+// URL
+//
+
+test("URL: a string is used as is", () => {
+  assert.equal(
+    MetadataHelper.transformUrl("https://contoso.com, Contoso"),
+    "https://contoso.com, Contoso",
+  );
+});
+
+test("URL: an object becomes url and description", () => {
+  assert.equal(
+    MetadataHelper.transformUrl({
+      url: "https://contoso.com",
+      description: "Contoso",
+    }),
+    "https://contoso.com, Contoso",
+  );
+});
+
+test("URL: a description is optional", () => {
+  assert.equal(
+    MetadataHelper.transformUrl({ url: "https://contoso.com" }),
+    "https://contoso.com",
+  );
+});
+
+test("URL: an object without a url is skipped", () => {
+  assert.equal(MetadataHelper.transformUrl({ description: "Contoso" }), undefined);
+  assert.equal(MetadataHelper.transformUrl({ url: "   " }), undefined);
+  assert.equal(MetadataHelper.transformUrl(null), undefined);
+});
+
+//
+// MultiChoice
+//
+
+test("MultiChoice: an array is joined with ;#", () => {
+  assert.equal(
+    MetadataHelper.transformMultiChoice(["Draft", "Review"]),
+    "Draft;#Review",
+  );
+});
+
+test("MultiChoice: the blank entries are dropped", () => {
+  assert.equal(
+    MetadataHelper.transformMultiChoice(["Draft", "", "   ", "Review"]),
+    "Draft;#Review",
+  );
+});
+
+test("MultiChoice: a number or a yes/no YAML read is written as the choice it is", () => {
+  assert.equal(MetadataHelper.transformMultiChoice([2026, "Draft", true]), "2026;#Draft;#true");
+});
+
+test("MultiChoice: an entry that cannot be a choice reports the column", () => {
+  // As with people, lookups and terms: the readable entries are not written on
+  // their own, because that is a shorter list than the markdown asks for
+  assert.equal(MetadataHelper.transformMultiChoice(["Draft", { label: "Review" }]), undefined);
+  assert.equal(MetadataHelper.transformMultiChoice(["Draft", ["Review"]]), undefined);
+});
+
+test("MultiChoice: a string is passed through, already delimited", () => {
+  assert.equal(
+    MetadataHelper.transformMultiChoice("Draft;#Review"),
+    "Draft;#Review",
+  );
+});
+
+//
+// Field types passed through untouched
+//
+
+test("Simple columns are the ones doctor does not transform", () => {
+  for (const type of ["Text", "Note", "Number", "Currency", "Boolean", "Choice"]) {
+    assert.equal(
+      MetadataHelper.SIMPLE_FIELD_TYPES.has(type),
+      true,
+      `${type} should be a simple field type`,
+    );
+  }
+
+  for (const type of ["TaxonomyFieldType", "User", "DateTime", "Lookup", "URL"]) {
+    assert.equal(
+      MetadataHelper.SIMPLE_FIELD_TYPES.has(type),
+      false,
+      `${type} needs transforming`,
+    );
+  }
+});

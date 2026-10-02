@@ -220,6 +220,59 @@ test("process fails on a missing partial", async (t) => {
   );
 });
 
+test("process resolves a partial starting with a / from the start folder", async (t) => {
+  const { root, startFolder, options } = await setup();
+  await mkdir(join(startFolder, "shared"), { recursive: true });
+  await writeFile(join(startFolder, "shared", "disclaimer.md"), `> Disclaimer`, { encoding: "utf-8" });
+  t.after(() => cleanup(root));
+
+  const { content } = await processPage(
+    root,
+    options,
+    `# Page\n\n<include file="/shared/disclaimer" />`
+  );
+
+  assert.match(content, /> Disclaimer/);
+});
+
+test("process resolves header and footer partials starting with a / from the start folder", async (t) => {
+  const { root, startFolder, options } = await setup();
+  await mkdir(join(startFolder, "shared"), { recursive: true });
+  await writeFile(join(startFolder, "shared", "banner.md"), `> Banner`, { encoding: "utf-8" });
+  t.after(() => cleanup(root));
+
+  const { content } = await processPage(
+    root,
+    { ...options, partials: { ...options.partials, header: "/shared/banner", footer: "/shared/banner.md" } },
+    `# Page`
+  );
+
+  assert.match(content, /> Banner[\s\S]*# Page[\s\S]*> Banner/);
+});
+
+test("process still resolves an absolute path to a partial outside the start folder", async (t) => {
+  const { root, partialsFolder, options } = await setup();
+  t.after(() => cleanup(root));
+
+  const { content } = await processPage(
+    root,
+    options,
+    `<include file="${join(partialsFolder, "navigation").replace(/\\/g, "/")}" />`
+  );
+
+  assert.match(content, /## Navigation/);
+});
+
+test("process reports the start folder location of a missing / partial", async (t) => {
+  const { root, options } = await setup();
+  t.after(() => cleanup(root));
+
+  await assert.rejects(
+    () => processPage(root, options, `<include file="/shared/missing" />`),
+    /The partial "\/shared\/missing" .* doesn't exist\. Looked for ".*content[\\/]shared[\\/]missing\.md"/
+  );
+});
+
 test("process fails on partials including each other", async (t) => {
   const { root, options } = await setup({
     "partials/first.md": `<include file="second" />`,

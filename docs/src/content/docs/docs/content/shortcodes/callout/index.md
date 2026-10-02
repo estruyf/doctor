@@ -23,12 +23,12 @@ Example:
 
 <callout type="tip" title="Override the title">Tip content with a custom title</callout>
 
-<callout type="tip" title="Custom background and foreground color" bgColor=#462749" fgColor="#FDECEF">A callout to test the background and foreground colors.</callout>
+<callout type="tip" title="Custom background and foreground color" bgColor="#462749" fgColor="#FDECEF">A callout to test the background and foreground colors.</callout>
 ```
 
 The following HTML attributes are supported for the `callout`:
 
-- **type**:
+- **type**: defaults to `note`, which is also what an unknown value becomes:
   - note
   - tip
   - info

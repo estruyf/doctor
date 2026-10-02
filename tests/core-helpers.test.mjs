@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { join } from "node:path";
+import { load } from "cheerio";
 
 import { FrontMatterHelper } from "../dist/helpers/FrontMatterHelper.js";
 import { NavigationHelper } from "../dist/helpers/NavigationHelper.js";
@@ -191,4 +192,165 @@ test("relativePath keeps paths outside the working directory absolute", () => {
 
 test("relativePath returns falsy values untouched", () => {
   assert.equal(relativePath(""), "");
+});
+
+//
+// The certificate password from the environment
+//
+
+const withEnv = (t, value) => {
+  const before = process.env.DOCTOR_CERTIFICATE_PASSWORD;
+  if (value === undefined) {
+    delete process.env.DOCTOR_CERTIFICATE_PASSWORD;
+  } else {
+    process.env.DOCTOR_CERTIFICATE_PASSWORD = value;
+  }
+  t.after(() => {
+    if (before === undefined) {
+      delete process.env.DOCTOR_CERTIFICATE_PASSWORD;
+    } else {
+      process.env.DOCTOR_CERTIFICATE_PASSWORD = before;
+    }
+  });
+};
+
+test("OptionsHelper.parseArguments reads the certificate password from the environment", (t) => {
+  // The channel that does not leak: --password is echoed by the terminal and
+  // visible in the process list
+  withEnv(t, "from-env");
+  const parsed = OptionsHelper.parseArguments({}, ["node", "doctor", "publish"]);
+  assert.equal(parsed.password, "from-env");
+});
+
+test("OptionsHelper.parseArguments prefers doctor.json's password to the environment", (t) => {
+  withEnv(t, "from-env");
+  const parsed = OptionsHelper.parseArguments({ password: "from-file" }, ["node", "doctor", "publish"]);
+  assert.equal(parsed.password, "from-file");
+});
+
+test("OptionsHelper.parseArguments prefers --password to both", (t) => {
+  withEnv(t, "from-env");
+  const parsed = OptionsHelper.parseArguments({ password: "from-file" }, [
+    "node", "doctor", "publish", "--password", "from-argument",
+  ]);
+  assert.equal(parsed.password, "from-argument");
+});
+
+test("OptionsHelper.parseArguments leaves the password empty when nothing supplies one", (t) => {
+  withEnv(t, undefined);
+  const parsed = OptionsHelper.parseArguments({}, ["node", "doctor", "publish"]);
+  assert.equal(parsed.password, null);
+});
+
+test("OptionsHelper.parseArguments ignores an empty environment variable", (t) => {
+  // An exported-but-empty variable is how a shell says "not set" often enough
+  withEnv(t, "");
+  const parsed = OptionsHelper.parseArguments({}, ["node", "doctor", "publish"]);
+  assert.equal(parsed.password, null);
+});
+
+test("MermaidHelper reads a diagram's type past its front matter and comments", async () => {
+  const { MermaidHelper } = await import("../dist/helpers/MermaidHelper.js");
+
+  assert.equal(MermaidHelper.getDiagramType("mindmap\n  root((doctor))"), "mindmap");
+  assert.equal(MermaidHelper.getDiagramType("%% a comment\nflowchart TD\n A-->B"), "flowchart");
+  assert.equal(
+    MermaidHelper.getDiagramType("---\ntitle: Pages\n---\nC4Context\n  title x"),
+    "C4Context",
+  );
+  assert.equal(MermaidHelper.getDiagramType("graph LR;A-->B"), "graph");
+});
+
+test("MermaidHelper leaves a diagram that needs a browser to SharePoint, and says why", async (t) => {
+  const { MermaidHelper } = await import("../dist/helpers/MermaidHelper.js");
+  const { OutputHelper } = await import("../dist/helpers/OutputHelper.js");
+
+  const realWarning = OutputHelper.warning;
+  t.after(() => {
+    OutputHelper.warning = realWarning;
+  });
+  const warnings = [];
+  OutputHelper.warning = (message) => warnings.push(message);
+
+  assert.equal(
+    await MermaidHelper.render('C4Context\n  Person(user, "Author")'),
+    null,
+  );
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /"C4Context" diagram, which needs a browser/);
+});
+
+test("MermaidHelper draws a mindmap, with every label centred on its node", async (t) => {
+  // svgdom gives an HTML element no client size and no computed padding, so
+  // Cytoscape sized its container as NaN and the layout failed on "reading 'h'"
+  const { MermaidHelper } = await import("../dist/helpers/MermaidHelper.js");
+  const { OutputHelper } = await import("../dist/helpers/OutputHelper.js");
+
+  const realWarning = OutputHelper.warning;
+  t.after(() => {
+    OutputHelper.warning = realWarning;
+  });
+  const warnings = [];
+  OutputHelper.warning = (message) => warnings.push(message);
+
+  const diagram = await MermaidHelper.render(
+    "mindmap\n  root((doctor))\n    a[Pages]\n    b{{Navigation}}\n    c)Metadata(",
+  );
+
+  assert.deepEqual(warnings, []);
+  assert.ok(diagram, "the mindmap is drawn");
+
+  const $ = load(diagram.svg, { xml: true });
+  const labels = $(".mindmap-node > g.label");
+  assert.equal(labels.length, 4);
+  labels.each((_index, element) => {
+    const $label = $(element);
+    const atCentre = /^translate\(\s*0\s*,/.test($label.attr("transform"));
+    // A label left at x=0 is centred by its anchor; one shifted left by half
+    // its width already is, and must not be centred a second time
+    assert.equal(
+      $label.find("text").attr("text-anchor"),
+      atCentre ? "middle" : undefined,
+      $label.text(),
+    );
+  });
+});
+
+test("MermaidHelper uploads a diagram under a name that changes with the drawing", async (t) => {
+  // An existing file is kept unless --overwriteImages is set, so a name taken
+  // from the definition alone left a diagram on whatever was drawn first — a
+  // broken SVG stayed broken after the fix that repaired it
+  const { MermaidHelper } = await import("../dist/helpers/MermaidHelper.js");
+  const { CliCommand } = await import("../dist/helpers/CliCommand.js");
+  const { FileHelpers } = await import("../dist/helpers/FileHelpers.js");
+  const { FolderHelpers } = await import("../dist/helpers/FolderHelpers.js");
+
+  const realOptions = CliCommand.options;
+  const realCreate = FileHelpers.create;
+  const realFolder = FolderHelpers.create;
+  t.after(() => {
+    CliCommand.options = realOptions;
+    FileHelpers.create = realCreate;
+    FolderHelpers.create = realFolder;
+  });
+
+  const uploads = [];
+  CliCommand.options = {
+    webUrl: "https://contoso.sharepoint.com/sites/docs",
+    assetLibrary: "Shared Documents",
+  };
+  FolderHelpers.create = async () => "/sites/docs/Shared Documents/mermaid";
+  FileHelpers.create = async (folder, path, _webUrl, overwrite) => {
+    uploads.push({ path, overwrite });
+    return `${folder}/${path.split(/[\\/]/).pop()}`;
+  };
+
+  const first = await MermaidHelper.render("flowchart TD\n  A --> B");
+  const again = await MermaidHelper.render("flowchart TD\n  A --> B");
+
+  assert.equal(uploads.length, 2);
+  assert.match(first.src, /\/mermaid\/doctor-mermaid-[a-f0-9]{10}-[a-f0-9]{8}\.svg$/);
+  // The same drawing keeps its file
+  assert.equal(again.src, first.src);
+  assert.equal(uploads[0].overwrite, false);
 });

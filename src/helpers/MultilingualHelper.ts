@@ -23,7 +23,7 @@ import { LocaleHelper } from "./LocaleHelper.js";
 import { PartialsHelper } from "./PartialsHelper.js";
 import { DoctorTranspiler } from "./DoctorTranspiler.js";
 import { TempDataHelper } from "./TempDataHelper.js";
-import { existsAsync, readFileAsync } from "@utils";
+import { existsAsync, readFileAsync, toODataPath } from "@utils";
 
 const FEATURE_ID = "24611c05-ee19-45da-955f-6602264abaf8";
 
@@ -447,13 +447,11 @@ export class MultilingualHelper {
   /**
    * A slug can contain a folder, and that separator has to stay a separator for
    * the SharePoint `GetByUrl` calls. Encoding the whole slug turns it into %2F,
-   * which makes SharePoint fail to resolve the page.
+   * which makes SharePoint fail to resolve the page. A `'` is doubled, as it
+   * would otherwise end the OData string the slug sits in.
    */
   private static encodeSlug(slug: string): string {
-    return slug
-      .split("/")
-      .map((segment) => encodeURIComponent(segment))
-      .join("/");
+    return toODataPath(slug, true);
   }
 
   /**

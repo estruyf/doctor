@@ -72,7 +72,7 @@ export class MermaidHelper {
    * be a file it serves itself. Without a site to publish to - a local render or
    * a test - the diagram is carried inline instead.
    * @param diagram
-   * @param id Doubles as the file name, so the same diagram keeps its file.
+   * @param id The diagram's id, which starts the file name.
    */
   private static async source(
     diagram: MermaidDiagram,
@@ -94,7 +94,20 @@ export class MermaidHelper {
         [MermaidHelper.ASSET_FOLDER],
         options.webUrl
       );
-      const path = await TempDataHelper.createFile(`${id}.svg`, diagram.svg);
+      // Named after what was drawn as well as the definition. An existing
+      // file is kept unless `--overwriteImages` is set, so a name from the
+      // definition alone left a diagram on whatever an earlier doctor drew -
+      // a broken SVG stayed broken after the fix that repaired it. The same
+      // drawing still keeps its file, and a changed one gets a new address
+      // no browser has cached.
+      const drawn = createHash("sha256")
+        .update(diagram.svg)
+        .digest("hex")
+        .substring(0, 8);
+      const path = await TempDataHelper.createFile(
+        `${id}-${drawn}.svg`,
+        diagram.svg
+      );
 
       return await FileHelpers.create(
         folder,
@@ -115,6 +128,23 @@ export class MermaidHelper {
 
   private static readonly ASSET_FOLDER = "mermaid";
 
+  /** The diagram types that need a real browser to lay out, in lower case */
+  private static readonly BROWSER_ONLY = new Set(["c4context", "block-beta"]);
+
+  /**
+   * The diagram's type: the first word of its definition, after a `---`
+   * front matter block and `%%` comments, which may both come first.
+   * @param definition The decoded diagram definition
+   */
+  public static getDiagramType(definition: string): string {
+    const body = definition.replace(/^\s*---[\s\S]*?\n---\s*\n/, "");
+    const line = body
+      .split("\n")
+      .map((entry) => entry.trim())
+      .find((entry) => entry && !entry.startsWith("%%"));
+    return line ? line.split(/[\s;]/)[0] : "";
+  }
+
   /**
    * Render a Mermaid definition to an SVG.
    * @param markup The diagram definition as it was written in the shortcode.
@@ -126,6 +156,17 @@ export class MermaidHelper {
     // `&lt;` are still encoded. Mermaid needs the characters they stand for.
     const definition = decode(markup ?? "").trim();
     if (!definition) {
+      return null;
+    }
+
+    // Known not to draw without a browser. Trying anyway only produced
+    // Mermaid's own internal error ("Cannot read properties of undefined"),
+    // which said nothing about why.
+    const type = MermaidHelper.getDiagramType(definition);
+    if (MermaidHelper.BROWSER_ONLY.has(type.toLowerCase())) {
+      OutputHelper.warning(
+        `Doctor cannot draw a Mermaid "${type}" diagram, which needs a browser. The diagram is published as-is, and SharePoint will try to render it instead.`
+      );
       return null;
     }
 
@@ -293,6 +334,30 @@ export class MermaidHelper {
       return element;
     };
 
+    // Cytoscape subtracts the container's padding from its size. svgdom
+    // computes no style for an HTML element, so the padding read as null, the
+    // size as NaN, and a mindmap failed with "reading 'h'". A browser reports
+    // `0px` for a box length nobody set, so that is what is answered here.
+    const getComputedStyle = window.getComputedStyle?.bind(window);
+    if (getComputedStyle) {
+      window.getComputedStyle = (element: any, ...rest: any[]) => {
+        const style = getComputedStyle(element, ...rest);
+        if (!style || typeof style.getPropertyValue !== "function") {
+          return style;
+        }
+
+        const getPropertyValue = style.getPropertyValue.bind(style);
+        style.getPropertyValue = (name: string) => {
+          const value = getPropertyValue(name);
+          return (value === null || value === undefined || value === "") &&
+            /^(padding|border|margin)-/.test(name)
+            ? "0px"
+            : value;
+        };
+        return style;
+      };
+    }
+
     MermaidHelper.addElementSupport(window);
   }
 
@@ -329,6 +394,11 @@ export class MermaidHelper {
     // fall back to a default when it is missing, but only after reading it.
     define("offsetWidth", { get: () => MermaidHelper.VIEWPORT });
     define("offsetHeight", { get: () => MermaidHelper.VIEWPORT });
+    // Cytoscape sizes its container from these instead. svgdom has neither, so
+    // the size came out as NaN, the layout Cytoscape runs on creation built no
+    // bounding box from it, and a mindmap failed with "reading 'h'".
+    define("clientWidth", { get: () => MermaidHelper.VIEWPORT });
+    define("clientHeight", { get: () => MermaidHelper.VIEWPORT });
 
     define("compareDocumentPosition", {
       value(this: any, other: any) {
@@ -487,6 +557,19 @@ export class MermaidHelper {
       $svg.attr("height", `${height}`);
     }
 
+    // With HTML labels off, Mermaid leaves a label at x=0 for some shapes and
+    // counts on `text-anchor: middle` to centre it. A flowchart's stylesheet
+    // says so; a mindmap's does not, as it expects HTML labels, so the text of
+    // a circle, square, rounded or hexagon node started at its centre. The
+    // shapes which centre their label themselves are shifted left instead,
+    // and are left as they are.
+    $(".mindmap-node > g.label").each((_index, element) => {
+      const $label = $(element);
+      if (/^translate\(\s*0\s*,/.test($label.attr("transform") || "")) {
+        $label.find("text").attr("text-anchor", "middle");
+      }
+    });
+
     const rules: string[] = [];
     const classNames = new Map<string, string>();
 
@@ -538,8 +621,14 @@ export class MermaidHelper {
    * declarations have to keep now that they are moved into the stylesheet.
    */
   private static important(style: string | undefined): string {
-    return (style || "")
-      .split(";")
+    // The SVG is parsed with its entities left encoded, so a sequence
+    // diagram's `font-family: &quot;trebuchet ms&quot;` arrives as written.
+    // Cut at every `;`, the `;` of each `&quot;` ended a declaration, and the
+    // `&quot !important;` it left behind made the SVG invalid XML — which a
+    // browser shows as a broken image.
+    const declarations = MermaidHelper.splitDeclarations(
+      MermaidHelper.decodeXml(style || "")
+    )
       .map((declaration) => declaration.trim())
       .filter((declaration) => declaration !== "")
       .map((declaration) =>
@@ -548,5 +637,66 @@ export class MermaidHelper {
           : `${declaration} !important`
       )
       .join(";");
+
+    // Back into the text of an XML `<style>`, where `&` and `<` are markup
+    return declarations.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  }
+
+  /**
+   * Split a style attribute into its declarations at the `;` which end them,
+   * not at one inside a quoted string or a `url(...)`.
+   */
+  private static splitDeclarations(style: string): string[] {
+    const declarations: string[] = [];
+    let current = "";
+    let quote = "";
+    let depth = 0;
+
+    for (const char of style) {
+      if (quote) {
+        if (char === quote) {
+          quote = "";
+        }
+      } else if (char === '"' || char === "'") {
+        quote = char;
+      } else if (char === "(") {
+        depth++;
+      } else if (char === ")") {
+        depth = Math.max(0, depth - 1);
+      } else if (char === ";" && depth === 0) {
+        declarations.push(current);
+        current = "";
+        continue;
+      }
+      current += char;
+    }
+
+    declarations.push(current);
+    return declarations;
+  }
+
+  /** Decode the entities XML defines, plus numeric character references */
+  private static decodeXml(value: string): string {
+    const named: { [name: string]: string } = {
+      quot: '"',
+      apos: "'",
+      lt: "<",
+      gt: ">",
+      amp: "&",
+    };
+
+    return value.replace(
+      /&(#x[0-9a-f]+|#\d+|quot|apos|lt|gt|amp);/gi,
+      (entity, name: string) => {
+        if (name[0] === "#") {
+          const code =
+            name[1].toLowerCase() === "x"
+              ? parseInt(name.slice(2), 16)
+              : parseInt(name.slice(1), 10);
+          return Number.isFinite(code) ? String.fromCodePoint(code) : entity;
+        }
+        return named[name.toLowerCase()] ?? entity;
+      }
+    );
   }
 }

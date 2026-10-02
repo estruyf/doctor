@@ -45,6 +45,22 @@ The base64 encoded value is the easiest option to use in a CI/CD pipeline, as yo
 `--password <password>`
 : The password of your certificate file, when you protected it with one.
 
+  It can also come from the `DOCTOR_CERTIFICATE_PASSWORD` environment variable, which is the better
+  place for it when you run `doctor` yourself: a value passed as `--password` is printed by the
+  terminal that runs it and sits in the process list for the whole run, where any user on the machine
+  can read it. The order is `--password`, then `password` in `doctor.json`, then the environment
+  variable.
+
+  ```bash
+  DOCTOR_CERTIFICATE_PASSWORD='…' doctor publish
+  ```
+
+  When none of them has a password and the certificate needs one, `doctor` asks for it in the
+  terminal, with the input shown as dots. It checks the password against the certificate before
+  signing in, and asks again from an empty field when it does not fit — three tries. Nothing is
+  asked when the certificate has no password, and without a terminal to ask in — a CI/CD pipeline,
+  or `--output json` — `doctor` stops with a message saying the password is missing instead.
+
 ### Authentication changes in v2.0.0
 
 Before v2.0.0, `doctor` could also authenticate with the `deviceCode` and `password` authentication types. Both are removed:
@@ -60,22 +76,22 @@ Certificate authentication uses application permissions, which work for every AP
 : The URL of the site collection to use.
 
 `--library <library>`
-: Specified the library which you want to use in SharePoint to store your referenced images.
+: The library in SharePoint where `doctor` keeps your referenced images, the site logo, the rendered Mermaid diagrams and the publish state. Check [`library`](../doctor-json/#library) for where each of them goes.
 
 `-f, --folder <folder>`
 : The folder location in where you will create your markdown files.
 
 `--webPartTitle <webPartTitle>`
-: This defined the title of the markdown web part to be created/updated on the page. Default value is: `doctor-placeholder`.
+: The title `doctor` gives the Markdown web part it puts on each page, which is how it recognises that web part on a page it has no recorded ids for. Default value is: `doctor-placeholder`. Pick it once — check [`webPartTitle`](../doctor-json/#webparttitle) for why.
 
 `--overwriteImages`
-: Specifies if you allow `doctor` to overwrite the images in the SharePoint library that are referenced in the markdown files.
+: Uploads every image referenced in the markdown files again, replacing the file in the SharePoint library. Without it, only images which are new or changed since the last publish are uploaded.
 
 `--debug`
 : Provides more information of what is happening during command execution. You can also enable this by setting the `DEBUG=true` environment variable, which is useful in CI/CD pipelines.
 
 :::caution[Important]
-This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+This flag can only be added to the command execution. Using it in the `doctor.json` file has no effect.
 :::
 
 `--verbose`
@@ -218,28 +234,28 @@ The `--debug` output goes to stderr, so it never ends up in the document you par
 : When providing this option, the processed markdown files will be generated in this folder.
 
 :::caution[Important]
-This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+This flag can only be added to the command execution. Using it in the `doctor.json` file has no effect.
 :::
 
 `--cleanEnd`
-: Removes the pages which have not been touched during the publishing run. This will happen at the end of the whole process.
+: Removes the pages which the run did not want, at the end of the whole process. A page which was *skipped* — as unchanged, or because its metadata could not be worked out — is still a page `doctor` wants, and is left alone. What gets removed is what has no markdown file behind it any more.
 
 :::caution[Important]
-This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+This flag can only be added to the command execution. Using it in the `doctor.json` file has no effect.
 :::
 
 `--cleanStart`
 : Removes all pages before creation. This ensures that you that all changes made to your documentation get removed.
 
 :::caution[Important]
-This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+This flag can only be added to the command execution. Using it in the `doctor.json` file has no effect.
 :::
 
 `--confirm`
 : Don't prompt for confirming removing the files when you specified to clean up pages and assets before publishing.
 
 :::caution[Important]
-This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+This flag can only be added to the command execution. Using it in the `doctor.json` file has no effect.
 :::
 
 `--skipExistingPages`
@@ -252,7 +268,7 @@ This flag can only be added to the command execution. Using it in the `doctor.js
 : Recycles the pages which `doctor` published before, but whose markdown file no longer exists. Requires the `--confirm` flag, or `doctor` asks you to confirm the removal. Check the [removing deleted pages](#removing-deleted-pages) section for more information.
 
 `--skipPrecheck`
-: Skips the pre-process validation which runs before any SharePoint calls are made. Check the [pre-process checks](#pre-process-checks) section for more information.
+: Skips the checks which run before any page is written: the local front matter and slug validation, and the capability check described below. Check the [pre-process checks](#pre-process-checks) section for more information.
 
 `--timingDetails`
 : Shows additional per-page timing statistics (average, fastest and slowest page) after the publishing run. The total publishing time is always shown, also without this flag.
@@ -265,27 +281,27 @@ Since v2.0.0 the theme is no longer applied automatically. SharePoint returns an
 :::
 
 `--retryWhenFailed`
-: Specifying this flag will retry the command if it failed. In some cases it can be that SharePoint failes to process your request, and this allows you to try again without running the whole flow from scratch.
+: Specifying this flag will retry the command if it failed. In some cases it can be that SharePoint fails to process your request, and this allows you to try again without running the whole flow from scratch.
 
 `--skipPages`:
 : This flag allows you to skip the pages provisioning in the publish flow.
 
 :::caution[Important]
-This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+This flag can only be added to the command execution. Using it in the `doctor.json` file has no effect.
 :::
 
 `--skipNavigation`:
 : This flag allows you to skip setting the navigation in the publish flow.
 
 :::caution[Important]
-This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+This flag can only be added to the command execution. Using it in the `doctor.json` file has no effect.
 :::
 
 `--skipSiteDesign`:
-: This flag allows you to skip setting the site its look and feel in the publish flow.
+: This flag allows you to skip setting the site's look and feel in the publish flow.
 
 :::caution[Important]
-This flag can only be added to the command execution. Using it in the `doctor.json` fill will be ignored.
+This flag can only be added to the command execution. Using it in the `doctor.json` file has no effect.
 :::
 
 `--cleanQuickLaunch`
@@ -295,7 +311,13 @@ This flag can only be added to the command execution. Using it in the `doctor.js
 : Allows you to specify if you want to remove all the navigation elements defined in the `TopNavigation` navigation before adding the new navigation structure.
 
 `--pageTemplate`
-: Name of the default page template to use for all the pages which will be created.
+: Name of the default page template to use for all the pages which will be created. It accepts the
+  template's page title, its file name or its page id. A page can override it with the `template`
+  front matter — see [page templates](../../content/pages/#page-templates).
+
+`--reapplyTemplates`
+: Applies the page template to pages which already exist, not only to the ones `Doctor` creates. Off
+  by default. Check [page templates](../../content/pages/#page-templates).
 
 `--disableComments`
 : Disable comments for all pages. By default the comments are enabled on the pages.
@@ -312,14 +334,37 @@ You can override this by specifying the `comments` option on page level.
 
 ### Change detection / publish state
 
-`doctor` keeps track of what it published in a state file which is stored on your SharePoint site. For every page it stores a hash of the source markdown file, together with the timestamp of when it got published.
+`doctor` keeps track of what it published in a state file which is stored on your SharePoint site. For every page it stores a hash of everything the page is built from, the timestamp of when it got published, and the instance ids of the web parts `doctor` put on it — which is how it recognises its own controls on the next run and leaves the ones you added in SharePoint alone. The file also carries a hash of the publish settings and your custom shortcodes, so changing one of those marks every page as changed, and a hash of every image and diagram `doctor` uploaded to the library, so a changed one is uploaded again and an unchanged one is not.
 
 On the next run, `doctor` compares the hash of each local file with the one in the state file:
 
 - Pages which are **new** or **modified** get published.
 - Pages which are **unchanged** get skipped.
 
-The hash covers the markdown file together with the [partials](../doctor-json/#reusable-content-partials) it uses, so a changed partial marks every page using it as modified.
+A skipped page is still a page on the site, so it keeps everything a published page would have kept:
+its entry in the [site navigation](../../content/pages/#menu), which is rebuilt on every run, and its
+place in the site when [`--cleanEnd`](#publish-command-specific-options) removes the pages the run did not want. The same
+goes for a page skipped because [its metadata could not be worked out](../../content/pages/#what-happens-when-a-value-cannot-be-set).
+
+The hash covers everything the published page is built from, not just the file you edited:
+
+| What changed | Effect |
+| --- | --- |
+| The markdown file | that page is modified |
+| A [partial](../doctor-json/#reusable-content-partials) it uses | every page using that partial is modified |
+| An **image** it references, in its text or as its `header.image` banner | every page referencing that image is modified, and the image is uploaded again. The state records a hash of every file `doctor` uploads, so an unchanged image is not — unless [`--overwriteImages`](../doctor-json/#overwriteimages) is set |
+| The **slug of a page it links to** | every page linking to it is modified, so its links keep pointing at the right page |
+| A **custom shortcode's** code | every page is modified — a shortcode decides what its pages render |
+| A publish **setting** in `doctor.json` (`markdown.*`, `webPartTitle`, `partials.*`, `library`, the template options) | every page is modified |
+| The **page template**, with [`--reapplyTemplates`](../doctor-json/#reapplytemplates) | every page using that template is modified |
+
+Images and linked pages are read once per run, however many pages refer to them.
+
+:::note[The first run after upgrading publishes everything]
+`Doctor` 2.3.0 folds images, links, shortcodes and settings into the hash, so every hash recorded by
+an earlier version now differs. The first run after upgrading therefore republishes the whole site,
+once. Runs after that behave as normal.
+:::
 
 Localized pages are tracked the same way, under the URL SharePoint issued for them. They are published in their own phase which runs after the normal pages, so a changed `.lang.md` file gets published even when its source page did not change.
 
@@ -352,7 +397,7 @@ Pass the `--removeDeleted` flag to act on them:
 doctor publish --removeDeleted --confirm
 ```
 
-Every page which is tracked in the state, but has no markdown file anymore, gets recycled and dropped from the state. The pages end up in the site its recycle bin, so you can still restore them from SharePoint itself.
+Every page which is tracked in the state, but has no markdown file anymore, gets recycled and dropped from the state. The pages end up in the site's recycle bin, so you can still restore them from SharePoint itself.
 
 :::caution[Important]
 The removal needs to be confirmed. When you do not pass the `--confirm` flag, `doctor` asks you to confirm it before the publishing run starts. In a CI/CD pipeline you always need to pass `--confirm`, as there is nobody to answer the question.
@@ -360,7 +405,7 @@ The removal needs to be confirmed. When you do not pass the `--confirm` flag, `d
 
 Good to know:
 
-- The state file is the source of truth. Pages which were created outside of `doctor`, or before the state file existed, are not touched. Use the `--cleanEnd` flag when you want to remove everything which was not published during the run.
+- The state file is the source of truth. Pages which were created outside of `doctor`, or before the state file existed, are not touched. Use the `--cleanEnd` flag when you want to remove everything `doctor` does not have a markdown file for, whether or not it is in the state.
 - Multilingual pages are removed together with their source page. Translations of a page which still exists are kept.
 - Pages which are already gone from the site are removed from the state as well, so the state keeps matching your site.
 - When a markdown file cannot be resolved to a page (an unreadable file, or one without a `title`), no pages get removed at all. The [pre-process checks](#pre-process-checks) catch these before the publishing run, unless you use `--skipPrecheck`.
@@ -378,7 +423,56 @@ Before any call to SharePoint is made, `doctor` validates your markdown files an
 
 When one or more issues are found, the run stops and all issues are listed at once (up to a maximum of 20, followed by the number of remaining issues). Pages of the `translation` type are skipped during this validation.
 
-Use the `--skipPrecheck` flag when you want to skip this validation.
+### Available permissions
+
+`doctor` then asks the site which of its operations the account is actually allowed to perform, and
+prints the answer before anything is written:
+
+```
+ Available permissions on https://contoso.sharepoint.com/sites/docs:
+   yes  Publish pages
+   yes  Set page metadata
+   yes  Upload assets to "Shared Documents"
+    no  Update a page without changing its history — page descriptions will change 'Modified' and 'Modified By'
+    no  Manage the site navigation — the 'menu' setting is skipped
+    no  Change the look of the site — the 'siteDesign' setting is skipped
+   yes  Read the term store
+   yes  Read the site users
+```
+
+Publishing pages and setting metadata need rights on the **Site Pages library**. The navigation, the
+theme, the header and footer and the site logo need **Manage Web** rights on the **site** — an
+account that is perfectly able to publish pages often does not have those, which used to surface as a
+failure at the very end of a run, with every page already written.
+
+- A step the account cannot perform is **skipped**, not attempted and failed. Each one is repeated in
+  the warnings at the end of the run.
+  - Without **Manage Web**, the `menu` and `siteDesign` settings are left alone and the pages still
+    publish.
+  - Without rights to **set columns**, the `metadata` and `author` front matter is skipped — and not
+    even worked out, so the term store and the user lookups are not paid for either.
+  - Without access to the **term store**, a page which sets a managed metadata column by its label is
+    skipped whole. The app registration needs the **TermStore.Read.All** permission from SharePoint —
+    see [the term store](../../getting-started/certificate-authentication/#the-term-store).
+  - Without rights to **write to the asset library**, a page which has to upload something is skipped
+    whole rather than published with its pictures pointing at nothing — that means a page with an
+    image, with a `header.image`, or with a Mermaid diagram, since `doctor` draws those during the
+    publish and uploads them like any other image. The publish state is not saved either, so the next
+    run publishes everything again.
+- A missing **system update** right is the one that is not a skip: descriptions are written with an
+  ordinary update instead, at the cost of the page's `Modified` date and `Modified By`.
+- Not being able to **create or update pages** stops the run straight away, since that is the whole
+  job.
+- Only the steps this run was going to take are listed — no `menu` in your configuration means no
+  line about navigation.
+- If the site's permissions cannot be read at all, `doctor` says so and attempts everything, exactly
+  as it did before this check existed.
+
+This is a check of what the account may *do*, not of what the site will accept. A term which is not
+in the term set, or an author who is not a member of this site, is still found per page while
+publishing.
+
+Use the `--skipPrecheck` flag when you want to skip this validation and the capability check.
 
 ## Workflow command specific options
 

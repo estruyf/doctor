@@ -71,7 +71,7 @@ And `doctor.json` points at the folder, which is `./partials` unless you say oth
 }
 ```
 
-The rest of this page explains each of these pieces. Keep the `partials` folder next to your sources folder instead of inside it, as explained in [what it means for publishing](#what-it-means-for-publishing).
+The rest of this page explains each of these pieces. The `partials` folder can sit next to your sources folder or inside it — see [what it means for publishing](#what-it-means-for-publishing).
 
 ## Including a partial
 
@@ -85,7 +85,7 @@ The `file` attribute is looked up as follows:
 
 - `navigation`: in the partials folder. The `.md` extension is optional.
 - `./navigation` or `../navigation`: relative to the file which includes it.
-- `/navigation`: relative to your sources folder (`./src` by default).
+- `/navigation`: relative to your sources folder (`./src` by default). When that file doesn't exist, an absolute path like `/home/me/partials/navigation` is used as is.
 
 Partials can include other partials, as long as they don't end up including themselves.
 
@@ -157,6 +157,8 @@ When a partial belongs on all of your pages, let `Doctor` add it for you with th
 
 The `header` partial is added at the top of every page, the `footer` partial at the bottom. As they have no `include` tag, the parameters they use need a default value in their front matter.
 
+They are looked up like the `file` attribute of an [include tag](#including-a-partial), with one difference: `./banner` and `../banner` are relative to your project folder (where `doctor.json` lives), as there is no including file. Use `/banner` for a partial in your sources folder.
+
 Pages which don't need them can opt out in their front matter:
 
 ```markdown
@@ -208,5 +210,5 @@ The partials are part of your page, which means they are processed like the rest
 - A page is republished when one of the partials it uses has changed. The [`doctor status`](../../cli/#status) command shows those pages as modified as well.
 
 :::caution[Important]
-Store your partials outside of your sources folder, or `Doctor` will publish them as pages. When they do live inside it, `Doctor` excludes the configured `partials.folder` from the pages it picks up.
+`Doctor` leaves the configured `partials.folder` out of the pages it publishes, also when it sits inside your sources folder. A partial kept anywhere **else** inside your sources folder — one you include with `./` from a page next to it, say — is a markdown file like any other, and is published as a page too. Keep your partials in `partials.folder`, or outside your sources folder.
 :::

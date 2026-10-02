@@ -10,7 +10,7 @@ If you need to build yourself a multilingual knowledge base, documentation site,
   <source src="/videos/multilingual.mp4" type="video/mp4">
 </video>
 
-`doctor` allows you to configure multilingual on site- and page-level. To make use of `doctor` its multilingual features, you have to follow this guide.
+`doctor` allows you to configure multilingual on site- and page-level. To make use of `doctor`'s multilingual features, you have to follow this guide.
 
 ## Configure `doctor` in a multilingual site
 
