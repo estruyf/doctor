@@ -98,10 +98,12 @@ const executeThroughCliWithTimeout = async (
   commandName: string,
   options: any
 ) => {
-  const normalized = (CliCommand.getName() || "").toLowerCase();
-  if (normalized === "m365" || normalized === "localm365") {
-    return await executeM365WithTimeout(commandName, options);
-  }
+  // PATCH: Always use subprocess spawn for m365 to properly inherit proxy environment
+  // Original code used executeM365WithTimeout which doesn't respect HTTP_PROXY
+  // const normalized = (CliCommand.getName() || "").toLowerCase();
+  // if (normalized === "m365" || normalized === "localm365") {
+  //   return await executeM365WithTimeout(commandName, options);
+  // }
 
   const commandParts = commandName.split(" ").filter(Boolean);
   const optionArgs = serializeOptionsToArgv(options);
@@ -125,6 +127,7 @@ const executeThroughCliWithTimeout = async (
         ...process.env,
         CLIMICROSOFT365_NOUPDATE: "1",
       },
+      shell: true, // Required on Windows to find m365 in PATH
     });
     let stdout = "";
     let stderr = "";
@@ -198,6 +201,8 @@ const executeThroughCliWithTimeout = async (
   });
 };
 
+// PATCH: Disabled because we now always use subprocess spawn
+// @ts-ignore - unused but keeping for potential rollback
 const executeM365WithTimeout = async (
   commandName: string,
   options: any
