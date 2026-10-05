@@ -26,21 +26,6 @@ export interface DoctorState {
 
 const DEFAULT_STATE_FILE = ".doctor/state.json";
 
-const isAlreadyExistsError = (error: unknown): boolean => {
-  const message =
-    typeof error === "string"
-      ? error
-      : error && typeof error === "object" && "message" in error
-        ? String((error as { message: unknown }).message)
-        : JSON.stringify(error);
-
-  const normalized = message.toLowerCase();
-  return (
-    normalized.includes("already exists") ||
-    normalized.includes("a file or folder with the name")
-  );
-};
-
 const toErrorMessage = (error: unknown): string => {
   if (typeof error === "string") {
     return error;
@@ -411,7 +396,21 @@ export class StateHelper {
           CliCommand.getRetry()
         );
       } catch (error) {
-        if (!isAlreadyExistsError(error)) {
+        // Language-agnostic error handling: verify folder exists after creation failure
+        // If the folder exists, treat creation failure as success (idempotent operation)
+        try {
+          const targetPath = `${currentPath}/${folderName}`;
+          await executeWithRetry(
+            "spo folder get",
+            {
+              webUrl,
+              url: `/${targetPath}`,
+            },
+            false // Don't retry the get operation
+          );
+          // Folder exists, so the "error" was just "already exists" - continue
+        } catch (getError) {
+          // Folder doesn't exist AND creation failed - this is a real error
           throw error;
         }
       }

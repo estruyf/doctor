@@ -343,13 +343,25 @@ export class PagesHelper {
           CliCommand.getRetry()
         );
       } catch (e: any) {
-        if (!this.isAlreadyExistsError(e)) {
+        // Language-agnostic error handling: verify page exists after creation failure
+        try {
+          await executeWithRetry(
+            "spo page get",
+            {
+              webUrl,
+              name: pageName,
+              metadataOnly: true,
+            },
+            false // Don't retry
+          );
+          // Page exists, so the "error" was just "already exists" - continue
+          Logger.debug(
+            `Page ${pageName} already exists at Site Pages root. Continuing with move/update flow.`
+          );
+        } catch (getError) {
+          // Page doesn't exist AND creation failed - this is a real error
           throw e;
         }
-
-        Logger.debug(
-          `Page ${pageName} already exists at Site Pages root. Continuing with move/update flow.`
-        );
       }
 
       if (slug !== pageName) {
@@ -409,27 +421,26 @@ export class PagesHelper {
           CliCommand.getRetry()
         );
       } catch (e: any) {
-        if (!this.isAlreadyExistsError(e)) {
+        // Language-agnostic error handling: verify folder exists after creation failure
+        try {
+          const targetPath = `${currentFolder}/${segment}`;
+          await executeWithRetry(
+            "spo folder get",
+            {
+              webUrl,
+              url: targetPath,
+            },
+            false // Don't retry the get operation
+          );
+          // Folder exists, so the "error" was just "already exists" - continue
+        } catch (getError) {
+          // Folder doesn't exist AND creation failed - this is a real error
           throw e;
         }
       }
 
       currentFolder = `${currentFolder}/${segment}`;
     }
-  }
-
-  private static isAlreadyExistsError(error: any): boolean {
-    const message =
-      typeof error === "string"
-        ? error
-        : error?.message || JSON.stringify(error);
-    const normalized = (message || "").toLowerCase();
-
-    return (
-      normalized.includes("already exists") ||
-      normalized.includes("file exists") ||
-      normalized.includes("folder exists")
-    );
   }
 
   /**
