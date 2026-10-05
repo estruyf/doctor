@@ -171,6 +171,7 @@ export class PagesHelper {
       normalized.includes("not exist") ||
       normalized.includes("file not found") ||
       normalized.includes("cannot be found") ||
+      normalized.includes("n'existe pas") || // French: "does not exist"
       normalized.includes("404")
     );
   }
@@ -342,6 +343,9 @@ export class PagesHelper {
           },
           CliCommand.getRetry()
         );
+
+        // Wait for SharePoint to propagate the new page before subsequent operations
+        await new Promise((resolve) => setTimeout(resolve, 5000));
       } catch (e: any) {
         // Language-agnostic error handling: verify page exists after creation failure
         try {
