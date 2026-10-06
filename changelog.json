@@ -12,6 +12,10 @@
     "title": "2.3.0",
     "updates": [
       {
+        "id": 210,
+        "title": "Fix: publishing behind a proxy now uses the same proxy handling as the latest CLI for Microsoft 365, which `Doctor` now ships (11.11.0). `NO_PROXY` is respected, and HTTPS requests use `HTTPS_PROXY`. On Node.js 22.21+ or 24.5+, set `NODE_USE_ENV_PROXY=1` to send all requests, including the SharePoint API calls `Doctor` makes directly, through the proxy. Read more in [publish from behind a proxy](https://getdoctor.io/docs/getting-started/#publish-from-behind-a-proxy)."
+      },
+      {
         "id": null,
         "title": "Fix: callouts, code blocks and the table of contents keep their styling when SharePoint rewrites a page's stylesheet. Now and then SharePoint re-sanitizes a page as it is published and scopes every rule under `.ExternalClass`, which nothing on a modern page carries, so the page showed its content unstyled. `Doctor` now wraps its HTML in an element with that class, so the rules match either way. Pages pick it up the next time they are published."
       },

@@ -101,6 +101,39 @@ When the certificate has a password, `doctor` asks for it — the input shows as
 The `appId`, `tenant`, and `url` values live in the `doctor.json` file, and so can the path to the certificate — `"certificate": "./cert.pfx"` — so `doctor status` and `doctor publish` are all you type. Keep the certificate file itself out of source control, and its password out of `doctor.json`: set it in the `DOCTOR_CERTIFICATE_PASSWORD` environment variable, or let `doctor` ask for it. More information can be found in the [configuration](../configuration) section.
 :::
 
+## Publish from behind a proxy
+
+When your network only reaches Microsoft 365 through a proxy, set the standard proxy environment variables together with `NODE_USE_ENV_PROXY=1`:
+
+<Tabs>
+  <TabItem label="macOS / Linux">
+    ```sh
+    export HTTPS_PROXY=http://proxy.contoso.com:8080
+    export HTTP_PROXY=http://proxy.contoso.com:8080
+    export NO_PROXY=localhost,.contoso.com
+    export NODE_USE_ENV_PROXY=1
+
+    doctor publish --certificate ./cert.pfx
+    ```
+  </TabItem>
+  <TabItem label="PowerShell">
+    ```powershell
+    $env:HTTPS_PROXY = 'http://proxy.contoso.com:8080'
+    $env:HTTP_PROXY = 'http://proxy.contoso.com:8080'
+    $env:NO_PROXY = 'localhost,.contoso.com'
+    $env:NODE_USE_ENV_PROXY = '1'
+
+    doctor publish --certificate ./cert.pfx
+    ```
+  </TabItem>
+</Tabs>
+
+`doctor` runs the `CLI for Microsoft 365` it ships with, not the `m365` command installed on your machine, and calls a few SharePoint APIs directly with Node.js. `NODE_USE_ENV_PROXY=1` makes Node.js send both through the proxy, tunneling HTTPS requests the way most corporate proxies expect. Without it, those direct calls skip the proxy, and some proxies reject or redirect the requests the `CLI for Microsoft 365` sends. Hosts in `NO_PROXY` are reached directly.
+
+:::caution
+`NODE_USE_ENV_PROXY` requires Node.js 22.21.0 or higher, or 24.5.0 or higher.
+:::
+
 ## Next steps
 
 - [Content](../content): write your pages, build the navigation, and reuse snippets with partials and shortcodes.
