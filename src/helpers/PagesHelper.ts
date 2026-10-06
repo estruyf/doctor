@@ -454,7 +454,9 @@ export class PagesHelper {
           CliCommand.getRetry()
         );
       } catch (e: any) {
-        if (!this.isAlreadyExistsError(e)) {
+        // The error text is in the site's language, so whether the page was
+        // already there is checked on the site instead — see `FolderHelpers.add`
+        if (!(await this.pageExists(webUrl, pageName))) {
           throw e;
         }
 
@@ -509,38 +511,28 @@ export class PagesHelper {
     let currentFolder = rootFolder;
 
     for (const segment of segments) {
-      try {
-        await executeWithRetry(
-          "spo folder add",
-          {
-            webUrl,
-            parentFolderUrl: currentFolder,
-            name: segment,
-          },
-          CliCommand.getRetry()
-        );
-      } catch (e: any) {
-        if (!this.isAlreadyExistsError(e)) {
-          throw e;
-        }
-      }
-
+      await FolderHelpers.add(webUrl, currentFolder, segment);
       currentFolder = `${currentFolder}/${segment}`;
     }
   }
 
-  private static isAlreadyExistsError(error: any): boolean {
-    const message =
-      typeof error === "string"
-        ? error
-        : error?.message || JSON.stringify(error);
-    const normalized = (message || "").toLowerCase();
-
-    return (
-      normalized.includes("already exists") ||
-      normalized.includes("file exists") ||
-      normalized.includes("folder exists")
-    );
+  /**
+   * Whether the page is on the site. Only a successful lookup counts, as a
+   * failed one cannot tell a missing page from a lookup that went wrong.
+   * @param webUrl
+   * @param name
+   */
+  private static async pageExists(webUrl: string, name: string): Promise<boolean> {
+    try {
+      await executeWithRetry(
+        "spo page get",
+        { webUrl, name, metadataOnly: true, output: "json" },
+        false
+      );
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**
