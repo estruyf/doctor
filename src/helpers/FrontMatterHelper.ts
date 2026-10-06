@@ -51,7 +51,7 @@ export class FrontMatterHelper {
     } else if (extension === "html") {
       // A slug written for a modern page names the same page, so switching
       // modes does not mean editing every front matter `slug`
-      slug = `${(slug as string).replace(/\.(aspx|html)$/, "")}.html`;
+      slug = `${(slug as string).replace(/\.(aspx|html)$/i, "")}.html`;
     } else if (!(slug as string).endsWith(".aspx")) {
       slug = `${slug}.aspx`;
     }

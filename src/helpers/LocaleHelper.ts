@@ -57,6 +57,19 @@ const LCID_BY_LOCALE: { [locale: string]: number } = {
 
 export class LocaleHelper {
   /**
+   * The culture name of an LCID, such as `nl-nl` for 1043, or `null` when it
+   * is not a locale SharePoint knows. Used for the `lang` of an HTML page,
+   * which takes a BCP 47 tag rather than SharePoint's number.
+   * @param lcid A SharePoint language id
+   */
+  public static getLocale(lcid: number): string | null {
+    const match = Object.entries(LCID_BY_LOCALE).find(
+      ([, value]) => value === lcid
+    );
+    return match ? match[0] : null;
+  }
+
+  /**
    * Resolve the LCID of a locale name, or `null` when it is not a locale
    * SharePoint knows.
    * @param locale A culture name such as `nl-nl`

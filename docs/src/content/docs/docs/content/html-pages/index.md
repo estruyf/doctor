@@ -63,7 +63,7 @@ itself:
 | Content | In an HTML page |
 | --- | --- |
 | Images in your sources | Embedded in the page. Nothing is uploaded to the asset library. |
-| Images from other sites | Downloaded while publishing and embedded. If the download fails, the image stays a link, and `Doctor` warns that it will not show. |
+| Images from other sites | Downloaded while publishing and embedded. If the download fails, the image stays a link, and `Doctor` warns that it will not show. When the image changes at the same address, its pages are published again on the next run. |
 | Images on your own SharePoint | Read with the access `Doctor` publishes with, and embedded. |
 | Mermaid diagrams | Drawn while publishing, with the Mermaid version `Doctor` ships, and placed in the page as SVG. Diagram types that need a browser to draw, like `C4Context` and `block-beta`, cannot be drawn this way, and stay on the page as their source; `Doctor` warns about them. |
 | Styles | One stylesheet in the page. |
@@ -139,7 +139,7 @@ The template is filled in with these placeholders:
 | --- | --- |
 | `{{ title }}` | The page title |
 | `{{ description }}` | The page description, or nothing |
-| `{{ lang }}` | The page language |
+| `{{ lang }}` | The page language: the language of the site, such as `nl-nl` |
 | `{{ styles }}` | The default styles, followed by your `html.styles` |
 | `{{ header }}` | The banner, as described above |
 | `{{ content }}` | The rendered markdown. Required: a template without it fails the publish. |

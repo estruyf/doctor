@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { readFile } from "fs/promises";
 import { dirname, join } from "path";
 import { load } from "cheerio";
@@ -10,6 +11,7 @@ import { AccessToken } from "./AccessToken.js";
 import { ApiHelper } from "./ApiHelper.js";
 import { CliCommand } from "./CliCommand.js";
 import { FolderHelpers } from "./FolderHelpers.js";
+import { LocaleHelper } from "./LocaleHelper.js";
 import { Logger } from "./Logger.js";
 import { MarkdownHelper } from "./MarkdownHelper.js";
 import { OutputHelper } from "./OutputHelper.js";
@@ -92,10 +94,14 @@ const BOM = "\uFEFF";
 export class HtmlPageHelper {
   private static templates: { [path: string]: string } = {};
   private static remoteImages: { [url: string]: string | null } = {};
+  private static imageVersions: { [url: string]: string } = {};
+  private static languages: { [webUrl: string]: string } = {};
 
   public static reset(): void {
     HtmlPageHelper.templates = {};
     HtmlPageHelper.remoteImages = {};
+    HtmlPageHelper.imageVersions = {};
+    HtmlPageHelper.languages = {};
   }
 
   /**
@@ -129,7 +135,7 @@ export class HtmlPageHelper {
     const document = HtmlPageHelper.fillTemplate(template, {
       title: data.title,
       description: data.description || "",
-      lang: "en",
+      lang: await HtmlPageHelper.getLanguage(options.webUrl),
       styles: [MarkdownHelper.getStyles(), htmlPageCss, customStyles]
         .filter(Boolean)
         .join("\n"),
@@ -220,16 +226,20 @@ export class HtmlPageHelper {
       image ? "doctor-hero--image" : "",
       header?.textAlignment === "Center" ? "doctor-hero--center" : "",
     ].filter(Boolean);
-    const style = image
-      ? ` style="background-image: url('${image}')"`
+    // The picture is its own element rather than the header's background: a
+    // role="img" on the header would hide its heading and description from
+    // assistive technology, and the description belongs to the picture
+    const picture = image
+      ? `  <div class="doctor-hero__image" style="background-image: url('${image}')"${
+          header?.altText
+            ? ` role="img" aria-label="${encode(header.altText)}"`
+            : ` aria-hidden="true"`
+        }></div>`
       : "";
-    const label =
-      image && header?.altText
-        ? ` role="img" aria-label="${encode(header.altText)}"`
-        : "";
 
     return [
-      `<header class="${classes.join(" ")}"${style}${label}>`,
+      `<header class="${classes.join(" ")}">`,
+      picture,
       `  <div class="doctor-hero__inner">`,
       `    <h1 class="doctor-hero__title">${encode(data.title)}</h1>`,
       data.description
@@ -465,6 +475,92 @@ export class HtmlPageHelper {
   }
 
   /**
+   * The language of the site, as the `lang` of its pages: screen readers and
+   * other language-aware tools go by it. Read once per run; without a site,
+   * or when SharePoint cannot say, English.
+   * @param webUrl the site the pages are published to
+   */
+  public static async getLanguage(webUrl: string | null): Promise<string> {
+    if (!webUrl) {
+      return "en";
+    }
+    if (!(webUrl in HtmlPageHelper.languages)) {
+      let locale: string | null = null;
+      try {
+        const { stdout } = await executeWithRetry(
+          "spo web get",
+          { url: webUrl, output: "json" },
+          CliCommand.getRetry(),
+        );
+        locale = LocaleHelper.getLocale(JSON.parse(stdout || "{}")?.Language);
+      } catch (e: any) {
+        Logger.debug(`The language of ${webUrl} could not be read: ${e?.message || e}`);
+      }
+      HtmlPageHelper.languages[webUrl] = locale || "en";
+    }
+    return HtmlPageHelper.languages[webUrl];
+  }
+
+  /**
+   * What identifies the current version of an image on another host, for the
+   * page hash. An HTML page carries its images inside it, so a picture that
+   * changes at the same address leaves the page outdated until it is
+   * published again — which only happens when its hash moves.
+   *
+   * Asks for the headers only, and takes the `ETag` or `Last-Modified` the
+   * server sends; only a server that sends neither has the image downloaded
+   * and hashed. Once per image per run.
+   * @param src the image address
+   * @param webUrl the site, whose tenant's images are read with doctor's token
+   */
+  public static async getImageVersion(
+    src: string,
+    webUrl: string | null,
+  ): Promise<string> {
+    const url = src.startsWith("//") ? `https:${src}` : src;
+    if (url in HtmlPageHelper.imageVersions) {
+      return HtmlPageHelper.imageVersions[url];
+    }
+
+    let version = "unavailable";
+    try {
+      const headers = HtmlPageHelper.isTenantUrl(url, webUrl)
+        ? await HtmlPageHelper.getHeaders(webUrl!)
+        : undefined;
+      const head = await fetch(url, {
+        method: "HEAD",
+        headers,
+        signal: AbortSignal.timeout(REMOTE_IMAGE_TIMEOUT),
+      });
+      const validator =
+        head.ok &&
+        (head.headers.get("etag") ||
+          (head.headers.get("last-modified")
+            ? `${head.headers.get("last-modified")}|${head.headers.get("content-length") ?? ""}`
+            : null));
+
+      if (validator) {
+        version = validator;
+      } else {
+        const response = await fetch(url, {
+          headers,
+          signal: AbortSignal.timeout(REMOTE_IMAGE_TIMEOUT),
+        });
+        if (response.ok) {
+          version = createHash("sha256")
+            .update(Buffer.from(await response.arrayBuffer()))
+            .digest("hex");
+        }
+      }
+    } catch (e: any) {
+      Logger.debug(`The version of ${url} could not be read: ${e?.message || e}`);
+    }
+
+    HtmlPageHelper.imageVersions[url] = version;
+    return version;
+  }
+
+  /**
    * An image as the page can load it: a `data:` URI for a local file or a
    * picture on another host, and the source as it was for anything else.
    */
@@ -578,7 +674,7 @@ export class HtmlPageHelper {
     return HtmlPageHelper.templates[path];
   }
 
-  private static isRemote(src: string): boolean {
+  public static isRemote(src: string): boolean {
     return /^(https?:)?\/\//i.test(src);
   }
 

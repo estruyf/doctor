@@ -18,6 +18,7 @@ import { OutputHelper } from "../dist/helpers/OutputHelper.js";
 import { ShortcodesHelpers } from "../dist/helpers/ShortcodesHelpers.js";
 import { StatusHelper } from "../dist/helpers/StatusHelper.js";
 import { AccessToken } from "../dist/helpers/AccessToken.js";
+import { LocaleHelper } from "../dist/helpers/LocaleHelper.js";
 
 const WEB_URL = "https://contoso.sharepoint.com/sites/docs";
 
@@ -61,6 +62,9 @@ const withContent = async (fn) => {
   }
 };
 
+/** Bumped by a test to make the server's images change */
+let imageVersion = 1;
+
 /** A local server standing in for a host the sandbox blocks */
 const withImageServer = async (fn) => {
   let requests = 0;
@@ -71,6 +75,12 @@ const withImageServer = async (fn) => {
       const authorized = req.headers.authorization === "Bearer test-token";
       res.writeHead(authorized ? 200 : 401, { "content-type": "image/png" });
       res.end(authorized ? PNG : "");
+    } else if (req.url === "/tagged.png") {
+      res.writeHead(200, { "content-type": "image/png", etag: `"v${imageVersion}"` });
+      res.end(req.method === "HEAD" ? undefined : PNG);
+    } else if (req.url === "/untagged.png") {
+      res.writeHead(200, { "content-type": "image/png" });
+      res.end(req.method === "HEAD" ? undefined : imageVersion === 1 ? PNG : Buffer.concat([PNG, Buffer.from([0])]));
     } else if (req.url === "/pixel.png") {
       res.writeHead(200, { "content-type": "image/png" });
       res.end(PNG);
@@ -142,7 +152,14 @@ test("renderHeader inlines the banner image, and leaves it out when asked", asyn
     const withImage = await HtmlPageHelper.renderHeader({ title: "Page", header }, file);
     assert.match(withImage, /doctor-hero--image doctor-hero--center/);
     assert.match(withImage, /background-image: url\('data:image\/png;base64,/);
-    assert.match(withImage, /aria-label="A pixel"/);
+    assert.match(withImage, /<div class="doctor-hero__image" style="[^"]*" role="img" aria-label="A pixel"><\/div>/);
+    assert.doesNotMatch(withImage, /<header[^>]*role=/, "the header keeps its heading for assistive technology");
+
+    const unlabelled = await HtmlPageHelper.renderHeader(
+      { title: "Page", header: { image: "./images/pixel.png" } },
+      file,
+    );
+    assert.match(unlabelled, /class="doctor-hero__image"[^>]*aria-hidden="true"/);
 
     const noImage = await HtmlPageHelper.renderHeader(
       { title: "Page", header: { ...header, layout: "NoImage" } },
@@ -338,14 +355,14 @@ test("render produces a complete, self-contained page", async () => {
 test("render draws Mermaid diagrams as inline SVG", async () => {
   const html = await htmlRun({}, (options) =>
     HtmlPageHelper.render(
-      `<mermaid>\nflowchart TD\n  A[Write docs] --> B[Run doctor]\n</mermaid>`,
+      `<mermaid alt="The publish flow">\nflowchart TD\n  A[Write docs] --> B[Run doctor]\n</mermaid>`,
       { title: "Diagram" },
       "page.md",
       options,
     ),
   );
 
-  assert.match(html, /<div class="doctor__mermaid"><svg /);
+  assert.match(html, /<div class="doctor__mermaid" role="img" aria-label="The publish flow"><svg /);
   assert.doesNotMatch(html, /<img src="data:image\/svg/);
 });
 
@@ -413,6 +430,11 @@ test("getSlug gives HTML pages an .html slug", async () => {
       FrontMatterHelper.getSlug({ title: "x", slug: "index.aspx" }, "./src", "./src/index.md"),
       "index.html",
       "a slug written for a modern page names the same page",
+    );
+    assert.equal(
+      FrontMatterHelper.getSlug({ title: "x", slug: "Index.ASPX" }, "./src", "./src/index.md"),
+      "Index.html",
+      "whatever the case of its extension",
     );
     assert.equal(
       FrontMatterHelper.getSlug({ title: "x", slug: "about" }, "./src", "./src/about.md"),
@@ -484,5 +506,62 @@ test("the pre-check refuses two pages marked as the homepage", async () => {
 
     await writeFile(b, `---\ntitle: B\n---\nB`);
     await PrecheckHelper.validate({ files: [a, b] }, {}, { startFolder });
+  });
+});
+
+test("the site's language becomes the page language", async () => {
+  assert.equal(LocaleHelper.getLocale(1043), "nl-nl");
+  assert.equal(LocaleHelper.getLocale(1033), "en-us");
+  assert.equal(LocaleHelper.getLocale(9999), null);
+  assert.equal(await HtmlPageHelper.getLanguage(null), "en", "without a site");
+});
+
+test("a remote image's version comes from its ETag, or else its contents", async () => {
+  await withImageServer(async (base) => {
+    imageVersion = 1;
+    HtmlPageHelper.reset();
+    const tagged = await HtmlPageHelper.getImageVersion(`${base}/tagged.png`, WEB_URL);
+    const untagged = await HtmlPageHelper.getImageVersion(`${base}/untagged.png`, WEB_URL);
+    assert.equal(tagged, `"v1"`);
+    assert.match(untagged, /^[0-9a-f]{64}$/);
+    assert.equal(await HtmlPageHelper.getImageVersion(`${base}/missing.png`, WEB_URL), "unavailable");
+
+    imageVersion = 2;
+    HtmlPageHelper.reset();
+    assert.equal(await HtmlPageHelper.getImageVersion(`${base}/tagged.png`, WEB_URL), `"v2"`);
+    assert.notEqual(await HtmlPageHelper.getImageVersion(`${base}/untagged.png`, WEB_URL), untagged);
+    imageVersion = 1;
+    HtmlPageHelper.reset();
+  });
+});
+
+test("a remote image that changes republishes an HTML page, not a modern one", async () => {
+  await withImageServer(async (base) => {
+    await withContent(async (dir) => {
+      const startFolder = join(dir, "docs");
+      const file = join(startFolder, "page.md");
+      const contents = `---\ntitle: Page\n---\n![Remote](${base}/tagged.png)\n`;
+      await writeFile(file, contents);
+
+      const hashOf = async (pageMode) => {
+        DependencyHelper.reset();
+        HtmlPageHelper.reset();
+        const options = { startFolder, pageMode, webUrl: WEB_URL, shortcodesFolder: "./missing" };
+        return (await DependencyHelper.getPageHash(file, contents, options)).hash;
+      };
+
+      imageVersion = 1;
+      const htmlBefore = await hashOf("html");
+      const webpartBefore = await hashOf("webpart");
+      imageVersion = 2;
+      const htmlAfter = await hashOf("html");
+      const webpartAfter = await hashOf("webpart");
+      imageVersion = 1;
+      DependencyHelper.reset();
+      HtmlPageHelper.reset();
+
+      assert.notEqual(htmlBefore, htmlAfter, "the embedded copy is outdated");
+      assert.equal(webpartBefore, webpartAfter, "the browser loads the current one");
+    });
   });
 });

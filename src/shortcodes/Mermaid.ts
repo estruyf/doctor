@@ -5,12 +5,18 @@ import { MermaidHelper } from "../helpers/MermaidHelper.js";
 export const MermaidRenderer: ShortcodeRender = {
   render: async (attrs: any, markup: string) => {
     const diagram = await MermaidHelper.render(markup);
+    const alt = `${attrs?.alt || attrs?.title || "Mermaid diagram"}`.replace(
+      /"/g,
+      "&quot;"
+    );
 
     // An HTML page is its own document, which keeps the `<style>` and the
     // root `<svg>`, so the diagram goes in inline: crisp at any zoom, and its
     // labels can be selected and searched.
     if (diagram && CliCommand.options?.pageMode === "html") {
-      return `<div class="doctor__mermaid">${diagram.svg}</div>`;
+      // The description an image diagram gets as its alt text is the
+      // drawing's accessible name here
+      return `<div class="doctor__mermaid" role="img" aria-label="${alt}">${diagram.svg}</div>`;
     }
 
     if (diagram) {
@@ -18,11 +24,6 @@ export const MermaidRenderer: ShortcodeRender = {
       // elements and the root `<svg>` out of the HTML it injects, which leaves
       // an inline diagram without its colours and without the coordinate system
       // that places its shapes. Inside an image none of that is reachable.
-      const alt = `${attrs?.alt || attrs?.title || "Mermaid diagram"}`.replace(
-        /"/g,
-        "&quot;"
-      );
-
       return `<div class="doctor__mermaid"><img src="${diagram.src}" width="${diagram.width}" height="${diagram.height}" alt="${alt}" /></div>`;
     }
 

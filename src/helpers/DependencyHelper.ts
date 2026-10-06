@@ -7,6 +7,7 @@ import fg from "fast-glob";
 import { CommandArguments, PageFrontMatter } from "@models";
 import { existsAsync, readFileAsync, splitLinkTarget } from "@utils";
 import { FrontMatterHelper } from "./FrontMatterHelper.js";
+import { HtmlPageHelper } from "./HtmlPageHelper.js";
 import { Logger } from "./Logger.js";
 import { PartialsHelper } from "./PartialsHelper.js";
 import { StateHelper } from "./StateHelper.js";
@@ -106,6 +107,16 @@ export class DependencyHelper {
     }
   }
 
+  /** The banner image of a page when it is on another host, if any */
+  private static getRemoteHeaderImage(raw: string): string | null {
+    try {
+      const image = (matter(raw).data as PageFrontMatter)?.header?.image;
+      return typeof image === "string" && HtmlPageHelper.isRemote(image) ? image : null;
+    } catch {
+      return null;
+    }
+  }
+
   /**
    * The images a page uses, and the slugs of the pages it links to. A link's
    * slug is part of this because renaming a page changes the URL every page
@@ -128,6 +139,28 @@ export class DependencyHelper {
     if (header) {
       const path = join(dirname(file), header);
       parts.push(`header:${header}:${await DependencyHelper.hashFile(path)}`);
+    }
+
+    // An HTML page carries its images inside it, so one that changes at the
+    // same address has to move the hash too. A modern page links them, and
+    // the browser always loads the current one.
+    if (options.pageMode === "html") {
+      const remote = [
+        ...new Set(
+          [
+            ...$("img").toArray().map((img) => $(img).attr("src")),
+            DependencyHelper.getRemoteHeaderImage(raw),
+          ].filter(
+            (src): src is string => !!src && HtmlPageHelper.isRemote(src),
+          ),
+        ),
+      ].sort();
+
+      for (const src of remote) {
+        parts.push(
+          `remote:${src}:${await HtmlPageHelper.getImageVersion(src, options.webUrl)}`,
+        );
+      }
     }
 
     const images = [

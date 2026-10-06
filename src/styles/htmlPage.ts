@@ -50,10 +50,20 @@ body {
   min-height: 320px;
 }
 
+/* The picture, the darkening over it and the text, bottom to top */
+.doctor-hero__image {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+}
+
 .doctor-hero--image::before {
   content: "";
   position: absolute;
   inset: 0;
+  z-index: 1;
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.75));
 }
 
@@ -61,6 +71,7 @@ body {
    the content column only when the same padding comes off here */
 .doctor-hero__inner {
   position: relative;
+  z-index: 2;
   width: 100%;
   max-width: calc(var(--doctor-width) - 48px);
   margin: 0 auto;
@@ -263,7 +274,7 @@ body {
 
 @media print {
   .doctor-hero { padding: 0 0 16px; background: none !important; color: var(--doctor-text); }
-  .doctor-hero--image::before { display: none; }
+  .doctor-hero--image::before, .doctor-hero__image { display: none; }
   .doctor-page { max-width: none; padding: 16px 0 0; }
   .doctor-content pre { white-space: pre-wrap; }
 }
