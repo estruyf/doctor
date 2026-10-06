@@ -71,6 +71,7 @@ description: The changelog of Doctor
 - Fix: a person whose login name holds an apostrophe (`o'neill@contoso.com`) can be set on a person column and as the `author`.
 - Docs: the `doctor.json` page now explains every setting — what it does, its default and flag, and what to know before changing it, such as why `webPartTitle` should be picked once, what `library` holds, and why a static navigation `id` must be lowercase without spaces.
 - [#210](https://github.com/estruyf/doctor/issues/210): Fix: publishing behind a proxy now uses the same proxy handling as the latest CLI for Microsoft 365, which `Doctor` now ships (11.11.0). `NO_PROXY` is respected, and HTTPS requests use `HTTPS_PROXY`. On Node.js 22.21+ or 24.5+, set `NODE_USE_ENV_PROXY=1` to send all requests, including the SharePoint API calls `Doctor` makes directly, through the proxy. Read more in [publish from behind a proxy](https://getdoctor.io/docs/getting-started/#publish-from-behind-a-proxy).
+- [#210](https://github.com/estruyf/doctor/issues/210): Fix: publishing to a site that is not in English no longer stops at a folder or page that already exists, such as the `.doctor` folder of the publish state. SharePoint words that error in the site's language, so `Doctor` now checks whether the folder or page is there instead of reading the message.
 
 ## [2.2.0]
 

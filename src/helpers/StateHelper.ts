@@ -6,6 +6,7 @@ import { readFileAsync, writeFileAsync } from "@utils";
 import { tmpdir } from "os";
 import { CapabilitiesHelper } from "./CapabilitiesHelper.js";
 import { OutputHelper } from "./OutputHelper.js";
+import { FolderHelpers } from "./FolderHelpers.js";
 
 export interface DoctorStateEntry {
   sourceHash: string;
@@ -46,21 +47,6 @@ export interface DoctorState {
 }
 
 const DEFAULT_STATE_FILE = ".doctor/state.json";
-
-const isAlreadyExistsError = (error: unknown): boolean => {
-  const message =
-    typeof error === "string"
-      ? error
-      : error && typeof error === "object" && "message" in error
-        ? String((error as { message: unknown }).message)
-        : JSON.stringify(error);
-
-  const normalized = message.toLowerCase();
-  return (
-    normalized.includes("already exists") ||
-    normalized.includes("a file or folder with the name")
-  );
-};
 
 const toErrorMessage = (error: unknown): string => {
   if (typeof error === "string") {
@@ -553,21 +539,7 @@ export class StateHelper {
     let currentPath = assetLibrary;
 
     for (const folderName of nestedFolders) {
-      try {
-        await executeWithRetry(
-          "spo folder add",
-          {
-            webUrl,
-            parentFolderUrl: `/${currentPath}`,
-            name: folderName,
-          },
-          CliCommand.getRetry()
-        );
-      } catch (error) {
-        if (!isAlreadyExistsError(error)) {
-          throw error;
-        }
-      }
+      await FolderHelpers.add(webUrl, `/${currentPath}`, folderName);
       currentPath = `${currentPath}/${folderName}`;
     }
 
