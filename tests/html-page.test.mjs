@@ -17,6 +17,7 @@ import { OptionsHelper } from "../dist/helpers/OptionsHelper.js";
 import { OutputHelper } from "../dist/helpers/OutputHelper.js";
 import { ShortcodesHelpers } from "../dist/helpers/ShortcodesHelpers.js";
 import { StatusHelper } from "../dist/helpers/StatusHelper.js";
+import { AccessToken } from "../dist/helpers/AccessToken.js";
 
 const WEB_URL = "https://contoso.sharepoint.com/sites/docs";
 
@@ -65,7 +66,12 @@ const withImageServer = async (fn) => {
   let requests = 0;
   const server = createServer((req, res) => {
     requests++;
-    if (req.url === "/pixel.png") {
+    if (req.url === "/sites/docs/SiteAssets/logo.png") {
+      // The tenant's own image, which needs doctor's token to be read
+      const authorized = req.headers.authorization === "Bearer test-token";
+      res.writeHead(authorized ? 200 : 401, { "content-type": "image/png" });
+      res.end(authorized ? PNG : "");
+    } else if (req.url === "/pixel.png") {
       res.writeHead(200, { "content-type": "image/png" });
       res.end(PNG);
     } else if (req.url === "/page") {
@@ -152,21 +158,40 @@ test("renderHeader inlines the banner image, and leaves it out when asked", asyn
   });
 });
 
-test("inlineImages inlines local images and keeps the tenant's own", async () => {
+test("inlineImages inlines local images", async () => {
   await withContent(async (dir) => {
     const html = await HtmlPageHelper.inlineImages(
       [
         `<img src="./images/pixel.png" alt="one">`,
         `<img src="images/pixel.png?v=2" alt="two">`,
-        `<img src="${WEB_URL}/SiteAssets/logo.png" alt="tenant">`,
       ].join(""),
       join(dir, "docs", "page.md"),
       WEB_URL,
     );
 
     assert.equal((html.match(/src="data:image\/png;base64,/g) ?? []).length, 2);
-    assert.match(html, /src="https:\/\/contoso\.sharepoint\.com\/sites\/docs\/SiteAssets\/logo\.png"/);
     assert.deepEqual(HtmlPageHelper.getSandboxIssues(html, WEB_URL), []);
+  });
+});
+
+test("inlineImages reads the tenant's own images with doctor's access token", async () => {
+  await withImageServer(async (base) => {
+    const webUrl = `${base}/sites/docs`;
+    AccessToken.reset();
+    // Seeded, as fetching one runs the CLI
+    AccessToken["cache"][base] = { token: "test-token", until: Date.now() + 60000 };
+    try {
+      const html = await htmlRun({}, () =>
+        HtmlPageHelper.inlineImages(
+          `<img src="${webUrl}/SiteAssets/logo.png" alt="tenant">`,
+          "page.md",
+          webUrl,
+        ),
+      );
+      assert.match(html, /src="data:image\/png;base64,/);
+    } finally {
+      AccessToken.reset();
+    }
   });
 });
 
@@ -215,6 +240,7 @@ test("getSandboxIssues reports what the HTML page sandbox blocks", () => {
       `<iframe src="https://example.com"></iframe>`,
       `<img src="./relative.png">`,
       `<img src="https://example.com/remote.png">`,
+      `<img src="${WEB_URL}/SiteAssets/logo.png">`,
       `<form action="/submit"></form>`,
     ].join(""),
     WEB_URL,
@@ -228,9 +254,44 @@ test("getSandboxIssues reports what the HTML page sandbox blocks", () => {
       `<iframe>`,
       `<img src="./relative.png">`,
       `<img src="https://example.com/remote.png">`,
+      `<img src="${WEB_URL}/SiteAssets/logo.png">`,
       `<form>`,
     ],
+    "an image on the tenant counts too, when it could not be inlined",
   );
+});
+
+test("links the viewer will not open are reported", () => {
+  const issues = HtmlPageHelper.getSandboxIssues(
+    [
+      `<a href="#install">anchor</a>`,
+      `<a href="./other.html">relative</a>`,
+      `<a href="${WEB_URL}/sitepages/other.html">same site</a>`,
+      `<a href="https://contoso.sharepoint.com/sites/hr">same tenant</a>`,
+      `<a href="https://contoso-my.sharepoint.com/personal/me">OneDrive</a>`,
+      `<a href="https://1drv.ms/x">allowlisted</a>`,
+      `<a href="https://getdoctor.io">other site</a>`,
+      `<a href="https://fabrikam.sharepoint.com/sites/x">other tenant</a>`,
+      `<a href="javascript:alert(1)">script</a>`,
+    ].join(""),
+    WEB_URL,
+  );
+
+  assert.deepEqual(
+    issues.map((issue) => [issue.element, issue.kind]),
+    [
+      ["https://getdoctor.io", "link"],
+      ["https://fabrikam.sharepoint.com/sites/x", "link"],
+      ["javascript:alert(1)", "link"],
+    ],
+  );
+});
+
+test("the uploaded page starts with a byte order mark, once", () => {
+  const contents = HtmlPageHelper.toFileContents("<!DOCTYPE html><p>Café</p>");
+  assert.equal(contents.charCodeAt(0), 0xfeff);
+  assert.deepEqual([...Buffer.from(contents, "utf8").subarray(0, 3)], [0xef, 0xbb, 0xbf]);
+  assert.equal(HtmlPageHelper.toFileContents(contents), contents);
 });
 
 test("render produces a complete, self-contained page", async () => {

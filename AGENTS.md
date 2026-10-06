@@ -144,9 +144,15 @@ mechanism off. Anything that changes what a page renders from must feed the hash
   SharePoint renders as an HTML page. [HtmlPageHelper](src/helpers/HtmlPageHelper.ts) renders it (same
   `MarkdownHelper.getHtmlData` pipeline, wrapped in a template + [styles/htmlPage.ts](src/styles/htmlPage.ts)),
   uploads it with `spo file add`, and publishes it by file level (checked out / draft / published).
-  SharePoint shows it in a sandboxed `srcdoc` iframe: no external CSS/JS, no `fetch`, images only as
-  `data:` URIs or from the tenant's own host — so local and remote images are **inlined**, Mermaid is
-  inline SVG, and nothing goes to the asset library. The mode decides the slug extension
+  SharePoint shows it in an `<iframe sandbox="allow-scripts">` under the CSP it documents at
+  `https://<tenant>.sharepoint.com/_html` (machine-readable: the `llms.txt` linked there) — the contract
+  to check against. No external CSS/JS, no `fetch`, images only as `data:`/`blob:` — so **every** image
+  is inlined (the tenant's own with doctor's access token), Mermaid is inline SVG drawn with doctor's
+  newer Mermaid, and nothing goes to the asset library. Diagrams doctor cannot draw (browser-only types)
+  stay as `pre.mermaid` source: the `/_html` contract offers curated libraries through a
+  `ka-lib-manifest`, but the Site Pages viewer passes the manifest through without injecting anything
+  (checked in the rendered blob, Oct 2026). Pages are uploaded as UTF-8 with a BOM (contract rule). Links open only to the
+  tenant's SharePoint and a small allowlist; the rest are reported per page. The mode decides the slug extension
   (`FrontMatterHelper.getPageExtension()`); `pageMode`/`html.*` only enter the config hash in `html` mode,
   so upgrading does not republish existing modern-page sites. Web part shortcodes and multilingual are
   refused in `html` mode.

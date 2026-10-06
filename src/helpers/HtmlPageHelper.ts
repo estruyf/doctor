@@ -19,6 +19,8 @@ import { TempDataHelper } from "./TempDataHelper.js";
 export interface SandboxIssue {
   element: string;
   reason: string;
+  /** `link`: a link the viewer will not open, reported per page rather than one by one */
+  kind?: "link";
 }
 
 /**
@@ -68,17 +70,24 @@ const ESCAPED_VALUES: (keyof HtmlTemplateValues)[] = [
 /** Long enough for a large picture on a slow link, short enough not to hang a run */
 const REMOTE_IMAGE_TIMEOUT = 30000;
 
+/** The hosts the HTML viewer opens a link to, besides the tenant's own SharePoint */
+const LINK_ALLOWLIST = ["microsoft.ghe.com", "onedrive.cloud.microsoft", "1drv.ms"];
+
+/** The byte order mark the viewer's contract asks a page to start with */
+const BOM = "\uFEFF";
+
 /**
  * Builds and publishes the self-contained HTML documents SharePoint renders as
  * HTML pages (roadmap 569208).
  *
- * SharePoint shows such a page in a sandboxed `srcdoc` iframe: inline
- * `<style>`, `<script>` and `<svg>` work, but nothing is fetched from
- * elsewhere — no stylesheet or script from a URL, no `fetch`, and images only
- * as `data:` URIs or from the tenant's own SharePoint host (it carries the
- * reader's session; any other host is blocked). So a page has to carry what it
- * needs inside the one file: local images and pictures from other hosts are
- * inlined, rather than uploaded to the asset library as the web part pages do.
+ * SharePoint shows such a page in an `<iframe sandbox="allow-scripts">` under
+ * a strict Content Security Policy, which it documents at `/_html` on every
+ * tenant: inline `<style>`, `<script>` and `<svg>` work, but nothing is
+ * fetched from elsewhere — no stylesheet or script from a URL, no `fetch`, and
+ * images only as `data:` or `blob:` URIs. So a page has to carry what it needs
+ * inside the one file: every image is inlined, rather than uploaded to the
+ * asset library as the web part pages do. Links only open to the tenant's own
+ * SharePoint and a short Microsoft allowlist.
  */
 export class HtmlPageHelper {
   private static templates: { [path: string]: string } = {};
@@ -130,13 +139,35 @@ export class HtmlPageHelper {
 
     // A custom shortcode, a partial or a template can still bring in what the
     // sandbox blocks. Said now, as the page would otherwise just miss it.
-    for (const issue of HtmlPageHelper.getSandboxIssues(document, options.webUrl)) {
+    const issues = HtmlPageHelper.getSandboxIssues(document, options.webUrl);
+    for (const issue of issues.filter((issue) => issue.kind !== "link")) {
       OutputHelper.warning(
         `"${data.title}": ${issue.element} — ${issue.reason}.`,
       );
     }
 
+    // A documentation page can link out a lot, so the links are summed up
+    // instead of each getting a warning of its own
+    const links = issues.filter((issue) => issue.kind === "link");
+    if (links.length > 0) {
+      const targets = [...new Set(links.map((issue) => issue.element))];
+      const examples = targets.slice(0, 3).join(", ");
+      OutputHelper.warning(
+        `"${data.title}": ${links.length} link${links.length === 1 ? "" : "s"} the HTML page viewer will not open (${examples}${targets.length > 3 ? ", …" : ""}). It only opens links to this tenant's SharePoint.`,
+      );
+    }
+
     return document;
+  }
+
+  /**
+   * The contents of the file that gets uploaded: the page as UTF-8 with a byte
+   * order mark. The viewer's contract asks for one, and SharePoint's own upload
+   * API adds it; uploading through the CLI keeps the bytes as they are, so
+   * without it a page's accents and emoji could be read in the wrong encoding.
+   */
+  public static toFileContents(document: string): string {
+    return document.startsWith(BOM) ? document : `${BOM}${document}`;
   }
 
   /**
@@ -212,10 +243,10 @@ export class HtmlPageHelper {
   }
 
   /**
-   * Replace every image the sandbox would block with a `data:` URI of its
-   * contents: local files, and pictures on other hosts. Images on the
-   * tenant's own SharePoint host load as they are, so they are kept as links —
-   * inlining them would need the reader's permissions at publish time.
+   * Replace every image with a `data:` URI of its contents: local files,
+   * pictures on other hosts, and those on the tenant's own SharePoint, which
+   * are read with doctor's own access to the site. An image that cannot be
+   * read stays a link, and is reported.
    * @param html the rendered page
    * @param file the markdown file the page comes from, which relative image
    * paths are resolved against
@@ -279,20 +310,23 @@ export class HtmlPageHelper {
 
     $("img[src]").each((_, elm) => {
       const src = $(elm).attr("src")!;
-      if (
-        src.startsWith("data:") ||
-        src.startsWith("blob:") ||
-        HtmlPageHelper.isTenantUrl(src, webUrl)
-      ) {
+      if (src.startsWith("data:") || src.startsWith("blob:")) {
         return;
       }
 
       issues.push({
         element: `<img src="${src}">`,
         reason: HtmlPageHelper.isRemote(src)
-          ? "images from other hosts are blocked, and doctor could not inline it"
+          ? "images are only shown when they are inside the page, and doctor could not read this one to put it there"
           : "relative images cannot load; doctor could not inline it",
       });
+    });
+
+    $("a[href]").each((_, elm) => {
+      const href = $(elm).attr("href")!.trim();
+      if (!HtmlPageHelper.opensInViewer(href, webUrl)) {
+        issues.push({ element: href, reason: "the viewer does not open it", kind: "link" });
+      }
     });
 
     $("form").each(() => {
@@ -303,6 +337,43 @@ export class HtmlPageHelper {
     });
 
     return issues;
+  }
+
+  /**
+   * Whether the viewer follows a link. It rejects script and `data:` links,
+   * and opens a web address only on the tenant's own SharePoint (the sites and
+   * OneDrive) or one of a few Microsoft hosts. Links within the page, and
+   * relative ones, are its own business.
+   * @param href the link
+   * @param webUrl the site, whose tenant the links may go to; without it no
+   * web address can be judged
+   */
+  public static opensInViewer(href: string, webUrl: string | null): boolean {
+    if (/^(javascript|vbscript|data):/i.test(href)) {
+      return false;
+    }
+    if (!HtmlPageHelper.isRemote(href) || !webUrl) {
+      return true;
+    }
+
+    let host: string;
+    let site: string;
+    try {
+      host = new URL(href.startsWith("//") ? `https:${href}` : href).hostname.toLowerCase();
+      site = new URL(webUrl).hostname.toLowerCase();
+    } catch {
+      return true;
+    }
+
+    // contoso.sharepoint.com also covers contoso-my.sharepoint.com, the
+    // tenant's OneDrive, and works the same on the other clouds' domains
+    const [tenant, ...domain] = site.split(".");
+    const rest = domain.join(".");
+    return (
+      host === site ||
+      host === `${tenant}-my.${rest}` ||
+      LINK_ALLOWLIST.includes(host)
+    );
   }
 
   /**
@@ -317,7 +388,10 @@ export class HtmlPageHelper {
     const fileName = folders.pop()!;
     const folder = await FolderHelpers.create("sitepages", folders, webUrl);
 
-    const path = await TempDataHelper.createFile(fileName, document);
+    const path = await TempDataHelper.createFile(
+      fileName,
+      HtmlPageHelper.toFileContents(document),
+    );
 
     Logger.debug(`Uploading the HTML page ${slug} to ${folder}`);
     await executeWithRetry(
@@ -399,16 +473,16 @@ export class HtmlPageHelper {
     file: string,
     webUrl: string | null,
   ): Promise<string> {
-    if (
-      src.startsWith("data:") ||
-      src.startsWith("blob:") ||
-      HtmlPageHelper.isTenantUrl(src, webUrl)
-    ) {
+    if (src.startsWith("data:") || src.startsWith("blob:")) {
       return src;
     }
 
     if (HtmlPageHelper.isRemote(src)) {
-      return (await HtmlPageHelper.fetchImage(src)) ?? src;
+      // The tenant's own images need doctor's access to the site to be read
+      const headers = HtmlPageHelper.isTenantUrl(src, webUrl)
+        ? await HtmlPageHelper.getHeaders(webUrl!).catch(() => undefined)
+        : undefined;
+      return (await HtmlPageHelper.fetchImage(src, headers)) ?? src;
     }
 
     const path = join(dirname(file), decodeURI(src.split(/[?#]/)[0]));
@@ -430,11 +504,15 @@ export class HtmlPageHelper {
   }
 
   /**
-   * Download a picture from another host, as the page cannot load it from
-   * there. A failure is not fatal: the page is published with the link, and
-   * the sandbox check reports it.
+   * Download a picture, as the page cannot load it from where it lives. The
+   * tenant's own images are read with doctor's access token. A failure is not
+   * fatal: the page is published with the link, and the sandbox check reports
+   * it.
    */
-  private static async fetchImage(src: string): Promise<string | null> {
+  private static async fetchImage(
+    src: string,
+    headers?: { [name: string]: string },
+  ): Promise<string | null> {
     const url = src.startsWith("//") ? `https:${src}` : src;
     if (url in HtmlPageHelper.remoteImages) {
       return HtmlPageHelper.remoteImages[url];
@@ -443,6 +521,7 @@ export class HtmlPageHelper {
     let inlined: string | null = null;
     try {
       const response = await fetch(url, {
+        headers,
         signal: AbortSignal.timeout(REMOTE_IMAGE_TIMEOUT),
       });
       const type = (response.headers.get("content-type") || "")

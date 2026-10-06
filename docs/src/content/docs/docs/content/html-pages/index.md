@@ -14,6 +14,8 @@ The `html` page mode is in beta. Try it out, and share what you run into through
   offers an HTML page.
 - [Moving between HTML pages in the site navigation](#known-issue-moving-between-html-pages-in-the-site-navigation)
   does not load the next page until the browser is reloaded. This is a SharePoint bug.
+- [Links to other websites](#links-to-other-websites) do not open; SharePoint only opens links to your
+  own tenant.
 - [Multilingual sites and web part shortcodes](#not-supported-yet) are not supported.
 - The default design, and the `html` settings, can still change between `Doctor` releases.
 :::
@@ -53,19 +55,29 @@ either mode:
 ## Everything inside one file
 
 SharePoint shows an HTML page in a sandbox. Inline styles, scripts and SVG work, but the page cannot load
-anything from elsewhere: no stylesheets or scripts from a URL, no `fetch` calls, and no images from
-other sites. `Doctor` therefore puts everything a page needs inside the page itself:
+anything from elsewhere: no stylesheets or scripts from a URL, no `fetch` calls, and images only when
+they are inside the page. SharePoint documents these rules on your tenant at
+`https://<tenant>.sharepoint.com/_html`. `Doctor` therefore puts everything a page needs inside the page
+itself:
 
 | Content | In an HTML page |
 | --- | --- |
 | Images in your sources | Embedded in the page. Nothing is uploaded to the asset library. |
 | Images from other sites | Downloaded while publishing and embedded. If the download fails, the image stays a link, and `Doctor` warns that it will not show. |
-| Images on your own SharePoint site | Kept as links. The sandbox allows them, and they need the reader's permissions anyway. |
-| Mermaid diagrams | Drawn while publishing and placed in the page as SVG. |
+| Images on your own SharePoint | Read with the access `Doctor` publishes with, and embedded. |
+| Mermaid diagrams | Drawn while publishing, with the Mermaid version `Doctor` ships, and placed in the page as SVG. Diagram types that need a browser to draw, like `C4Context` and `block-beta`, cannot be drawn this way, and stay on the page as their source; `Doctor` warns about them. |
 | Styles | One stylesheet in the page. |
 
 When a page still contains something the sandbox blocks, `Doctor` warns about it during the publish. That
 can come from a custom shortcode, a partial or a custom template, for example an external `<script src>`.
+
+### Links to other websites
+
+SharePoint only opens a link in an HTML page when it goes to your own tenant's SharePoint (its sites and
+OneDrive) or one of a few Microsoft addresses. A link to any other website, such as GitHub or your
+company's public site, does nothing when it is clicked. `Doctor` lists those links for every page during
+the publish, so you can decide how to deal with them; links to your other pages and anchors within a
+page work.
 
 Embedded images make a page bigger: a page is about as large as its images together. Keep large
 screenshots compressed.
