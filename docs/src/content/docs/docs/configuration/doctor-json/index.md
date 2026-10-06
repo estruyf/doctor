@@ -81,6 +81,7 @@ Point `$schema` at the schema of the version you run to get autocompletion and t
 | `library` | `Shared Documents` | [Site and content](#library) |
 | `webPartTitle` | `doctor-placeholder` | [Site and content](#webparttitle) |
 | `auth`, `appId`, `tenant`, `certificate`, `password` | — | [Authentication](#authentication) |
+| `pageMode`, `html` | `webpart`, — | [Pages](#pagemode) |
 | `pageTemplate`, `reapplyTemplates` | none, `false` | [Pages](#pagetemplate) |
 | `skipExistingPages` | `false` | [Pages](#skipexistingpages) |
 | `overwriteImages` | `false` | [Pages](#overwriteimages) |
@@ -160,6 +161,40 @@ A web part added on the SharePoint side with the same title is left alone once `
 :::
 
 ## Pages
+
+### `pageMode`
+
+`string` · default `webpart` · flag `--pageMode`
+
+How the pages are published:
+
+- `webpart`: modern pages, with the content in Markdown web parts.
+- `html` (**beta**): self-contained HTML pages, which SharePoint renders as pages of their own. Check
+  [HTML pages](../../content/html-pages/) for what that changes, and for its current limits.
+
+An unknown value stops the run instead of falling back, so a typo cannot publish a whole site in the
+wrong mode. Changing the mode publishes every page again.
+
+### `html`
+
+`object` · only used with `pageMode: html`
+
+```json
+{
+  "pageMode": "html",
+  "html": {
+    "template": "./theme/layout.html",
+    "styles": "./theme/brand.css"
+  }
+}
+```
+
+- **template**: an HTML file to lay the pages out with, instead of the default design. Check
+  [your own layout](../../content/html-pages/#your-own-layout) for the placeholders it is filled with.
+- **styles**: a CSS file added after the default styles. Check
+  [your own styles](../../content/html-pages/#your-own-styles).
+
+Both paths are relative to the `doctor.json` file. A change to either file publishes every page again.
 
 ### `pageTemplate`
 

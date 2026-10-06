@@ -61,6 +61,7 @@ export default defineConfig({
           items: [
             { label: "Overview", link: "/docs/content/" },
             { label: "Pages", link: "/docs/content/pages/" },
+            { label: "HTML pages", link: "/docs/content/html-pages/", badge: { text: "Beta", variant: "caution" } },
             { label: "Navigation", link: "/docs/content/navigation/" },
             { label: "Markdown syntax", link: "/docs/content/markdown-syntax/" },
             {

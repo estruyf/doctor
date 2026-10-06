@@ -3,6 +3,7 @@ import {
   Menu,
   MultilingualSettings,
   OutputFormat,
+  PageMode,
   PartialsSettings,
   SiteDesign,
   WorkflowProvider,
@@ -64,6 +65,11 @@ export interface PublishOptions {
    * to the ones doctor creates.
    */
   reapplyTemplates: boolean;
+  /**
+   * Publish modern pages with Markdown web parts (`webpart`), or
+   * self-contained HTML pages (`html`).
+   */
+  pageMode: PageMode;
 }
 
 export interface ContentOptions {
@@ -72,6 +78,10 @@ export interface ContentOptions {
   shortcodesFolder?: string;
   tocLevels: number[];
   disableComments: boolean;
+  /** `html.template`: the layout of an HTML page */
+  htmlTemplate?: string | null;
+  /** `html.styles`: CSS added to every HTML page */
+  htmlStyles?: string | null;
 }
 
 export interface NavigationOptions {

@@ -24,7 +24,7 @@ import {
   PublishOutput,
   PublishResult,
 } from "@models";
-import { existsAsync, relativePath } from "@utils";
+import { existsAsync, isPermissionError, relativePath } from "@utils";
 
 export class Publish {
   /**
@@ -52,6 +52,25 @@ export class Publish {
         new Error(
           `In order to run the publish command, you need to specify the '--url' property.`
         )
+      );
+    }
+
+    // A translation is a page SharePoint creates from a modern page, which an
+    // HTML page is not. Refused before anything is written, rather than half
+    // way through a run.
+    if (options.pageMode === "html" && options.multilingual?.enableTranslations) {
+      return Promise.reject(
+        new Error(
+          `The "html" page mode does not support multilingual sites yet. Turn off "multilingual.enableTranslations", or publish with the "webpart" page mode.`
+        )
+      );
+    }
+
+    // Said on every run rather than once, as the run is where someone decides
+    // whether what was published can go to a production site
+    if (options.pageMode === "html") {
+      OutputHelper.warning(
+        `The "html" page mode is in beta. Moving between HTML pages in the SharePoint site navigation does not load the next page yet (a SharePoint bug), and the design and settings can still change. Read about its limits at https://getdoctor.io/docs/content/html-pages/.`
       );
     }
 
@@ -235,6 +254,34 @@ export class Publish {
             options.confirm &&
             !options.skipPages &&
             !options.disableStatePersistence,
+          rendererOptions: { persistentOutput: true },
+        },
+        {
+          title: `Set the site homepage`,
+          task: async (_, task) => {
+            const homepage = PagesHelper.getHomepage();
+            if (!homepage) {
+              task.skip(`No page is marked as the homepage`);
+              return;
+            }
+
+            try {
+              const changed = await PagesHelper.setHomepage(webUrl, homepage);
+              task.output = changed
+                ? `${homepage} is the homepage now`
+                : `${homepage} already is the homepage`;
+            } catch (e: any) {
+              // Like the navigation: the pages are published by now, and the
+              // homepage needs rights on the web that editing pages does not
+              if (!isPermissionError(e)) {
+                throw e;
+              }
+              OutputHelper.warning(
+                `This account is not allowed to change the homepage of ${webUrl}, so "${homepage}" did not become the homepage. The pages themselves were published. Granting it Manage Web rights on the site fixes this.`
+              );
+            }
+          },
+          enabled: () => !options.skipPages,
           rendererOptions: { persistentOutput: true },
         },
         {

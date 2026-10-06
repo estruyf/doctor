@@ -6,7 +6,8 @@ Humans are welcome to read it too — it is the fastest description of how this 
 ## What this is
 
 `doctor` (`@estruyf/doctor`) is a CLI that publishes a folder of Markdown files as SharePoint pages —
-a static site generator that outputs SharePoint pages instead of HTML files. It talks to SharePoint
+a static site generator that outputs SharePoint pages (modern pages, or SharePoint HTML pages with
+`pageMode: html`) instead of plain HTML files. It talks to SharePoint
 through the [CLI for Microsoft 365](https://pnp.github.io/cli-microsoft365/) (`@pnp/cli-microsoft365`),
 with a few direct REST calls where that CLI has no command.
 
@@ -137,9 +138,35 @@ mechanism off. Anything that changes what a page renders from must feed the hash
   a web part added *in that section* on the SharePoint side is removed; every other section is never
   touched. Everything that can fail on the content alone (`PagesHelper.prepareSegments`) runs before the
   page is created or checked out.
+- **Two page modes** (`pageMode`): `webpart` (default) is everything above — a modern `.aspx` page with
+  Markdown web parts. `html` (**beta** — `Publish.start` warns on every run, and the docs page, its sidebar
+  badge, the option docs, schema and changelog say so; drop all of those together when it graduates) publishes each file as a self-contained `.html` file in Site Pages, which
+  SharePoint renders as an HTML page. [HtmlPageHelper](src/helpers/HtmlPageHelper.ts) renders it (same
+  `MarkdownHelper.getHtmlData` pipeline, wrapped in a template + [styles/htmlPage.ts](src/styles/htmlPage.ts)),
+  uploads it with `spo file add`, and publishes it by file level (checked out / draft / published).
+  SharePoint shows it in an `<iframe sandbox="allow-scripts">` under the CSP it documents at
+  `https://<tenant>.sharepoint.com/_html` (machine-readable: the `llms.txt` linked there) — the contract
+  to check against. No external CSS/JS, no `fetch`, images only as `data:`/`blob:` — so **every** image
+  is inlined (the tenant's own with doctor's access token), Mermaid is inline SVG drawn with doctor's
+  newer Mermaid, and nothing goes to the asset library. Diagrams doctor cannot draw (browser-only types)
+  stay as `pre.mermaid` source: the `/_html` contract offers curated libraries through a
+  `ka-lib-manifest`, but the Site Pages viewer passes the manifest through without injecting anything
+  (checked in the rendered blob, Oct 2026). Pages are uploaded as UTF-8 with a BOM (contract rule). Links open only to the
+  tenant's SharePoint and a small allowlist; the rest are reported per page. The mode decides the slug extension
+  (`FrontMatterHelper.getPageExtension()`); `pageMode`/`html.*` only enter the config hash in `html` mode,
+  so upgrading does not republish existing modern-page sites. Web part shortcodes and multilingual are
+  refused in `html` mode.
+  Known SharePoint preview bug: the site navigation (client-side routing) changes the address between
+  two HTML pages but the HTML viewer keeps the old page on screen. Menu items still link the pages
+  directly — routing them through a `_layouts/15/Authenticate.aspx?Source=` redirect works but was
+  rejected as not clean, so don't add it back; query strings, `target` and casing do not help (tested).
+- The `homepage: true` front matter is recorded in `DoctorTranspiler.addToSite` (every page that exists
+  after the run passes there, published or unchanged) and applied by its own publish step with
+  `spo web set --welcomePage`, in both page modes.
 - [MetadataHelper](src/helpers/MetadataHelper.ts) turns front matter values into the shapes
   `ValidateUpdateListItem` accepts per column type (taxonomy, person claims, DateTime, Lookup, URL,
   MultiChoice). Pure — anything needing a question answered by SharePoint stays in `PagesHelper`.
+  It works for HTML pages too: they are Site Page list items, looked up by file instead of `spo page get`.
 - [TermsHelper](src/helpers/TermsHelper.ts) resolves a managed metadata label to its term through the site
   term store (`_api/v2.1/termStore`), honouring a column's anchor term, synonyms and `Parent > Child` paths.
   A term it cannot resolve, or that matches more than one, fails the page rather than leaving the column

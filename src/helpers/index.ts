@@ -11,6 +11,7 @@ export * from './FileHelpers.js';
 export * from './FolderHelpers.js';
 export * from './FrontMatterHelper.js';
 export * from './HeaderHelper.js';
+export * from './HtmlPageHelper.js';
 export * from './ListHelpers.js';
 export * from './LocaleHelper.js';
 export * from './MarkdownHelper.js';

@@ -17,6 +17,7 @@ export class PrecheckHelper {
   ): Promise<void> {
     const files = ctx.files || [];
     const slugMap = new Map<string, string>();
+    const homepages: string[] = [];
     const issues: string[] = [];
 
     for (let i = 0; i < files.length; i++) {
@@ -60,6 +61,10 @@ export class PrecheckHelper {
         filePath,
       ).toLowerCase();
 
+      if (data.homepage === true) {
+        homepages.push(filePath);
+      }
+
       const existing = slugMap.get(resolvedSlug);
       if (existing && existing !== filePath) {
         issues.push(
@@ -85,6 +90,14 @@ export class PrecheckHelper {
           }
         }
       }
+    }
+
+    // A site has one homepage. With two candidates the last page processed
+    // would win, which is an order nobody chose.
+    if (homepages.length > 1) {
+      issues.push(
+        `More than one page is marked as the homepage:\n${homepages.map((file) => ` - ${file}`).join("\n")}`,
+      );
     }
 
     if (issues.length > 0) {

@@ -7,6 +7,7 @@ import fg from "fast-glob";
 import { CommandArguments, PageFrontMatter } from "@models";
 import { existsAsync, readFileAsync, splitLinkTarget } from "@utils";
 import { FrontMatterHelper } from "./FrontMatterHelper.js";
+import { HtmlPageHelper } from "./HtmlPageHelper.js";
 import { Logger } from "./Logger.js";
 import { PartialsHelper } from "./PartialsHelper.js";
 import { StateHelper } from "./StateHelper.js";
@@ -106,6 +107,16 @@ export class DependencyHelper {
     }
   }
 
+  /** The banner image of a page when it is on another host, if any */
+  private static getRemoteHeaderImage(raw: string): string | null {
+    try {
+      const image = (matter(raw).data as PageFrontMatter)?.header?.image;
+      return typeof image === "string" && HtmlPageHelper.isRemote(image) ? image : null;
+    } catch {
+      return null;
+    }
+  }
+
   /**
    * The images a page uses, and the slugs of the pages it links to. A link's
    * slug is part of this because renaming a page changes the URL every page
@@ -128,6 +139,28 @@ export class DependencyHelper {
     if (header) {
       const path = join(dirname(file), header);
       parts.push(`header:${header}:${await DependencyHelper.hashFile(path)}`);
+    }
+
+    // An HTML page carries its images inside it, so one that changes at the
+    // same address has to move the hash too. A modern page links them, and
+    // the browser always loads the current one.
+    if (options.pageMode === "html") {
+      const remote = [
+        ...new Set(
+          [
+            ...$("img").toArray().map((img) => $(img).attr("src")),
+            DependencyHelper.getRemoteHeaderImage(raw),
+          ].filter(
+            (src): src is string => !!src && HtmlPageHelper.isRemote(src),
+          ),
+        ),
+      ].sort();
+
+      for (const src of remote) {
+        parts.push(
+          `remote:${src}:${await HtmlPageHelper.getImageVersion(src, options.webUrl)}`,
+        );
+      }
     }
 
     const images = [
@@ -245,7 +278,7 @@ export class DependencyHelper {
       return DependencyHelper.config;
     }
 
-    const settings = {
+    const settings: { [key: string]: any } = {
       webPartTitle: options.webPartTitle ?? null,
       assetLibrary: options.assetLibrary ?? null,
       markdown: options.markdown ?? null,
@@ -260,7 +293,25 @@ export class DependencyHelper {
       },
     };
 
+    // Only written for HTML pages: adding the keys to every run would have
+    // changed the hash of every site that already publishes modern pages, and
+    // republished all of them on the first run after an upgrade
+    if (options.pageMode === "html") {
+      settings["pageMode"] = options.pageMode;
+      settings["html"] = {
+        template: options.htmlTemplate ?? null,
+        styles: options.htmlStyles ?? null,
+      };
+    }
+
     const parts = [JSON.stringify(settings)];
+
+    // The layout and the styles decide what every HTML page looks like
+    for (const file of [options.htmlTemplate, options.htmlStyles]) {
+      if (options.pageMode === "html" && file) {
+        parts.push(`html:${file}:${await DependencyHelper.hashFile(file)}`);
+      }
+    }
 
     // A custom shortcode decides what its pages render, so its code counts
     const folder = options.shortcodesFolder || "./shortcodes";

@@ -85,10 +85,7 @@ export class MarkdownHelper {
     options: CommandArguments,
     includeStyles: boolean = true
   ) {
-    const mdOptions = CliCommand.options?.markdown;
-    const theme =
-      mdOptions && mdOptions.theme ? mdOptions.theme.toLowerCase() : "dark";
-    const useExtended = mdOptions?.extended !== false;
+    const useExtended = CliCommand.options?.markdown?.extended !== false;
 
     const converter = new MarkdownIt({
       html: true,
@@ -127,7 +124,6 @@ export class MarkdownHelper {
         .use(markdownItTaskLists, { label: true });
     }
 
-    const cleanCss = new CleanCSS({});
     // The blank lines around the markdown are required. Without them markdown-it
     // treats the opening `div` and the first block of the content as a single
     // HTML block, which leaves that first block unparsed.
@@ -160,15 +156,28 @@ ${markdown}
       return htmlMarkup;
     }
 
+    return `${htmlMarkup}<style>${this.getStyles()}</style>`;
+  }
+
+  /**
+   * The stylesheet doctor's rendered markdown relies on: code highlighting in
+   * the configured theme, the shortcodes, and the extended syntax when it is on.
+   * Kept apart from the markup so a full HTML page can put it in its `<head>`.
+   */
+  public static getStyles(): string {
+    const mdOptions = CliCommand.options?.markdown;
+    const theme =
+      mdOptions && mdOptions.theme ? mdOptions.theme.toLowerCase() : "dark";
+    const useExtended = mdOptions?.extended !== false;
+
+    const cleanCss = new CleanCSS({});
     const editorCss = theme === "light" ? hljsLightCss : hljsDarkCss;
     const additionalCss = useExtended
       ? ` ${cleanCss.minify(extendedCss).styles}`
       : ``;
-    htmlMarkup = `${htmlMarkup}<style>${
-      cleanCss.minify(editorCss).styles
-    } ${cleanCss.minify(shortcodesCss).styles}${additionalCss}</style>`;
-
-    return htmlMarkup;
+    return `${cleanCss.minify(editorCss).styles} ${
+      cleanCss.minify(shortcodesCss).styles
+    }${additionalCss}`;
   }
 
   /**
