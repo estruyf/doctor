@@ -9,6 +9,7 @@ import {
   CliCommand,
   FileHelpers,
   FolderHelpers,
+  HtmlPageHelper,
   ListHelpers,
   Logger,
   MermaidHelper,
@@ -56,7 +57,11 @@ export class Commands {
           OutputHelper.warning(
             `You specified to allow custom HTML usage in Doctor. Be aware that once you modify the page on SharePoint itself, the HTML will be overwritten. Best is to maintain content from the Doctor sources.`
           );
+        }
 
+        // An HTML page is HTML through and through, so its shortcodes do not
+        // wait for `allowHtml`
+        if (options.markdown?.allowHtml || options.pageMode === "html") {
           await ShortcodesHelpers.init(options.shortcodesFolder);
         }
 
@@ -118,5 +123,6 @@ export class Commands {
     AccessToken.reset();
     ListHelpers.reset();
     FolderHelpers.reset();
+    HtmlPageHelper.reset();
   }
 }

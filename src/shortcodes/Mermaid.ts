@@ -1,9 +1,17 @@
 import { ShortcodeRender } from "@models";
+import { CliCommand } from "../helpers/CliCommand.js";
 import { MermaidHelper } from "../helpers/MermaidHelper.js";
 
 export const MermaidRenderer: ShortcodeRender = {
   render: async (attrs: any, markup: string) => {
     const diagram = await MermaidHelper.render(markup);
+
+    // An HTML page is its own document, which keeps the `<style>` and the
+    // root `<svg>`, so the diagram goes in inline: crisp at any zoom, and its
+    // labels can be selected and searched.
+    if (diagram && CliCommand.options?.pageMode === "html") {
+      return `<div class="doctor__mermaid">${diagram.svg}</div>`;
+    }
 
     if (diagram) {
       // The SVG is loaded as its own document. SharePoint strips `<style>`

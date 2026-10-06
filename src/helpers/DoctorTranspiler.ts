@@ -17,6 +17,7 @@ import { FileHelpers } from "./FileHelpers.js";
 import { FolderHelpers } from "./FolderHelpers.js";
 import { FrontMatterHelper } from "./FrontMatterHelper.js";
 import { HeaderHelper } from "./HeaderHelper.js";
+import { HtmlPageHelper } from "./HtmlPageHelper.js";
 import { Logger } from "./Logger.js";
 import { MultilingualHelper } from "./MultilingualHelper.js";
 import { NavigationHelper } from "./NavigationHelper.js";
@@ -464,26 +465,41 @@ export class DoctorTranspiler {
       Logger.debug(`Not adding ${slug} to the navigation, it does not exist yet.`);
       return;
     }
-    this.addToNavigation(webUrl, output, data, slug, title);
+    this.addToSite(webUrl, output, data, slug, title);
   }
 
   /**
-   * Merges the page its menu definition into the navigation structure that gets
-   * applied after all pages have been processed. Draft pages are ignored, as
-   * they cannot be added to the site navigation.
+   * Gives a page that is on the site after this run its place in the site: in
+   * the navigation structure, and as the homepage when its front matter says
+   * so. Both are applied after all pages have been processed. Every page that
+   * exists passes here, published in this run or skipped as unchanged, so a
+   * homepage that did not change is still kept the homepage.
+   *
+   * Draft pages are ignored, as readers cannot open them: SharePoint refuses a
+   * draft in the navigation, and a draft homepage greets visitors with an error.
    * @param webUrl
    * @param output
    * @param data The front matter of the page
    * @param slug
    * @param title
    */
-  private static addToNavigation(
+  private static addToSite(
     webUrl: string,
     output: PublishOutput,
     data: PageFrontMatter | undefined,
     slug: string,
     title: string,
   ) {
+    if (data?.homepage === true) {
+      if (data.draft) {
+        OutputHelper.warning(
+          `"${title}" is marked as the homepage but is a draft, so the site's homepage was left as it is. It becomes the homepage once it is published.`,
+        );
+      } else {
+        PagesHelper.markHomepage(slug);
+      }
+    }
+
     if (!output.navigation || !data || !data.menu || data.draft) {
       return;
     }
@@ -625,6 +641,8 @@ export class DoctorTranspiler {
           }
         }
 
+        const isHtmlPage = options.pageMode === "html";
+
         // Check if comments are disabled on global level, or overwrite it from page level
         const disablePageComments =
           typeof markup.data.comments !== "undefined"
@@ -644,7 +662,12 @@ export class DoctorTranspiler {
           markup.content,
           markup.data as PageFrontMatter,
         );
-        if (assetNeeds.length > 0 && !CapabilitiesHelper.get().writeAssets) {
+        // An HTML page carries its images inline, so it uploads none
+        if (
+          !isHtmlPage &&
+          assetNeeds.length > 0 &&
+          !CapabilitiesHelper.get().writeAssets
+        ) {
           OutputHelper.warning(
             `Skipped "${relPath}": this account is not allowed to upload to "${options.assetLibrary}", and the page needs to (${assetNeeds.join(", ")}). The page was left untouched, and is published on the next run once the account may write there.`,
           );
@@ -655,7 +678,7 @@ export class DoctorTranspiler {
         }
 
         // Image processing
-        if (imgElms && imgElms.length > 0) {
+        if (!isHtmlPage && imgElms && imgElms.length > 0) {
           setProgress(
             `Uploading ${imgElms.length} image${imgElms.length === 1 ? "" : "s"} from ${relPath}`,
           );
@@ -694,6 +717,30 @@ export class DoctorTranspiler {
           }
         }
 
+        // The whole page is rendered before anything is written, so a page
+        // that cannot be one fails while it is still untouched
+        let htmlDocument: string | null = null;
+        if (isHtmlPage) {
+          if (
+            SegmentsHelper.hasTag(
+              markup.content,
+              ShortcodesHelpers.getWebPartTags(),
+            )
+          ) {
+            throw new Error(
+              `The page "${relPath}" uses a web part shortcode, which an HTML page cannot hold. Remove it, or publish with the "webpart" page mode.`,
+            );
+          }
+
+          setProgress(`Rendering HTML page for ${relPath}`);
+          htmlDocument = await HtmlPageHelper.render(
+            markup.content,
+            markup.data as PageFrontMatter,
+            file,
+            options,
+          );
+        }
+
         // Checks if output needs to be generated
         if (options.outputFolder) {
           const { outputFolder, startFolder } = options;
@@ -708,14 +755,18 @@ export class DoctorTranspiler {
           const withinContent = source.startsWith(`${start}/`)
             ? source.slice(start.length + 1)
             : basename(source);
+          // In HTML mode the output is the page itself, which makes the
+          // folder a local preview of the site
           const processedFilePath = join(
             process.cwd(),
             outputFolder,
-            withinContent,
+            htmlDocument !== null
+              ? withinContent.replace(/\.md$/, ".html")
+              : withinContent,
           );
           const dirPath = dirname(processedFilePath);
           await mkdirAsync(dirPath, { recursive: true });
-          await writeFileAsync(processedFilePath, markup.content, {
+          await writeFileAsync(processedFilePath, htmlDocument ?? markup.content, {
             encoding: "utf-8",
           });
         }
@@ -737,6 +788,28 @@ export class DoctorTranspiler {
             setProgress(`Skipped (metadata): ${relPath}`);
             StatusHelper.addPageSkipped();
             this.skipPage(webUrl, output, markup.data as PageFrontMatter, slug, title, true);
+            return;
+          }
+
+          if (htmlDocument !== null) {
+            await this.publishHtmlPage(
+              htmlDocument,
+              slug,
+              relPath,
+              markup.data as PageFrontMatter,
+              metadataValues,
+              contentHash,
+              options,
+              setProgress,
+            );
+
+            this.addToSite(
+              webUrl,
+              output,
+              markup.data as PageFrontMatter,
+              slug,
+              title,
+            );
             return;
           }
 
@@ -877,7 +950,7 @@ export class DoctorTranspiler {
         }
 
         // Check if the file contains a menu element to add too and if not in draft status (cannot add draft pages to navigation)
-        this.addToNavigation(
+        this.addToSite(
           webUrl,
           output,
           markup.data as PageFrontMatter,
@@ -886,6 +959,69 @@ export class DoctorTranspiler {
         );
 
       }
+    }
+  }
+
+  /**
+   * Upload a rendered HTML page with its metadata, and publish it.
+   *
+   * The same steps as a modern page, in the same order, minus what an HTML
+   * page does not have: no canvas, no page template or layout, no banner web
+   * part (the banner is part of the document), and no comments.
+   */
+  private static async publishHtmlPage(
+    document: string,
+    slug: string,
+    relPath: string,
+    data: PageFrontMatter,
+    metadataValues: { [fieldName: string]: any },
+    contentHash: string,
+    options: CommandArguments,
+    setProgress: (message: string) => void,
+  ) {
+    const { webUrl } = options;
+    const existed = PagesHelper.isListedPage(webUrl, slug);
+
+    if (existed && options.skipExistingPages) {
+      setProgress(`Skipped (already exists): ${relPath}`);
+      Logger.debug(`Skipping "${relPath}" as it already exists`);
+      StatusHelper.addPageSkipped();
+      return;
+    }
+
+    setProgress(
+      existed
+        ? `Updating existing HTML page: ${data.title}`
+        : `Creating new HTML page: ${data.title}`,
+    );
+    await HtmlPageHelper.upload(webUrl, slug, document);
+
+    if (Object.keys(metadataValues).length > 0) {
+      setProgress(`Setting metadata for ${relPath}`);
+      await PagesHelper.writeMetadata(webUrl, slug, metadataValues);
+    }
+
+    // Before the publish, for the same reason as on a modern page: the update
+    // it may fall back to would leave the page with unpublished changes
+    if (data.description) {
+      setProgress(`Setting page description for ${relPath}`);
+      await PagesHelper.setPageDescription(webUrl, slug, data.description);
+    }
+
+    setProgress(
+      data.draft ? `Saving draft: ${data.title}` : `Publishing page: ${data.title}`,
+    );
+    await HtmlPageHelper.finalize(webUrl, slug, !data.draft);
+
+    if (existed) {
+      StatusHelper.addPageUpdated();
+    } else {
+      StatusHelper.addPageCreated();
+    }
+
+    if (!options.disableStatePersistence) {
+      StateHelper.markPublished(slug, contentHash, null);
+      await StateHelper.save(webUrl, options.assetLibrary, options.stateFile);
     }
   }
 

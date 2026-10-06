@@ -170,6 +170,35 @@
       "title": "pageTemplate",
       "description": "The name of the default page template to use for all the pages."
     },
+    "pageMode": {
+      "$id": "#/properties/pageMode",
+      "type": "string",
+      "title": "pageMode",
+      "description": "How the pages are published: `webpart` publishes modern pages with Markdown web parts, `html` (beta) publishes self-contained HTML pages which SharePoint renders as pages of their own.",
+      "enum": ["webpart", "html"],
+      "default": "webpart"
+    },
+    "html": {
+      "$id": "#/properties/html",
+      "type": "object",
+      "title": "html",
+      "description": "Settings for the HTML pages, used when `pageMode` is `html`.",
+      "properties": {
+        "template": {
+          "$id": "#/properties/html/properties/template",
+          "type": "string",
+          "title": "template",
+          "description": "An HTML file to lay the pages out with, instead of the default design. It needs a {{ content }} placeholder, and can use {{ title }}, {{ description }}, {{ lang }}, {{ styles }} and {{ header }}."
+        },
+        "styles": {
+          "$id": "#/properties/html/properties/styles",
+          "type": "string",
+          "title": "styles",
+          "description": "A CSS file added after the default styles of the HTML pages."
+        }
+      },
+      "additionalProperties": false
+    },
     "continueOnError": {
       "$id": "#/properties/continueOnError",
       "type": "boolean",

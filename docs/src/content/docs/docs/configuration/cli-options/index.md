@@ -231,7 +231,9 @@ The `--debug` output goes to stderr, so it never ends up in the document you par
 : Continue when an error occurs during the publishing process.
 
 `--outputFolder <outputFolder>`
-: When providing this option, the processed markdown files will be generated in this folder.
+: When providing this option, the processed markdown files will be generated in this folder. With the
+  `html` page mode, the folder gets the finished `.html` pages instead, which makes it a
+  [local preview](../../content/html-pages/#preview-your-pages-locally) of the site.
 
 :::caution[Important]
 This flag can only be added to the command execution. Using it in the `doctor.json` file has no effect.
@@ -309,6 +311,12 @@ This flag can only be added to the command execution. Using it in the `doctor.js
 
 `--cleanTopNavigation`
 : Allows you to specify if you want to remove all the navigation elements defined in the `TopNavigation` navigation before adding the new navigation structure.
+
+`--pageMode <webpart|html>`
+: How the pages are published. `webpart` (the default) publishes modern pages with Markdown web parts.
+  `html` (beta) publishes every page as a self-contained HTML page, which SharePoint renders as a page of its
+  own. An unknown value stops the run. Check [HTML pages](../../content/html-pages/) for more
+  information.
 
 `--pageTemplate`
 : Name of the default page template to use for all the pages which will be created. It accepts the

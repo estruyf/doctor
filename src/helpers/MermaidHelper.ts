@@ -84,7 +84,9 @@ export class MermaidHelper {
       "utf8"
     ).toString("base64")}`;
 
-    if (!options?.webUrl || !options?.assetLibrary) {
+    // An HTML page carries the diagram as inline SVG, which its sandbox
+    // renders, so there is nothing to upload
+    if (!options?.webUrl || !options?.assetLibrary || options.pageMode === "html") {
       return inline;
     }
 

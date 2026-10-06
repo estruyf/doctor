@@ -245,7 +245,7 @@ export class DependencyHelper {
       return DependencyHelper.config;
     }
 
-    const settings = {
+    const settings: { [key: string]: any } = {
       webPartTitle: options.webPartTitle ?? null,
       assetLibrary: options.assetLibrary ?? null,
       markdown: options.markdown ?? null,
@@ -260,7 +260,25 @@ export class DependencyHelper {
       },
     };
 
+    // Only written for HTML pages: adding the keys to every run would have
+    // changed the hash of every site that already publishes modern pages, and
+    // republished all of them on the first run after an upgrade
+    if (options.pageMode === "html") {
+      settings["pageMode"] = options.pageMode;
+      settings["html"] = {
+        template: options.htmlTemplate ?? null,
+        styles: options.htmlStyles ?? null,
+      };
+    }
+
     const parts = [JSON.stringify(settings)];
+
+    // The layout and the styles decide what every HTML page looks like
+    for (const file of [options.htmlTemplate, options.htmlStyles]) {
+      if (options.pageMode === "html" && file) {
+        parts.push(`html:${file}:${await DependencyHelper.hashFile(file)}`);
+      }
+    }
 
     // A custom shortcode decides what its pages render, so its code counts
     const folder = options.shortcodesFolder || "./shortcodes";

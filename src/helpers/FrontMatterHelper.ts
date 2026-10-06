@@ -1,7 +1,17 @@
 import { toComparablePath } from "@utils";
 import { PageFrontMatter } from "@models";
+import { CliCommand } from "./CliCommand.js";
 
 export class FrontMatterHelper {
+  /**
+   * The extension of the pages this run publishes: modern pages are `.aspx`,
+   * HTML pages `.html`. Read from the run's options, so every place that turns
+   * a markdown file into a page URL agrees on it without passing it around.
+   */
+  public static getPageExtension(): "aspx" | "html" {
+    return CliCommand.options?.pageMode === "html" ? "html" : "aspx";
+  }
+
   /**
    * Retrieve the Slug for the page
    * @param data
@@ -31,11 +41,17 @@ export class FrontMatterHelper {
     pathSlug.pop();
     const spFilePath = pathSlug.filter((s) => s).join("/");
 
+    const extension = FrontMatterHelper.getPageExtension();
+
     if (!slug) {
       slug = `${spFilePath ? `${spFilePath}/` : ""}${title
         .replace(/\//g, "-")
         .replace(/ /g, "-")
-        .toLowerCase()}.aspx`;
+        .toLowerCase()}.${extension}`;
+    } else if (extension === "html") {
+      // A slug written for a modern page names the same page, so switching
+      // modes does not mean editing every front matter `slug`
+      slug = `${(slug as string).replace(/\.(aspx|html)$/, "")}.html`;
     } else if (!(slug as string).endsWith(".aspx")) {
       slug = `${slug}.aspx`;
     }

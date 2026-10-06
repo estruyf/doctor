@@ -6,6 +6,7 @@ export * from './Control.js';
 export * from './File.js';
 export * from './Folder.js';
 export * from './HeaderOptions.js';
+export * from './HtmlSettings.js';
 export * from './ListData.js';
 export * from './MarkdownSettings.js';
 export * from './Menu.js';

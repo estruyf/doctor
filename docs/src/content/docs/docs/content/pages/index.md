@@ -26,6 +26,12 @@ Optional Front Matter properties are:
 
 - **slug**: `string` - If a slug is not defined, the folder the file is in and its title are used: `guides/setup.md` titled *Set up* becomes `guides/set-up.aspx`. You can add the slug with or without the `.aspx` file extension; `doctor` adds it when it is missing.
 - **draft**: `boolean` - defines if you want to publish the article during the publishing phase. Default: if not defined, the page will always be published.
+- **homepage**: `boolean` - makes this page the site's homepage. `doctor` sets it at the end of the
+  publish, and keeps it the homepage on later runs, also when the page itself did not change. Only one
+  page can be the homepage: two pages with `homepage: true` fail the pre-check. A draft page does not
+  become the homepage until it is published. The account `doctor` runs as needs Manage Web rights on
+  the site, otherwise it reports that it could not change the homepage. Default: `false`, which leaves
+  the homepage as it is.
 - **description**: `string` - the page description to add. _Be aware_: description is limited to 255 characters.
 - **comments**: `boolean` - with this setting you can enable/disable page commenting. By default comments are enabled, unless you disabled them for the whole site with the [`disableComments`](../../configuration/doctor-json/#disablecomments) option. This page level setting always wins over the global one.
 - **layout**: `Article` | `Home` - defines which page layout you want to use. Default layout type is `Article`.

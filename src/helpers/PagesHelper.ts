@@ -18,6 +18,8 @@ import { CanvasHelper, WebPartControl } from "./CanvasHelper.js";
 import { CliCommand } from "./CliCommand.js";
 import { FileHelpers } from "./FileHelpers.js";
 import { FolderHelpers } from "./FolderHelpers.js";
+import { FrontMatterHelper } from "./FrontMatterHelper.js";
+import { HtmlPageHelper } from "./HtmlPageHelper.js";
 import { ListHelpers } from "./ListHelpers.js";
 import { Logger } from "./Logger.js";
 import { MarkdownHelper } from "./MarkdownHelper.js";
@@ -94,6 +96,8 @@ export class PagesHelper {
   private static userClaims: { [key: string]: string | Error } = {};
   /** The canvas of each page template, which does not change during a run */
   private static templateCanvas: { [name: string]: any[] | null } = {};
+  /** The slug of the page marked `homepage: true` in this run */
+  private static homepage: string | null = null;
   /** Site-local times per site and moment, as SharePoint converted them */
   private static siteTimes: { [key: string]: string } = {};
 
@@ -112,6 +116,7 @@ export class PagesHelper {
     PagesHelper.userClaims = {};
     PagesHelper.templateCanvas = {};
     PagesHelper.siteTimes = {};
+    PagesHelper.homepage = null;
   }
 
   /**
@@ -137,10 +142,13 @@ export class PagesHelper {
     task: TaskOutput,
     options: CommandArguments
   ): Promise<void> {
+    // Only the kind of page this run publishes: the other kind is not doctor's
+    // to judge, as this run never had a chance to touch it
+    const extension = `.${FrontMatterHelper.getPageExtension()}`;
     const untouched = this.getUntouchedPages().filter(
       (slug) =>
         !slug.toLowerCase().startsWith("templates") &&
-        slug.endsWith(".aspx")
+        slug.endsWith(extension)
     );
     Logger.debug(`Removing the following files`);
     Logger.debug(untouched);
@@ -1758,6 +1766,19 @@ export class PagesHelper {
    * @param slug
    */
   private static async getPageId(webUrl: string, slug: string) {
+    // `spo page get` only knows modern pages, so an HTML page is looked up as
+    // the file it is
+    if (
+      !PagesHelper.processedPages[slug.toLowerCase()] &&
+      slug.toLowerCase().endsWith(".html")
+    ) {
+      const id = await HtmlPageHelper.getItemId(webUrl, slug);
+      if (id) {
+        PagesHelper.processedPages[slug.toLowerCase()] = id;
+      }
+      return id;
+    }
+
     if (!PagesHelper.processedPages[slug.toLowerCase()]) {
       const { stdout } = await executeWithRetry(
         "spo page get",
@@ -1785,6 +1806,46 @@ export class PagesHelper {
     }
 
     return PagesHelper.processedPages[slug.toLowerCase()];
+  }
+
+  /**
+   * Record the page that becomes the site's homepage at the end of the run
+   * @param slug
+   */
+  public static markHomepage(slug: string): void {
+    PagesHelper.homepage = slug;
+  }
+
+  public static getHomepage(): string | null {
+    return PagesHelper.homepage;
+  }
+
+  /**
+   * Make a page the site's homepage, its welcome page. Left alone when it
+   * already is, so a run that changes nothing does not touch the site.
+   * @returns whether the homepage changed
+   */
+  public static async setHomepage(webUrl: string, slug: string): Promise<boolean> {
+    const welcomePage = `SitePages/${slug}`;
+
+    const { stdout } = await executeWithRetry(
+      "spo web get",
+      { url: webUrl, output: "json" },
+      CliCommand.getRetry()
+    );
+    const current = `${JSON.parse(stdout || "{}")?.WelcomePage || ""}`;
+    if (current.toLowerCase() === welcomePage.toLowerCase()) {
+      Logger.debug(`${slug} already is the homepage of ${webUrl}`);
+      return false;
+    }
+
+    Logger.debug(`Changing the homepage of ${webUrl} from "${current}" to "${welcomePage}"`);
+    await executeWithRetry(
+      "spo web set",
+      { url: webUrl, welcomePage },
+      CliCommand.getRetry()
+    );
+    return true;
   }
 
   /**

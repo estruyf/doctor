@@ -6,6 +6,8 @@ export interface PageFrontMatter {
   description?: string;
   slug?: string;
   draft?: boolean;
+  /** Make this page the site's homepage */
+  homepage?: boolean;
   comments?: boolean;
   header?: HeaderOptions;
   menu?: MenuType;
