@@ -1,5 +1,10 @@
 # Changelog
     
+## [2.3.1]
+
+
+- [#205](https://github.com/estruyf/doctor/issues/205): Fix: an HTML page's title shows its accents and symbols correctly in the browser tab, instead of `Home Â· Doctor docs` for `Home · Doctor docs`. SharePoint reads the tab title out of the page with its own parser, which takes the text in the wrong encoding, so `Doctor` now writes the page title and description with character references. Republish with `--forceAll` to fix pages that are already published.
+
 ## [2.3.0]
 
 

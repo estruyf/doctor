@@ -191,8 +191,11 @@ export class HtmlPageHelper {
         if (!(name in values)) {
           return match;
         }
+        // Non-ASCII as numeric references: SharePoint reads the <title> for the
+        // browser tab with its own parser, which ignores the BOM and takes the
+        // bytes as Windows-1252 — a raw "·" showed up there as "Â·".
         return ESCAPED_VALUES.includes(name)
-          ? encode(values[name])
+          ? encode(values[name], { mode: "nonAsciiPrintable", level: "xml" })
           : values[name];
       },
     );

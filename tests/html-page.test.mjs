@@ -120,6 +120,22 @@ test("fillTemplate escapes the text values and leaves markup as it is", () => {
   );
 });
 
+test("fillTemplate writes non-ASCII text as numeric references", () => {
+  const html = HtmlPageHelper.fillTemplate(`<title>{{ title }}</title>`, {
+    title: "Home · Doctor docs — café 🚀",
+    description: "",
+    lang: "en",
+    styles: "",
+    header: "",
+    content: "",
+  });
+
+  assert.equal(
+    html,
+    `<title>Home &#183; Doctor docs &#8212; caf&#233; &#128640;</title>`,
+  );
+});
+
 test("fillTemplate leaves placeholders written in the content alone", () => {
   const html = HtmlPageHelper.fillTemplate(DEFAULT_HTML_TEMPLATE, {
     title: "Templates",

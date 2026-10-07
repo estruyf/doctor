@@ -9,6 +9,15 @@
     ]
   },
   {
+    "title": "2.3.1",
+    "updates": [
+      {
+        "id": 205,
+        "title": "Fix: an HTML page's title shows its accents and symbols correctly in the browser tab, instead of `Home Â· Doctor docs` for `Home · Doctor docs`. SharePoint reads the tab title out of the page with its own parser, which takes the text in the wrong encoding, so `Doctor` now writes the page title and description with character references. Republish with `--forceAll` to fix pages that are already published."
+      }
+    ]
+  },
+  {
     "title": "2.3.0",
     "updates": [
       {
