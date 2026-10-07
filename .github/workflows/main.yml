@@ -19,6 +19,13 @@ on:
         required: false
         default: true
 
+# Trusted publishing: npm checks the GitHub OIDC token of this workflow instead of an npm token.
+# The package's settings on npmjs.com name this repository and main.yml as its publisher, so this
+# is the only workflow that can publish @estruyf/doctor.
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -36,6 +43,11 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org/
+
+      # Trusted publishing needs npm 11.5.1 or later; Node 22 ships npm 10. Pinned, so every
+      # publish runs the same npm.
+      - name: Update npm
+        run: npm install -g npm@11.21.0
 
       # `dev` never publishes a full release: a `#release` commit there triggers this
       # workflow, but it goes out as a beta on the `next` tag. Full releases come from
@@ -56,11 +68,10 @@ jobs:
 
       - run: npm start
 
+      # No token: npm authenticates with the workflow's OIDC token and adds provenance
       - name: Publish release
         if: steps.check.outputs.release == 'true'
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 
       - name: Update the package version
         if: steps.check.outputs.release != 'true'
@@ -69,5 +80,3 @@ jobs:
       - name: Publish beta release
         if: steps.check.outputs.release != 'true'
         run: npm publish --tag next --access public
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

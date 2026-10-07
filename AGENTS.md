@@ -6,7 +6,8 @@ Humans are welcome to read it too — it is the fastest description of how this 
 ## What this is
 
 `doctor` (`@estruyf/doctor`) is a CLI that publishes a folder of Markdown files as SharePoint pages —
-a static site generator that outputs SharePoint pages instead of HTML files. It talks to SharePoint
+a static site generator that outputs SharePoint pages (modern pages, or SharePoint HTML pages with
+`pageMode: html`) instead of plain HTML files. It talks to SharePoint
 through the [CLI for Microsoft 365](https://pnp.github.io/cli-microsoft365/) (`@pnp/cli-microsoft365`),
 with a few direct REST calls where that CLI has no command.
 
@@ -96,7 +97,11 @@ rather than falling back, so a typo can't hand a pipeline human output to parse.
 
 [StateHelper](src/helpers/StateHelper.ts) stores `.doctor/state.json` **in the SharePoint asset library, not
 on disk** (path relative to `--library`, configurable with `--stateFile`). It holds a SHA-256 hash per slug
-of the resolved page source (front matter + content + partials). This drives three behaviours: skipping
+of everything the page is built from — front matter, content, partials, the images it references, the
+slugs of the pages it links to, and (with `--reapplyTemplates`) its page template — plus the instance
+ids of the controls doctor put on the page and a `configHash` of the publish settings and the custom
+shortcodes, which marks every page changed when it moves.
+[DependencyHelper](src/helpers/DependencyHelper.ts) works those inputs out, once per run per file. This drives three behaviours: skipping
 unchanged pages, the `status` command's new/modified/unchanged/deleted/orphaned report, and `--removeDeleted`
 (recycles pages present in state but absent locally — only with `--confirm`, and never when slugs cannot be
 resolved for every file). `--forceAll` bypasses the hash check; `--disableStatePersistence` turns the whole
@@ -122,6 +127,50 @@ mechanism off. Anything that changes what a page renders from must feed the hash
   resolves partials, renders Markdown (`markdown-it` + plugins), post-processes the HTML with `cheerio`,
   uploads referenced images, and drives [PagesHelper](src/helpers/PagesHelper.ts) to create/update the page
   and its controls.
+- [SegmentsHelper](src/helpers/SegmentsHelper.ts) cuts the markdown at every `kind: "control"` shortcode, so
+  one page can become several web parts. A page without one yields a single segment holding the whole
+  document — byte-for-byte the input the Markdown web part has always received. Pure and stateless.
+- [CanvasHelper](src/helpers/CanvasHelper.ts) owns `CanvasContent1`: it composes the full control array and
+  writes it with **one** `SavePageAsDraft`, rather than looping the CLI's add/set/remove commands (which
+  cannot move an existing control, and republish the page on every remove). `compose()` is pure and is where
+  the tests live; doctor's own controls are matched by the instance ids in the state file, falling back to
+  the `--webPartTitle` scheme. Doctor's content section is rewritten to exactly what the markdown says, so
+  a web part added *in that section* on the SharePoint side is removed; every other section is never
+  touched. Everything that can fail on the content alone (`PagesHelper.prepareSegments`) runs before the
+  page is created or checked out.
+- **Two page modes** (`pageMode`): `webpart` (default) is everything above — a modern `.aspx` page with
+  Markdown web parts. `html` (**beta** — `Publish.start` warns on every run, and the docs page, its sidebar
+  badge, the option docs, schema and changelog say so; drop all of those together when it graduates) publishes each file as a self-contained `.html` file in Site Pages, which
+  SharePoint renders as an HTML page. [HtmlPageHelper](src/helpers/HtmlPageHelper.ts) renders it (same
+  `MarkdownHelper.getHtmlData` pipeline, wrapped in a template + [styles/htmlPage.ts](src/styles/htmlPage.ts)),
+  uploads it with `spo file add`, and publishes it by file level (checked out / draft / published).
+  SharePoint shows it in an `<iframe sandbox="allow-scripts">` under the CSP it documents at
+  `https://<tenant>.sharepoint.com/_html` (machine-readable: the `llms.txt` linked there) — the contract
+  to check against. No external CSS/JS, no `fetch`, images only as `data:`/`blob:` — so **every** image
+  is inlined (the tenant's own with doctor's access token), Mermaid is inline SVG drawn with doctor's
+  newer Mermaid, and nothing goes to the asset library. Diagrams doctor cannot draw (browser-only types)
+  stay as `pre.mermaid` source: the `/_html` contract offers curated libraries through a
+  `ka-lib-manifest`, but the Site Pages viewer passes the manifest through without injecting anything
+  (checked in the rendered blob, Oct 2026). Pages are uploaded as UTF-8 with a BOM (contract rule). Links open only to the
+  tenant's SharePoint and a small allowlist; the rest are reported per page. The mode decides the slug extension
+  (`FrontMatterHelper.getPageExtension()`); `pageMode`/`html.*` only enter the config hash in `html` mode,
+  so upgrading does not republish existing modern-page sites. Web part shortcodes and multilingual are
+  refused in `html` mode.
+  Known SharePoint preview bug: the site navigation (client-side routing) changes the address between
+  two HTML pages but the HTML viewer keeps the old page on screen. Menu items still link the pages
+  directly — routing them through a `_layouts/15/Authenticate.aspx?Source=` redirect works but was
+  rejected as not clean, so don't add it back; query strings, `target` and casing do not help (tested).
+- The `homepage: true` front matter is recorded in `DoctorTranspiler.addToSite` (every page that exists
+  after the run passes there, published or unchanged) and applied by its own publish step with
+  `spo web set --welcomePage`, in both page modes.
+- [MetadataHelper](src/helpers/MetadataHelper.ts) turns front matter values into the shapes
+  `ValidateUpdateListItem` accepts per column type (taxonomy, person claims, DateTime, Lookup, URL,
+  MultiChoice). Pure — anything needing a question answered by SharePoint stays in `PagesHelper`.
+  It works for HTML pages too: they are Site Page list items, looked up by file instead of `spo page get`.
+- [TermsHelper](src/helpers/TermsHelper.ts) resolves a managed metadata label to its term through the site
+  term store (`_api/v2.1/termStore`), honouring a column's anchor term, synonyms and `Parent > Child` paths.
+  A term it cannot resolve, or that matches more than one, fails the page rather than leaving the column
+  empty.
 - [PartialsHelper](src/helpers/PartialsHelper.ts) resolves `<include file="..." />` plus the configured
   `partials.header`/`partials.footer`, rewrites relative links inside included snippets, and contributes to
   the page hash so a changed partial re-publishes its pages.
@@ -131,7 +180,7 @@ mechanism off. Anything that changes what a page renders from must feed the hash
 - [MermaidHelper](src/helpers/MermaidHelper.ts) renders diagrams **during publish**, in the Mermaid version
   this package ships, and uploads them as images to a `mermaid` folder in the asset library — SharePoint
   strips inline SVG and never executes the script tag. Diagram types that need a real browser
-  (`mindmap`, `C4Context`, `block-beta`) are left to SharePoint.
+  (`C4Context`, `block-beta`) are left to SharePoint.
 - [TempDataHelper](src/helpers/TempDataHelper.ts) writes scratch files to `./temp` for command payloads,
   generated assets and machine-translated pages; it cleans up at the end of `cli()`, including on failure.
 
@@ -143,10 +192,14 @@ mechanism off. Anything that changes what a page renders from must feed the hash
   and one 5s-delayed retry when `--retryWhenFailed` is set. Add new SharePoint calls here, not with ad-hoc
   `spawn`/`exec`.
 - [ApiHelper](src/helpers/ApiHelper.ts) + [AccessToken](src/helpers/AccessToken.ts) cover the direct REST
-  calls. Use the `*OrThrow` variants when a call must succeed — the plain ones swallow the SharePoint error
-  message.
+  calls — the page canvas and the term store go this way, because the CLI has no command that does the job.
+  Use the `*OrThrow` variants when a call must succeed — the plain ones swallow the SharePoint error
+  message. `AccessToken.get()` caches per site for ten minutes, since fetching one runs two CLI commands.
 - [Authenticate](src/commands/authenticate.ts) handles login; a `--certificate` value ending in
-  `.pfx`/`.p12`/`.pem` is treated as a file path, anything else as base64 contents.
+  `.pfx`/`.p12`/`.pem` is treated as a file path, anything else as base64 contents. A certificate that
+  needs a password and was given none is asked for one in the terminal (masked, checked locally with
+  `checkCertificatePassword` before the sign-in) — only with a TTY and never with `--output json`, so a
+  pipeline gets an error rather than a prompt that hangs it.
 
 ### Logging secrets
 
@@ -186,6 +239,8 @@ An [Astro Starlight](https://starlight.astro.build/) site with its own `package.
 - **Releases** publish from the `dev` branch: a commit message containing `#release` triggers the npm publish
   workflow, and pushes from `dev` publish under the `next` tag (a full release comes from a published GitHub
   release or a manual run). CI also runs a real publish against the `doctor-sample` site on macOS and Ubuntu.
+  npm publishing uses **trusted publishing** (OIDC, no `NPM_TOKEN`), which npm ties to one workflow file —
+  [main.yml](.github/workflows/main.yml). Don't add `npm publish` to any other workflow; it will fail to authenticate.
 
 ## Definition of done
 

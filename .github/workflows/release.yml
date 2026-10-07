@@ -75,7 +75,7 @@ jobs:
             skipPages="--skipExistingPages"
           fi
 
-          doctor publish --auth certificate --certificateBase64Encoded "${{ secrets.CERTIFICATEBASE64ENCODED }}" --password "${{ secrets.PASSWORD }}" --appId "${{ secrets.APPID }}" --tenant "${{ secrets.TENANT }}" -u "${{ secrets[matrix.siteUrl] }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd --confirm $startClean $skipPages
+          doctor publish --auth certificate --certificate "${{ secrets.CERTIFICATEBASE64ENCODED }}" --password "${{ secrets.PASSWORD }}" --appId "${{ secrets.APPID }}" --tenant "${{ secrets.TENANT }}" -u "${{ secrets[matrix.siteUrl] }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd --confirm $startClean $skipPages
         env:
           DEBUG: ${{ secrets.DEBUG }}
           TRANSLATOR_KEY: ${{ secrets.TRANSLATOR_KEY }}
@@ -137,7 +137,7 @@ jobs:
             $skipPages="--skipExistingPages"
           }
 
-          doctor publish --auth certificate --certificateBase64Encoded "${{ secrets.CERTIFICATEBASE64ENCODED }}" --password "${{ secrets.PASSWORD }}" --appId "${{ secrets.APPID }}" --tenant "${{ secrets.TENANT }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd --confirm $startClean $skipPages
+          doctor publish --auth certificate --certificate "${{ secrets.CERTIFICATEBASE64ENCODED }}" --password "${{ secrets.PASSWORD }}" --appId "${{ secrets.APPID }}" --tenant "${{ secrets.TENANT }}" -u "${{ secrets.SITEURL_WINDOWS_POWERSHELL }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd --confirm $startClean $skipPages
         shell: powershell
         env:
           DEBUG: ${{ secrets.DEBUG }}
@@ -191,45 +191,8 @@ jobs:
 
           IF "%GITHUB_EVENT_NAME%"=="schedule" (SET skipPages="--skipExistingPages")
 
-          doctor publish --auth certificate --certificateBase64Encoded "${{ secrets.CERTIFICATEBASE64ENCODED }}" --password "${{ secrets.PASSWORD }}" --appId "${{ secrets.APPID }}" --tenant "${{ secrets.TENANT }}" -u "${{ secrets.SITEURL_WINDOWS }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd  --confirm %startClean% %skipPages%
+          doctor publish --auth certificate --certificate "${{ secrets.CERTIFICATEBASE64ENCODED }}" --password "${{ secrets.PASSWORD }}" --appId "${{ secrets.APPID }}" --tenant "${{ secrets.TENANT }}" -u "${{ secrets.SITEURL_WINDOWS }}" --retryWhenFailed --cleanQuickLaunch --cleanEnd  --confirm %startClean% %skipPages%
         shell: cmd
         env:
           DEBUG: ${{ secrets.DEBUG }}
           TRANSLATOR_KEY: ${{ secrets.TRANSLATOR_KEY }}
-
-  ###############################
-  ### Release the new version ###
-  ###############################
-  release:
-    name: Release the new version
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    needs: [build]
-    if: ${{ github.event_name != 'schedule' && success() && !contains(github.event.head_commit.message, '#docs') }}
-
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-
-      - run: npm i
-
-      - run: npm start
-
-      - name: Publish release
-        run: npm publish --access public
-        if: startsWith(github.ref, 'refs/tags/v')
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
-
-      - name: Update the package version
-        if: github.ref == 'refs/heads/dev'
-        run: node scripts/update-package-version.js $GITHUB_RUN_ID
-
-      - name: Publish beta release
-        run: npm publish --tag next --access public
-        if: github.ref == 'refs/heads/dev'
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

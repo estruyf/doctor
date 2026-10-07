@@ -43,7 +43,7 @@ The command creates the following in the current folder:
 - A `doctor.json` file, when it does not exist yet, containing the `$schema`, `auth`, `url`, `folder`, `overwriteImages`, `library`, and `webPartTitle` values. The `appId` and `tenant` values are added when you passed them.
 
 :::caution[Important]
-`doctor init` never writes your `certificate` or its `password` to the `doctor.json` file, as these are secrets which are best kept out of source control. Pass them on each command execution, ideally from a secret in your CI/CD pipeline. Check the [certificate authentication](../getting-started/certificate-authentication) section for more information.
+`doctor init` never writes your `certificate` or its `password` to the `doctor.json` file. You can add the **path** to the certificate file yourself — it is not a secret, as long as the file itself stays out of source control — but keep the password out of it: `doctor` reads it from the `DOCTOR_CERTIFICATE_PASSWORD` environment variable, or asks for it when it is needed. In a CI/CD pipeline, pass both from secrets. Check the [certificate authentication](../getting-started/certificate-authentication) section for more information.
 :::
 
 :::note[Info]
@@ -85,7 +85,7 @@ doctor status
 ```
 
 :::caution[Important]
-The command requires the `--url` option (either passed as an argument, or defined in the `doctor.json` file), as it needs to download the state file from your site.
+The command signs in like `doctor publish` does, and needs the `--url` option (either passed as an argument, or defined in the `doctor.json` file), as it downloads the state file from your site.
 :::
 
 The output groups your pages in the following categories:
@@ -93,6 +93,7 @@ The output groups your pages in the following categories:
 - **New**: files which are not yet tracked in the state, and will be created.
 - **Modified**: files whose content changed since the last publish, and will be updated.
 - **Deleted**: pages which are tracked in the state, but no longer exist locally. Use the [`--removeDeleted`](../configuration/cli-options/#removing-deleted-pages) flag on your next publishing run to recycle them.
+- **Orphaned language files**: `*.lang.md` files no page refers to in its `localization` front matter. They are never published.
 - **Unchanged**: files which are up to date. These are only listed when you pass the `--verbose` flag.
 
 At the end, you get a summary telling you how many pages will be published on the next run:
@@ -108,6 +109,13 @@ When state persistence is disabled with `--disableStatePersistence`, no state ge
 :::note[Info]
 The `status` command always reports the real difference with the state. The `forceAll` option is ignored here, as it only influences what `doctor publish` reprocesses.
 :::
+
+`status` works a page out exactly the way `publish` does, through the same code — so everything in
+[change detection](../configuration/cli-options/#change-detection--publish-state) counts here too. A
+page whose image changed, whose linked page was renamed, or which renders through a shortcode or a
+setting you edited is reported as **modified**, and a change to the publish settings is reported as
+every page being modified. That matters most when a pipeline gates on the answer: the report has to
+agree with what the publish would do, or the pipeline skips a run it needed.
 
 ### Gating a pipeline on the status
 

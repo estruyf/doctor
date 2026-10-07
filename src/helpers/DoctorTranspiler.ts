@@ -7,27 +7,33 @@ import {
   PublishContext,
   PublishOutput,
   TaskOutput,
-  Control,
   PageFrontMatter,
+  PageSegment,
   PageLocalization,
 } from "@models";
-import {
-  FileHelpers,
-  FolderHelpers,
-  FrontMatterHelper,
-  HeaderHelper,
-  Logger,
-  MultilingualHelper,
-  NavigationHelper,
-  PagesHelper,
-  PartialsHelper,
-  StateHelper,
-  StatusHelper,
-} from "@helpers";
+import { CapabilitiesHelper } from "./CapabilitiesHelper.js";
+import { DependencyHelper } from "./DependencyHelper.js";
+import { FileHelpers } from "./FileHelpers.js";
+import { FolderHelpers } from "./FolderHelpers.js";
+import { FrontMatterHelper } from "./FrontMatterHelper.js";
+import { HeaderHelper } from "./HeaderHelper.js";
+import { HtmlPageHelper } from "./HtmlPageHelper.js";
+import { Logger } from "./Logger.js";
+import { MultilingualHelper } from "./MultilingualHelper.js";
+import { NavigationHelper } from "./NavigationHelper.js";
+import { OutputHelper } from "./OutputHelper.js";
+import { PagesHelper } from "./PagesHelper.js";
+import { SegmentsHelper } from "./SegmentsHelper.js";
+import { ShortcodesHelpers } from "./ShortcodesHelpers.js";
+import { StateHelper } from "./StateHelper.js";
+import { StatusHelper } from "./StatusHelper.js";
 import { basename, join, dirname } from "path";
 import {
   existsAsync,
+  getAssetFolders,
   isLanguageFile,
+  splitLinkTarget,
+  toComparablePath,
   isMachineTranslatedFile,
   mkdirAsync,
   readFileAsync,
@@ -331,11 +337,12 @@ export class DoctorTranspiler {
           options.startFolder,
           file,
         );
-        // Partials are part of the page, so a changed partial has to mark every
-        // page using it as changed
-        const { hash: contentHash } = await PartialsHelper.process(
+        // Partials, images, linked pages and the settings are all part of what
+        // the page publishes as, so a change to any of them marks it changed
+        const { hash: contentHash } = await this.getContentHash(
           file,
           contents,
+          markup.data as PageFrontMatter,
           options,
         );
 
@@ -344,10 +351,9 @@ export class DoctorTranspiler {
         } else {
           skippedUnchanged++;
 
-          // The navigation is rebuilt from scratch on every publish, so unchanged
-          // pages still need to contribute their menu entry. Without this, skipped
-          // pages would silently disappear from the site navigation.
-          this.addToNavigation(
+          // A skipped page still has to keep its menu entry and stay out of the
+          // cleanup pass — both are rebuilt from what this run saw
+          this.skipPage(
             options.webUrl,
             output,
             markup.data as PageFrontMatter,
@@ -365,22 +371,135 @@ export class DoctorTranspiler {
   }
 
   /**
-   * Merges the page its menu definition into the navigation structure that gets
-   * applied after all pages have been processed. Draft pages are ignored, as
-   * they cannot be added to the site navigation.
+   * Everything a page still has to contribute when it is not published on this
+   * run — because it did not change, or because its metadata could not be
+   * worked out.
+   *
+   * A skipped page is still a page on the site, so it keeps its place in two
+   * structures that are rebuilt from what this run saw: the navigation, which
+   * drops any entry it is not given, and the cleanup pass, which recycles every
+   * page it was not told about. Leaving either out turns "the page was left
+   * untouched" into the page losing its menu entry, or being deleted outright.
+   */
+  /**
+   * Cut the page into segments and build the control for each, without
+   * touching the page. Everything that can fail on the content alone fails
+   * here, before the page is created or checked out.
+   */
+  private static async prepareControls(
+    content: string,
+    file: string,
+    relPath: string,
+    slug: string,
+    webUrl: string,
+    webPartTitle: string,
+    frontMatter: { [key: string]: any },
+    options: CommandArguments,
+  ) {
+    // A web part shortcode cuts the page into several web parts. A page
+    // without one yields a single segment holding the whole document,
+    // which is the input the Markdown web part has always received.
+    const webPartTags = ShortcodesHelpers.getWebPartTags();
+    const wasAlreadyParsed = file.endsWith(`.machinetranslated.md`);
+
+    // A machine translated page reaches this point as HTML, so there is
+    // no markdown left to cut up
+    if (wasAlreadyParsed && SegmentsHelper.hasTag(content, webPartTags)) {
+      throw new Error(
+        `The translated page "${relPath}" uses a web part shortcode, which doctor cannot place on a machine translated page. Remove it from the source page, or translate that page by hand.`,
+      );
+    }
+
+    const segments: PageSegment[] = wasAlreadyParsed
+      ? [{ type: "markdown", content }]
+      : SegmentsHelper.split(content, webPartTags);
+
+    // Every markdown segment is rendered on its own, so a table of
+    // contents would only list the headings of the segment it sits in
+    if (
+      segments.some((segment) => segment.type === "webpart") &&
+      segments.some(
+        (segment) =>
+          segment.type === "markdown" &&
+          SegmentsHelper.hasTag(segment.content, ["toc"]),
+      )
+    ) {
+      throw new Error(
+        `The page "${relPath}" combines a table of contents with a web part shortcode. A web part shortcode splits the page into separate web parts, each rendered on its own, so the table of contents can only see the headings next to it.`,
+      );
+    }
+
+    return await PagesHelper.prepareSegments(
+      webPartTitle,
+      segments,
+      slug,
+      webUrl,
+      options,
+      options.markdown ?? null,
+      wasAlreadyParsed,
+      { frontMatter, slug, webUrl },
+    );
+  }
+
+  /**
+   * Keep a page this run did not write in the run's picture of the site: out
+   * of the cleanup pass, and in the menu.
+   *
+   * A page skipped over a problem (its metadata, its assets) may never have
+   * been created. Its menu item would then point at a page that is not there,
+   * and SharePoint refuses to add a navigation node for a missing page — which
+   * failed the whole navigation step. It joins the menu on the run that
+   * publishes it. An unchanged page is in the publish state, so it exists.
+   * @param mayNotExist Whether the page can be missing from the site
+   */
+  private static skipPage(
+    webUrl: string,
+    output: PublishOutput,
+    data: PageFrontMatter | undefined,
+    slug: string,
+    title: string,
+    mayNotExist = false,
+  ) {
+    PagesHelper.markKnown(slug);
+    if (mayNotExist && !PagesHelper.isListedPage(webUrl, slug)) {
+      Logger.debug(`Not adding ${slug} to the navigation, it does not exist yet.`);
+      return;
+    }
+    this.addToSite(webUrl, output, data, slug, title);
+  }
+
+  /**
+   * Gives a page that is on the site after this run its place in the site: in
+   * the navigation structure, and as the homepage when its front matter says
+   * so. Both are applied after all pages have been processed. Every page that
+   * exists passes here, published in this run or skipped as unchanged, so a
+   * homepage that did not change is still kept the homepage.
+   *
+   * Draft pages are ignored, as readers cannot open them: SharePoint refuses a
+   * draft in the navigation, and a draft homepage greets visitors with an error.
    * @param webUrl
    * @param output
    * @param data The front matter of the page
    * @param slug
    * @param title
    */
-  private static addToNavigation(
+  private static addToSite(
     webUrl: string,
     output: PublishOutput,
     data: PageFrontMatter | undefined,
     slug: string,
     title: string,
   ) {
+    if (data?.homepage === true) {
+      if (data.draft) {
+        OutputHelper.warning(
+          `"${title}" is marked as the homepage but is a draft, so the site's homepage was left as it is. It becomes the homepage once it is published.`,
+        );
+      } else {
+        PagesHelper.markHomepage(slug);
+      }
+    }
+
     if (!output.navigation || !data || !data.menu || data.draft) {
       return;
     }
@@ -453,7 +572,12 @@ export class DoctorTranspiler {
         // The hash is computed once — used for change detection and state recording
         const { content, hash: contentHash } = isMachineTranslated
           ? { content: markup.content, hash: StateHelper.hashContent(contents) }
-          : await PartialsHelper.process(file, contents, options);
+          : await this.getContentHash(
+              file,
+              contents,
+              markup.data as PageFrontMatter,
+              options,
+            );
         markup.content = content;
 
         const htmlMarkup = isMachineTranslated
@@ -478,8 +602,16 @@ export class DoctorTranspiler {
           }
         }
 
-        let { title, description, draft, layout, header, template, metadata } =
-          markup.data as PageFrontMatter;
+        let {
+          title,
+          description,
+          draft,
+          layout,
+          header,
+          template,
+          metadata,
+          author,
+        } = markup.data as PageFrontMatter;
         let slug =
           languagePageSlug ||
           FrontMatterHelper.getSlug(
@@ -487,6 +619,13 @@ export class DoctorTranspiler {
             options.startFolder,
             file,
           );
+
+        // From here the page is one this run wants on the site, whatever
+        // happens to it next. The cleanup pass removes every page it was not
+        // told about, so a page that fails half way through — an image that
+        // will not upload, a column that will not take its value — must not be
+        // mistaken for one whose markdown file was deleted and recycled.
+        PagesHelper.markKnown(slug);
 
         // Change detection: skip unchanged files unless --forceAll is set.
         // Language pages take part in this too, keyed by the slug SharePoint
@@ -497,9 +636,12 @@ export class DoctorTranspiler {
             setProgress(`Skipped (unchanged): ${relPath}`);
             Logger.debug(`Skipping unchanged file: ${relPath}`);
             StatusHelper.addPageSkipped();
+            this.skipPage(webUrl, output, markup.data as PageFrontMatter, slug, title);
             return;
           }
         }
+
+        const isHtmlPage = options.pageMode === "html";
 
         // Check if comments are disabled on global level, or overwrite it from page level
         const disablePageComments =
@@ -510,8 +652,33 @@ export class DoctorTranspiler {
           `Page comments ${disablePageComments ? "disabled" : "enabled"}`,
         );
 
+        // A page whose assets cannot be uploaded would publish with its
+        // pictures pointing at paths that only exist on the machine which ran
+        // the publish. The markdown is the page, so it is skipped whole and
+        // kept out of the state, the same way a metadata problem is handled.
+        const assetNeeds = this.getAssetNeeds(
+          $,
+          imgElms,
+          markup.content,
+          markup.data as PageFrontMatter,
+        );
+        // An HTML page carries its images inline, so it uploads none
+        if (
+          !isHtmlPage &&
+          assetNeeds.length > 0 &&
+          !CapabilitiesHelper.get().writeAssets
+        ) {
+          OutputHelper.warning(
+            `Skipped "${relPath}": this account is not allowed to upload to "${options.assetLibrary}", and the page needs to (${assetNeeds.join(", ")}). The page was left untouched, and is published on the next run once the account may write there.`,
+          );
+          setProgress(`Skipped (assets): ${relPath}`);
+          StatusHelper.addPageSkipped();
+          this.skipPage(webUrl, output, markup.data as PageFrontMatter, slug, title, true);
+          return;
+        }
+
         // Image processing
-        if (imgElms && imgElms.length > 0) {
+        if (!isHtmlPage && imgElms && imgElms.length > 0) {
           setProgress(
             `Uploading ${imgElms.length} image${imgElms.length === 1 ? "" : "s"} from ${relPath}`,
           );
@@ -550,21 +717,125 @@ export class DoctorTranspiler {
           }
         }
 
+        // The whole page is rendered before anything is written, so a page
+        // that cannot be one fails while it is still untouched
+        let htmlDocument: string | null = null;
+        if (isHtmlPage) {
+          if (
+            SegmentsHelper.hasTag(
+              markup.content,
+              ShortcodesHelpers.getWebPartTags(),
+            )
+          ) {
+            throw new Error(
+              `The page "${relPath}" uses a web part shortcode, which an HTML page cannot hold. Remove it, or publish with the "webpart" page mode.`,
+            );
+          }
+
+          setProgress(`Rendering HTML page for ${relPath}`);
+          htmlDocument = await HtmlPageHelper.render(
+            markup.content,
+            markup.data as PageFrontMatter,
+            file,
+            options,
+          );
+        }
+
         // Checks if output needs to be generated
         if (options.outputFolder) {
           const { outputFolder, startFolder } = options;
-          const processedFilePath = file.replace(
-            startFolder,
-            join(process.cwd(), outputFolder),
+          // Cutting the content folder off the front by plain text match only
+          // worked when the two were written the same way: with a folder of
+          // `src` and a file of `./src/guides/page.md` it produced
+          // `.//<cwd>/out/...`, a relative path which built a copy of the
+          // absolute one underneath the working directory.
+          const root = process.cwd().replace(/\\/g, "/");
+          const start = toComparablePath(startFolder, root);
+          const source = toComparablePath(file, root);
+          const withinContent = source.startsWith(`${start}/`)
+            ? source.slice(start.length + 1)
+            : basename(source);
+          // In HTML mode the output is the page itself, which makes the
+          // folder a local preview of the site
+          const processedFilePath = join(
+            process.cwd(),
+            outputFolder,
+            htmlDocument !== null
+              ? withinContent.replace(/\.md$/, ".html")
+              : withinContent,
           );
           const dirPath = dirname(processedFilePath);
           await mkdirAsync(dirPath, { recursive: true });
-          await writeFileAsync(processedFilePath, markup.content, {
+          await writeFileAsync(processedFilePath, htmlDocument ?? markup.content, {
             encoding: "utf-8",
           });
         }
 
         if (markup && markup.content) {
+          // Everything the page's metadata needs is worked out before a single
+          // write, so a page whose front matter cannot be resolved is left
+          // exactly as it was instead of ending up with new content and stale
+          // metadata. It also stays out of the publish state, so the next run
+          // picks it up again once the front matter is fixed.
+          setProgress(`Resolving metadata for ${relPath}`);
+          const { values: metadataValues, problems: metadataProblems } =
+            await PagesHelper.resolveMetadata(webUrl, slug, metadata, author);
+
+          if (metadataProblems.length > 0) {
+            OutputHelper.warning(
+              `Skipped "${relPath}": ${metadataProblems.join("; ")}. The page was left untouched, and is published on the next run once this is fixed.`,
+            );
+            setProgress(`Skipped (metadata): ${relPath}`);
+            StatusHelper.addPageSkipped();
+            this.skipPage(webUrl, output, markup.data as PageFrontMatter, slug, title, true);
+            return;
+          }
+
+          if (htmlDocument !== null) {
+            await this.publishHtmlPage(
+              htmlDocument,
+              slug,
+              relPath,
+              markup.data as PageFrontMatter,
+              metadataValues,
+              contentHash,
+              options,
+              setProgress,
+            );
+
+            this.addToSite(
+              webUrl,
+              output,
+              markup.data as PageFrontMatter,
+              slug,
+              title,
+            );
+            return;
+          }
+
+          // The page's controls are built before anything is written as well:
+          // a web part shortcode that cannot be resolved, or content doctor
+          // cannot place, fails the page while it is still untouched rather
+          // than after it was created empty or checked out. A page that is
+          // going to be skipped as existing is not built at all.
+          const prepareControls = () =>
+            this.prepareControls(
+              markup.content,
+              file,
+              relPath,
+              slug,
+              webUrl,
+              webPartTitle,
+              markup.data ?? {},
+              options,
+            );
+          let controls =
+            skipExistingPages &&
+            !languagePageSlug &&
+            PagesHelper.isListedPage(webUrl, slug)
+              ? null
+              : await prepareControls();
+
           setProgress(`Checking if page exists: ${slug}`);
 
           // Check if the page already exists
@@ -577,6 +848,10 @@ export class DoctorTranspiler {
             description,
             template || options.pageTemplate,
             skipExistingPages && !languagePageSlug,
+            options.reapplyTemplates,
+            // SharePoint made the translation's page; creating one with doctor
+            // would add an ordinary page and move it over the translation
+            !!languagePageSlug,
           );
 
           Logger.debug(
@@ -594,28 +869,26 @@ export class DoctorTranspiler {
               : `Creating new page: ${title}`,
             );
 
-            // Retrieving all the controls from the page, so that we can start replacing the
-            const controlData: string = await PagesHelper.getPageControls(
-              webUrl,
+            // With --reapplyTemplates, a page that already exists is laid out
+            // from its template again instead of keeping whatever layout it
+            // has. A page doctor just created already came from the template.
+            const pageTemplate = template || options.pageTemplate;
+            const templateCanvas =
+              options.reapplyTemplates && pageTemplate && existed
+                ? await PagesHelper.getTemplateCanvas(webUrl, pageTemplate)
+                : null;
+
+            // Only a page the site did not list ends up here unprepared
+            controls = controls ?? (await prepareControls());
+
+            await PagesHelper.writeControls(
+              webPartTitle,
+              controls,
               slug,
+              webUrl,
+              templateCanvas,
+              existed,
             );
-            if (controlData) {
-              const webparts: Control[] = JSON.parse(controlData);
-              const markdownWp: Control | undefined = webparts.find(
-                (c: Control) =>
-                  c.webPartData && c.webPartData.title === webPartTitle,
-              );
-              await PagesHelper.insertOrCreateControl(
-                webPartTitle,
-                markup.content,
-                slug,
-                webUrl,
-                options,
-                markdownWp ? markdownWp.id : undefined,
-                options.markdown ?? null,
-                file.endsWith(`.machinetranslated.md`),
-              );
-            }
 
             // Apply the page header after the page has content, because the CLI header command
             // fails on pages with uninitialized CanvasContent1/LayoutWebpartsContent.
@@ -629,21 +902,25 @@ export class DoctorTranspiler {
             );
 
             // Check if metadata needs to be added to the page
-            if (metadata) {
+            if (Object.keys(metadataValues).length > 0) {
               setProgress(`Setting metadata for ${relPath}`);
-              await PagesHelper.setPageMetadata(webUrl, slug, metadata);
+              await PagesHelper.writeMetadata(webUrl, slug, metadataValues);
+            }
+
+            // Set the page its description. This has to happen before the page
+            // is published: a description is normally written with a system
+            // update, which creates no version, but that is not always allowed
+            // and the fallback is an ordinary update — which would leave the
+            // page with unpublished changes if it ran afterwards.
+            if (description) {
+              setProgress(`Setting page description for ${relPath}`);
+              await PagesHelper.setPageDescription(webUrl, slug, description);
             }
 
             // Check if page needs to be published
             if (typeof draft === "undefined" || !draft) {
               setProgress(`Publishing page: ${title}`);
               await PagesHelper.publishPageIfNeeded(webUrl, slug);
-            }
-
-            // Set the page its description
-            if (description) {
-              setProgress(`Setting page description for ${relPath}`);
-              await PagesHelper.setPageDescription(webUrl, slug, description);
             }
 
             if (existed) {
@@ -673,7 +950,7 @@ export class DoctorTranspiler {
         }
 
         // Check if the file contains a menu element to add too and if not in draft status (cannot add draft pages to navigation)
-        this.addToNavigation(
+        this.addToSite(
           webUrl,
           output,
           markup.data as PageFrontMatter,
@@ -683,6 +960,126 @@ export class DoctorTranspiler {
 
       }
     }
+  }
+
+  /**
+   * Upload a rendered HTML page with its metadata, and publish it.
+   *
+   * The same steps as a modern page, in the same order, minus what an HTML
+   * page does not have: no canvas, no page template or layout, no banner web
+   * part (the banner is part of the document), and no comments.
+   */
+  private static async publishHtmlPage(
+    document: string,
+    slug: string,
+    relPath: string,
+    data: PageFrontMatter,
+    metadataValues: { [fieldName: string]: any },
+    contentHash: string,
+    options: CommandArguments,
+    setProgress: (message: string) => void,
+  ) {
+    const { webUrl } = options;
+    const existed = PagesHelper.isListedPage(webUrl, slug);
+
+    if (existed && options.skipExistingPages) {
+      setProgress(`Skipped (already exists): ${relPath}`);
+      Logger.debug(`Skipping "${relPath}" as it already exists`);
+      StatusHelper.addPageSkipped();
+      return;
+    }
+
+    setProgress(
+      existed
+        ? `Updating existing HTML page: ${data.title}`
+        : `Creating new HTML page: ${data.title}`,
+    );
+    await HtmlPageHelper.upload(webUrl, slug, document);
+
+    if (Object.keys(metadataValues).length > 0) {
+      setProgress(`Setting metadata for ${relPath}`);
+      await PagesHelper.writeMetadata(webUrl, slug, metadataValues);
+    }
+
+    // Before the publish, for the same reason as on a modern page: the update
+    // it may fall back to would leave the page with unpublished changes
+    if (data.description) {
+      setProgress(`Setting page description for ${relPath}`);
+      await PagesHelper.setPageDescription(webUrl, slug, data.description);
+    }
+
+    setProgress(
+      data.draft ? `Saving draft: ${data.title}` : `Publishing page: ${data.title}`,
+    );
+    await HtmlPageHelper.finalize(webUrl, slug, !data.draft);
+
+    if (existed) {
+      StatusHelper.addPageUpdated();
+    } else {
+      StatusHelper.addPageCreated();
+    }
+
+    if (!options.disableStatePersistence) {
+      StateHelper.markPublished(slug, contentHash, null);
+      await StateHelper.save(webUrl, options.assetLibrary, options.stateFile);
+    }
+  }
+
+  /**
+   * Everything on the page that has to reach the asset library before the page
+   * can be published as its markdown describes it.
+   *
+   * There are three ways in, and the gate has to know all of them or it lets a
+   * page through that then fails, or publishes wrong: the images in the
+   * content, the `header.image` of the banner, and the Mermaid diagrams, which
+   * are drawn during the publish and uploaded like any other image. A diagram
+   * that cannot be uploaded falls back to inline SVG, which SharePoint strips —
+   * so it does not fail, it silently publishes a diagram nobody can see.
+   */
+  private static getAssetNeeds(
+    $: CheerioAPI,
+    imgElms: Element[],
+    content: string,
+    data: PageFrontMatter | undefined,
+  ): string[] {
+    const needs: string[] = [];
+
+    const images = DoctorTranspiler.getUploadableImages($, imgElms);
+    if (images.length > 0) {
+      needs.push(
+        `upload ${images.length} image${images.length === 1 ? "" : "s"}`,
+      );
+    }
+
+    const headerImage = data?.header?.image;
+    if (headerImage && !headerImage.startsWith("http")) {
+      needs.push(`upload its header image`);
+    }
+
+    if (SegmentsHelper.hasTag(content || "", ["mermaid"])) {
+      needs.push(`upload the Mermaid diagrams it draws`);
+    }
+
+    return needs;
+  }
+
+  /**
+   * The images on the page that have a file to upload.
+   *
+   * A `data:` source carries its image with it — shortcodes use those for the
+   * diagrams they draw — and an absolute one already lives somewhere. Shared
+   * with the capability gate, so what is checked is what would be uploaded.
+   */
+  private static getUploadableImages(
+    $: CheerioAPI,
+    imgElms: Element[],
+  ): string[] {
+    return imgElms
+      .filter((i) => {
+        const src = $(i).attr("src");
+        return !!src && !src.startsWith(`http`) && !src.startsWith(`data:`);
+      })
+      .map((img) => $(img).attr("src")!);
   }
 
   /**
@@ -706,14 +1103,7 @@ export class DoctorTranspiler {
   ) {
     const { startFolder, assetLibrary, webUrl, overwriteImages } = options;
 
-    const imgSources = imgElms
-      .filter((i) => {
-        const src = $(i).attr("src");
-        // A `data:` source carries its image with it, so there is no file to
-        // upload. Shortcodes use those for the diagrams they draw.
-        return !!src && !src.startsWith(`http`) && !src.startsWith(`data:`);
-      })
-      .map((img) => $(img).attr("src")!);
+    const imgSources = DoctorTranspiler.getUploadableImages($, imgElms);
     const uImgSources = [...new Set(imgSources)];
     const total = uImgSources.length;
 
@@ -726,11 +1116,7 @@ export class DoctorTranspiler {
       const imgDirectory = join(dirname(filePath), dirname(imgSource));
       const imgPath = join(dirname(filePath), imgSource);
 
-      const uniStartPath = startFolder.replace(/\\/g, "/");
-      const folders = imgDirectory
-        .replace(/\\/g, "/")
-        .replace(uniStartPath, "")
-        .split("/");
+      const folders = getAssetFolders(startFolder, imgDirectory);
       let crntFolder = assetLibrary;
 
       // Start folder creation process
@@ -757,6 +1143,60 @@ export class DoctorTranspiler {
     }
 
     return contents;
+  }
+
+  /**
+   * The hash a page is tracked by.
+   *
+   * The one entry point for it, because `status` answers the question "would
+   * the next publish do anything?" and can only answer it by asking exactly
+   * what the publish asks. When the publish started folding images, linked
+   * slugs, settings and templates into the hash and `status` did not, `status`
+   * reported a page as unchanged that the publish then republished — and a
+   * pipeline gated on `doctor status --output json` skipped a publish it
+   * needed.
+   *
+   * @param file the markdown file
+   * @param contents its raw contents
+   * @param data its front matter, for the page template it names
+   * @param options the run's options
+   */
+  public static async getContentHash(
+    file: string,
+    contents: string,
+    data: PageFrontMatter | undefined,
+    options: CommandArguments,
+  ): Promise<{ content: string; hash: string }> {
+    return await DependencyHelper.getPageHash(
+      file,
+      contents,
+      options,
+      await this.getTemplateHash(data, options),
+    );
+  }
+
+  /**
+   * The template a page is laid out from, when it is re-applied on every
+   * publish — editing the template then changes what its pages look like, so
+   * it has to mark them as changed.
+   */
+  private static async getTemplateHash(
+    data: PageFrontMatter | undefined,
+    options: CommandArguments,
+  ): Promise<string> {
+    const template = data?.template || options.pageTemplate;
+    if (!options.reapplyTemplates || !template) {
+      return "";
+    }
+
+    const canvas = await PagesHelper.getTemplateCanvas(
+      options.webUrl,
+      template,
+    );
+
+    return `template:${template}:${
+      canvas ? StateHelper.hashContent(JSON.stringify(canvas)) : "none"
+    }`;
   }
 
   /**
@@ -789,12 +1229,23 @@ export class DoctorTranspiler {
 
       Logger.debug(`Processing link: ${fileLink} for ${filePath}`);
 
-      if (fileLink.endsWith(`.md`)) {
-        mdFile = fileLink;
-      } else if (fileLink === ".") {
+      // `./page.md#section` is a link to `./page.md`. Testing the whole string
+      // made it `./page.md#section.md`, which resolves to no file — so the link
+      // was left exactly as written and shipped to SharePoint as a relative
+      // markdown path, which is a dead link on the site.
+      const { path: linkPath, suffix: linkSuffix } = splitLinkTarget(fileLink);
+
+      if (!linkPath) {
+        // A link to an anchor on this page; there is nothing to resolve
+        continue;
+      }
+
+      if (linkPath.endsWith(`.md`)) {
+        mdFile = linkPath;
+      } else if (linkPath === ".") {
         mdFile = basename(filePath);
       } else {
-        mdFile = `${fileLink}.md`;
+        mdFile = `${linkPath}.md`;
       }
 
       const mdFilePath = join(dirname(filePath), mdFile);
@@ -828,9 +1279,11 @@ export class DoctorTranspiler {
           startFolder,
           mdFilePath,
         );
+        // The anchor goes back on: linking to a heading inside a long page is
+        // the reason to write one
         const spUrl = `${webUrl}${
           webUrl.endsWith("/") ? "" : "/"
-        }sitepages/${slug}`;
+        }sitepages/${slug}${linkSuffix}`;
         Logger.debug(`Referenced file slug: ${spUrl}`);
 
         // Update the link in the markdown

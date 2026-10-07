@@ -42,15 +42,7 @@ export class FolderHelpers {
               throw "Folder doesn't seem to exist yet";
             }
           } catch (e) {
-            await executeWithRetry(
-              "spo folder add",
-              {
-                webUrl,
-                parentFolderUrl: `/${crntFolder}`,
-                name: folder,
-              },
-              CliCommand.getRetry()
-            );
+            await FolderHelpers.add(webUrl, `/${crntFolder}`, folder);
           }
 
           this.checkedFolders.push(folderToProcess);
@@ -61,5 +53,43 @@ export class FolderHelpers {
     }
 
     return crntFolder;
+  }
+
+  /**
+   * Create a folder, and accept it when it is already there.
+   *
+   * SharePoint words the "already exists" error in the language of the site, so
+   * matching on its text fails on a site that is not in English (#210). When the
+   * add fails, the folder is looked up instead: when it is there, the add had
+   * nothing to do, otherwise the error of the add is the one that counts.
+   * @param webUrl
+   * @param parentFolderUrl
+   * @param name
+   */
+  public static async add(
+    webUrl: string,
+    parentFolderUrl: string,
+    name: string
+  ): Promise<void> {
+    try {
+      await executeWithRetry(
+        "spo folder add",
+        { webUrl, parentFolderUrl, name },
+        CliCommand.getRetry()
+      );
+    } catch (addError) {
+      const folderUrl = `${parentFolderUrl.replace(/\/+$/, "")}/${name}`;
+      try {
+        await executeWithRetry(
+          "spo folder get",
+          { webUrl, url: folderUrl, output: "json" },
+          false
+        );
+      } catch {
+        throw addError;
+      }
+
+      Logger.debug(`Folder ${folderUrl} already exists.`);
+    }
   }
 }

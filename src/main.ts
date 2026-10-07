@@ -2,9 +2,14 @@ import kleur from "kleur";
 import { Command, Init, Publish, Status, Version, Workflow } from "@commands";
 import { CommandArguments } from "@models";
 import {
+  AccessToken,
+  CanvasHelper,
+  CapabilitiesHelper,
+  DependencyHelper,
   CliCommand,
   FileHelpers,
   FolderHelpers,
+  HtmlPageHelper,
   ListHelpers,
   Logger,
   MermaidHelper,
@@ -15,6 +20,7 @@ import {
   StateHelper,
   ShortcodesHelpers,
   StatusHelper,
+  TermsHelper,
 } from "@helpers";
 import { autocomplete } from "./autocomplete.js";
 
@@ -51,7 +57,11 @@ export class Commands {
           OutputHelper.warning(
             `You specified to allow custom HTML usage in Doctor. Be aware that once you modify the page on SharePoint itself, the HTML will be overwritten. Best is to maintain content from the Doctor sources.`
           );
+        }
 
+        // An HTML page is HTML through and through, so its shortcodes do not
+        // wait for `allowHtml`
+        if (options.markdown?.allowHtml || options.pageMode === "html") {
           await ShortcodesHelpers.init(options.shortcodesFolder);
         }
 
@@ -106,7 +116,13 @@ export class Commands {
     NavigationHelper.reset();
     FileHelpers.reset();
     PagesHelper.reset();
+    CanvasHelper.reset();
+    CapabilitiesHelper.reset();
+    DependencyHelper.reset();
+    TermsHelper.reset();
+    AccessToken.reset();
     ListHelpers.reset();
     FolderHelpers.reset();
+    HtmlPageHelper.reset();
   }
 }

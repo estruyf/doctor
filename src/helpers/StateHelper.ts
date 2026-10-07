@@ -4,6 +4,9 @@ import { CliCommand } from "@helpers";
 import { basename, dirname, join } from "path";
 import { readFileAsync, writeFileAsync } from "@utils";
 import { tmpdir } from "os";
+import { CapabilitiesHelper } from "./CapabilitiesHelper.js";
+import { OutputHelper } from "./OutputHelper.js";
+import { FolderHelpers } from "./FolderHelpers.js";
 
 export interface DoctorStateEntry {
   sourceHash: string;
@@ -15,6 +18,13 @@ export interface DoctorStateEntry {
    * their source page.
    */
   translationOf?: string;
+  /**
+   * The instance ids of the controls doctor put on the page, in the order the
+   * segments appear in the markdown. A page becomes more than one control when
+   * it uses a web part shortcode, and the title alone cannot tell doctor's
+   * controls apart from ones the page owner added on the SharePoint side.
+   */
+  controls?: string[];
 }
 
 export interface DoctorState {
@@ -22,24 +32,21 @@ export interface DoctorState {
   site: string;
   configHash: string | null;
   pages: Record<string, DoctorStateEntry>;
+  /**
+   * The SHA-256 of every file doctor put in the asset library, by its path in
+   * the library (lower case, as SharePoint does not tell `Logo.png` from
+   * `logo.png`). An image with the same name as one already in the library was
+   * never uploaded again without `--overwriteImages`, so a page republished
+   * because its image changed kept showing the old one. With the hash of what
+   * was uploaded, a changed image goes up again and an unchanged one does not.
+   *
+   * Optional: state written before this was tracked has none, and older
+   * versions keep it untouched when they rewrite the file.
+   */
+  assets?: Record<string, string>;
 }
 
 const DEFAULT_STATE_FILE = ".doctor/state.json";
-
-const isAlreadyExistsError = (error: unknown): boolean => {
-  const message =
-    typeof error === "string"
-      ? error
-      : error && typeof error === "object" && "message" in error
-        ? String((error as { message: unknown }).message)
-        : JSON.stringify(error);
-
-  const normalized = message.toLowerCase();
-  return (
-    normalized.includes("already exists") ||
-    normalized.includes("a file or folder with the name")
-  );
-};
 
 const toErrorMessage = (error: unknown): string => {
   if (typeof error === "string") {
@@ -84,6 +91,10 @@ export class StateHelper {
   private static state: DoctorState | null = null;
   private static loaded = false;
   private static dirty = false;
+  /** Set when the settings differ from the run that wrote the state */
+  private static configChanged = false;
+  /** Set once the state turned out not to be writable, see save() */
+  private static saveSkipped = false;
   private static ensuredFolders: string[] = [];
 
   /** Compute a SHA-256 hex digest of the given string content. */
@@ -224,9 +235,42 @@ export class StateHelper {
   }
 
   /**
-   * Always returns true when state has not been loaded.
+   * Record the hash of the settings and shortcodes every page renders through.
+   * When it differs from the last run, every page counts as changed: the pages
+   * themselves did not move, but what they publish as did.
+   *
+   * This is for reporting, not for deciding. The settings are folded into
+   * every page's own hash by `DependencyHelper`, which is what actually makes
+   * them republish — recording the new hash here before the pages have caught
+   * up used to strand every page a failed run never reached.
+   *
+   * @returns whether it differs from the state that was loaded
+   */
+  public static setConfigHash(configHash: string): boolean {
+    if (!StateHelper.state) {
+      return false;
+    }
+
+    const previous = StateHelper.state.configHash;
+    StateHelper.configChanged = !!previous && previous !== configHash;
+
+    if (previous !== configHash) {
+      StateHelper.state.configHash = configHash;
+      StateHelper.dirty = true;
+    }
+
+    return StateHelper.configChanged;
+  }
+
+  /**
+   * Whether a page differs from what was last published. Always true when the
+   * state has not been loaded, or when the settings changed since it was.
    */
   public static hasChanged(slug: string, contentHash: string): boolean {
+    if (StateHelper.configChanged) {
+      return true;
+    }
+
     if (!StateHelper.loaded || !StateHelper.state) {
       return true;
     }
@@ -244,12 +288,92 @@ export class StateHelper {
     translationOf: string | null = null,
   ): void {
     if (!StateHelper.state) return;
+    // The controls are recorded while the page is written, which happens
+    // before this call, so they have to survive the entry being rewritten
+    const controls = StateHelper.state.pages[slug]?.controls;
+
     StateHelper.state.pages[slug] = {
       sourceHash: contentHash,
       publishedAt: new Date().toISOString(),
       ...(translationOf ? { translationOf } : {}),
+      ...(controls && controls.length > 0 ? { controls } : {}),
     };
     StateHelper.dirty = true;
+  }
+
+  /**
+   * The instance ids doctor recorded for a page's controls on an earlier run
+   * @param slug
+   */
+  public static getControls(slug: string): string[] {
+    return StateHelper.state?.pages[slug]?.controls ?? [];
+  }
+
+  /**
+   * Record which controls on the page belong to doctor, so a later run updates
+   * them instead of adding a second set next to them.
+   * @param slug
+   * @param instanceIds in segment order
+   */
+  public static setControls(slug: string, instanceIds: string[]): void {
+    if (!StateHelper.state) return;
+
+    const entry = StateHelper.state.pages[slug];
+    if (entry) {
+      entry.controls = instanceIds;
+    } else {
+      // The page is written before it is marked published
+      StateHelper.state.pages[slug] = {
+        sourceHash: "",
+        publishedAt: new Date().toISOString(),
+        controls: instanceIds,
+      };
+    }
+
+    StateHelper.dirty = true;
+  }
+
+  /**
+   * Whether uploads can be tracked: only when the state was loaded, as it is
+   * then also saved. With `--disableStatePersistence` a recorded hash would be
+   * gone by the next run, and every image would be uploaded every time.
+   */
+  public static tracksAssets(): boolean {
+    return StateHelper.loaded && !!StateHelper.state;
+  }
+
+  /**
+   * The hash of the file doctor last uploaded to this path in the asset
+   * library, or `null` when it never recorded one.
+   * @param path the file's path in the library, starting with the library
+   */
+  public static getAssetHash(path: string): string | null {
+    return StateHelper.state?.assets?.[StateHelper.toAssetKey(path)] ?? null;
+  }
+
+  /**
+   * Record what the asset library now holds at this path.
+   * @param path the file's path in the library, starting with the library
+   * @param hash the SHA-256 of the file's contents
+   */
+  public static setAssetHash(path: string, hash: string): void {
+    if (!StateHelper.state) return;
+
+    const key = StateHelper.toAssetKey(path);
+    const assets = (StateHelper.state.assets ??= {});
+    if (assets[key] !== hash) {
+      assets[key] = hash;
+      StateHelper.dirty = true;
+    }
+  }
+
+  private static toAssetKey(path: string): string {
+    return path
+      .replace(/\\/g, "/")
+      .split("/")
+      .filter(Boolean)
+      .join("/")
+      .toLowerCase();
   }
 
   /**
@@ -340,6 +464,21 @@ export class StateHelper {
   ): Promise<void> {
     if (!StateHelper.state) return;
 
+    // The state lives in the asset library. An account which cannot write there
+    // cannot save it, and it is saved after every page — so this would fail the
+    // run once per page rather than once. Said once, and the run goes on: the
+    // pages publish, they are simply all republished next time.
+    if (!CapabilitiesHelper.get().writeAssets) {
+      if (!StateHelper.saveSkipped) {
+        StateHelper.saveSkipped = true;
+        OutputHelper.warning(
+          `This account is not allowed to write to "${assetLibrary}", so the publish state was not saved. Every page is published again on the next run.`,
+        );
+      }
+
+      return;
+    }
+
     const json = JSON.stringify(StateHelper.state, null, 2);
     const tmpPath = join(tmpdir(), `doctor-state-${Date.now()}.json`);
     const target = normalizeStateTarget(assetLibrary, stateFile);
@@ -400,21 +539,7 @@ export class StateHelper {
     let currentPath = assetLibrary;
 
     for (const folderName of nestedFolders) {
-      try {
-        await executeWithRetry(
-          "spo folder add",
-          {
-            webUrl,
-            parentFolderUrl: `/${currentPath}`,
-            name: folderName,
-          },
-          CliCommand.getRetry()
-        );
-      } catch (error) {
-        if (!isAlreadyExistsError(error)) {
-          throw error;
-        }
-      }
+      await FolderHelpers.add(webUrl, `/${currentPath}`, folderName);
       currentPath = `${currentPath}/${folderName}`;
     }
 
@@ -423,6 +548,8 @@ export class StateHelper {
 
   /** Reset singleton state (useful for testing or a fresh publish). */
   public static reset(): void {
+    StateHelper.configChanged = false;
+    StateHelper.saveSkipped = false;
     StateHelper.state = null;
     StateHelper.loaded = false;
     StateHelper.dirty = false;

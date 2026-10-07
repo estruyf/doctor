@@ -2,6 +2,8 @@ import { Listr } from "listr2";
 import kleur from "kleur";
 import { Authenticate, Version } from "@commands";
 import {
+  CapabilitiesHelper,
+  DependencyHelper,
   DoctorTranspiler,
   FileHelpers,
   Logger,
@@ -22,7 +24,7 @@ import {
   PublishOutput,
   PublishResult,
 } from "@models";
-import { existsAsync, relativePath } from "@utils";
+import { existsAsync, isPermissionError, relativePath } from "@utils";
 
 export class Publish {
   /**
@@ -50,6 +52,25 @@ export class Publish {
         new Error(
           `In order to run the publish command, you need to specify the '--url' property.`
         )
+      );
+    }
+
+    // A translation is a page SharePoint creates from a modern page, which an
+    // HTML page is not. Refused before anything is written, rather than half
+    // way through a run.
+    if (options.pageMode === "html" && options.multilingual?.enableTranslations) {
+      return Promise.reject(
+        new Error(
+          `The "html" page mode does not support multilingual sites yet. Turn off "multilingual.enableTranslations", or publish with the "webpart" page mode.`
+        )
+      );
+    }
+
+    // Said on every run rather than once, as the run is where someone decides
+    // whether what was published can go to a production site
+    if (options.pageMode === "html") {
+      OutputHelper.warning(
+        `The "html" page mode is in beta. Moving between HTML pages in the SharePoint site navigation does not load the next page yet (a SharePoint bug), and the design and settings can still change. Read about its limits at https://getdoctor.io/docs/content/html-pages/.`
       );
     }
 
@@ -92,8 +113,26 @@ export class Publish {
         },
         {
           title: `Load publish state`,
-          task: async () =>
-            await StateHelper.load(webUrl, options.assetLibrary, options.stateFile),
+          task: async (_, task) => {
+            await StateHelper.load(
+              webUrl,
+              options.assetLibrary,
+              options.stateFile
+            );
+
+            // The settings and the shortcodes decide what every page publishes
+            // as, so a change to them counts as a change to all of them
+            const changed = StateHelper.setConfigHash(
+              await DependencyHelper.getConfigHash(options)
+            );
+
+            if (changed) {
+              task.output = `The settings changed since the last run, so every page is published again`;
+              OutputHelper.warning(
+                `The publish settings or the shortcodes changed since the last run, so every page is published again.`
+              );
+            }
+          },
           enabled: () => !options.disableStatePersistence && !options.skipPages,
         },
         {
@@ -106,6 +145,29 @@ export class Publish {
               PartialsHelper.getIgnorePatterns(options)
             ),
           enabled: () => !options.skipPages,
+          rendererOptions: { persistentOutput: true },
+        },
+        {
+          title: `Check the available permissions`,
+          task: async (_, task) => {
+            task.output = `Reading the permissions of ${webUrl}`;
+            const capabilities = await CapabilitiesHelper.probe(webUrl, options);
+            CapabilitiesHelper.report(capabilities, options);
+
+            // Only fatal for a run which was going to publish pages. With
+            // --skipPages the run is there to set the navigation or the site
+            // design, and has no business needing Site Pages rights.
+            if (
+              capabilities.determined &&
+              !capabilities.publishPages &&
+              !options.skipPages
+            ) {
+              throw new Error(
+                `This account cannot create or update pages in the Site Pages library of ${webUrl}, so there is nothing doctor can publish. It needs at least "Add Items" and "Edit Items" there.`
+              );
+            }
+          },
+          enabled: () => !options.skipPrecheck,
           rendererOptions: { persistentOutput: true },
         },
         {
@@ -195,15 +257,48 @@ export class Publish {
           rendererOptions: { persistentOutput: true },
         },
         {
+          title: `Set the site homepage`,
+          task: async (_, task) => {
+            const homepage = PagesHelper.getHomepage();
+            if (!homepage) {
+              task.skip(`No page is marked as the homepage`);
+              return;
+            }
+
+            try {
+              const changed = await PagesHelper.setHomepage(webUrl, homepage);
+              task.output = changed
+                ? `${homepage} is the homepage now`
+                : `${homepage} already is the homepage`;
+            } catch (e: any) {
+              // Like the navigation: the pages are published by now, and the
+              // homepage needs rights on the web that editing pages does not
+              if (!isPermissionError(e)) {
+                throw e;
+              }
+              OutputHelper.warning(
+                `This account is not allowed to change the homepage of ${webUrl}, so "${homepage}" did not become the homepage. The pages themselves were published. Granting it Manage Web rights on the site fixes this.`
+              );
+            }
+          },
+          enabled: () => !options.skipPages,
+          rendererOptions: { persistentOutput: true },
+        },
+        {
           title: `Updating navigation`,
           task: async () =>
             await NavigationHelper.update(webUrl, ouput.navigation ?? undefined),
-          enabled: () => !options.skipNavigation,
+          enabled: () =>
+            !options.skipNavigation &&
+            CapabilitiesHelper.get().manageNavigation,
         },
         {
           title: `Change the look of the site`,
           task: async (ctx, task) => await SiteHelpers.changeLook(task, options),
-          enabled: () => !!options.siteDesign && !options.skipSiteDesign,
+          enabled: () =>
+            !!options.siteDesign &&
+            !options.skipSiteDesign &&
+            CapabilitiesHelper.get().manageSiteDesign,
         },
         {
           title: `Post cleanup`,

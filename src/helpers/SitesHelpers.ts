@@ -1,12 +1,14 @@
 import { join } from "path";
+import { existsAsync, isPermissionError } from "@utils";
 import { CommandArguments, TaskOutput } from "@models";
-import {
-  CliCommand,
-  executeWithRetry,
-  FileHelpers,
-  FolderHelpers,
-  Logger,
-} from "@helpers";
+import { AccessToken } from "./AccessToken.js";
+import { ApiHelper } from "./ApiHelper.js";
+import { CliCommand } from "./CliCommand.js";
+import { FileHelpers } from "./FileHelpers.js";
+import { FolderHelpers } from "./FolderHelpers.js";
+import { Logger } from "./Logger.js";
+import { OutputHelper } from "./OutputHelper.js";
+import { executeWithRetry } from "./RunCommand.js";
 
 const getErrorMessage = (error: any): string => {
   if (!error) {
@@ -20,21 +22,120 @@ const getErrorMessage = (error: any): string => {
   return error.message || JSON.stringify(error);
 };
 
-const isAuthOrPermissionError = (message: string): boolean => {
-  const normalized = (message || "").toLowerCase();
-
-  return (
-    normalized.includes("status code 401") ||
-    normalized.includes("status code 403") ||
-    normalized.includes("unauthorized") ||
-    normalized.includes("forbidden") ||
-    normalized.includes("access denied") ||
-    normalized.includes("not authorized") ||
-    normalized.includes("insufficient")
-  );
-};
-
 export class SiteHelpers {
+  /**
+   * Where the site logo actually is.
+   *
+   * The path used to be taken relative to the content folder, which is not
+   * where the rest of `doctor.json` points — `certificate`, `partials.folder`
+   * and `markdown.shortcodesFolder` are all relative to the file itself. Both
+   * are accepted, content folder first so existing setups keep working, and
+   * neither matching says which paths were tried.
+   */
+  private static async resolveLogoPath(
+    startFolder: string,
+    logo: string
+  ): Promise<string> {
+    const inContent = join(startFolder, logo);
+    if (await existsAsync(inContent)) {
+      return inContent;
+    }
+
+    const besideConfig = join(process.cwd(), logo);
+    if (await existsAsync(besideConfig)) {
+      Logger.debug(`Site logo found next to doctor.json: ${besideConfig}`);
+      return besideConfig;
+    }
+
+    throw new Error(
+      `The site logo "${logo}" does not exist. Doctor looked in "${inContent}" and "${besideConfig}". The path is taken relative to the content folder, or to doctor.json.`
+    );
+  }
+
+  /**
+   * The server relative path `setsitelogo` takes, from the absolute URL the
+   * upload hands back. That URL is percent-encoded — a library called
+   * `Shared Documents` comes back as `Shared%20Documents` — and the endpoint
+   * wants the path as SharePoint names it, so the encoding is undone.
+   * @param logoUrl the logo's absolute or server relative URL
+   */
+  public static toServerRelative(logoUrl: string): string {
+    let path = logoUrl;
+    try {
+      path = new URL(logoUrl).pathname;
+    } catch {
+      // Already relative
+    }
+
+    try {
+      return decodeURIComponent(path);
+    } catch {
+      // A `%` that is not an escape, so the path was never encoded
+      return path;
+    }
+  }
+
+  /**
+   * Point the site at its logo.
+   *
+   * Done directly rather than with `spo site set`, which reaches the tenant
+   * admin site before it gets to the logo: it derives the admin URL from the
+   * SharePoint root, and falls back to a Microsoft Graph call to find it. An
+   * app scoped to a single site with `Sites.Selected` cannot make that call,
+   * and the failure surfaces as "Cannot read properties of undefined (reading
+   * 'replace')" rather than anything to do with the logo.
+   *
+   * Setting the logo itself is a site-scoped call, which is all that is needed.
+   */
+  private static async setSiteLogo(
+    webUrl: string,
+    logoUrl: string
+  ): Promise<void> {
+    const base = webUrl.replace(/\/+$/, "");
+
+    const relativeLogoUrl = SiteHelpers.toServerRelative(logoUrl);
+
+    Logger.debug(`Setting the site logo to ${relativeLogoUrl}`);
+
+    await ApiHelper.postOrThrow(
+      `${base}/_api/siteiconmanager/setsitelogo`,
+      {
+        Authorization: `Bearer ${(await AccessToken.get(webUrl)).trim()}`,
+        accept: "application/json;odata=nometadata",
+        "content-type": "application/json;odata=nometadata",
+      },
+      {
+        aspect: 1,
+        relativeLogoUrl,
+        type: 0,
+      }
+    );
+  }
+
+  /**
+   * The look of the site is set with calls that need rights on the web, which
+   * an account allowed to publish pages does not necessarily have. None of it
+   * is worth losing a run over — the pages are already written by then — so a
+   * refusal reports what was left alone and the publish carries on. Anything
+   * else is a real failure and still stops the run.
+   */
+  private static skipIfNotAllowed(
+    error: unknown,
+    what: string,
+    action: string
+  ): void {
+    const message = getErrorMessage(error);
+
+    if (!isPermissionError(message)) {
+      throw new Error(`Something failed while ${action}. ${message}`);
+    }
+
+    Logger.debug(`${what} skipped: ${message}`);
+    OutputHelper.warning(
+      `This account is not allowed to ${what.toLowerCase()} on this site, so it was left as it is. The pages themselves were published. Granting it Manage Web rights on the site, or removing the matching 'siteDesign' setting, stops this being reported.`
+    );
+  }
+
   /**
    * Change the look of the site
    * @param task
@@ -79,24 +180,11 @@ export class SiteHelpers {
             CliCommand.getRetry()
           );
         } catch (themeError) {
-          const themeErrorMessage = getErrorMessage(themeError);
-
-          if (isAuthOrPermissionError(themeErrorMessage)) {
-            Logger.debug(
-              `Theme application skipped due to insufficient permissions: ${themeErrorMessage}`
-            );
-            Logger.debug(
-              `Continuing without applying theme \"${siteDesign.theme}\".`
-            );
-          } else {
-            return Promise.reject(
-              new Error(
-                `Something failed while applying the site theme "${siteDesign.theme}". ${getErrorMessage(
-                  themeError
-                )}`
-              )
-            );
-          }
+          SiteHelpers.skipIfNotAllowed(
+            themeError,
+            "Change the site theme",
+            `applying the site theme "${siteDesign.theme}"`
+          );
         }
       }
     } else if (siteDesign.theme) {
@@ -149,12 +237,10 @@ export class SiteHelpers {
           CliCommand.getRetry()
         );
       } catch (e) {
-        return Promise.reject(
-          new Error(
-            `Something failed while setting site chrome options. ${getErrorMessage(
-              e
-            )}`
-          )
+        SiteHelpers.skipIfNotAllowed(
+          e,
+          "Change the site header and footer",
+          "setting site chrome options"
         );
       }
     }
@@ -164,7 +250,10 @@ export class SiteHelpers {
         let imgUrl = siteDesign.logo;
 
         if (imgUrl) {
-          const imgPath = join(options.startFolder, siteDesign.logo);
+          const imgPath = await SiteHelpers.resolveLogoPath(
+            options.startFolder,
+            siteDesign.logo
+          );
 
           Logger.debug(
             `Setting site logo with the following path: "${imgPath}"`
@@ -181,29 +270,13 @@ export class SiteHelpers {
           );
         }
 
-        await executeWithRetry(
-          "spo site set",
-          {
-            url: webUrl,
-            siteLogoUrl: imgUrl,
-          },
-          CliCommand.getRetry()
-        );
+        await SiteHelpers.setSiteLogo(webUrl, imgUrl);
       } catch (e) {
-        const logoErrorMessage = getErrorMessage(e);
-
-        if (isAuthOrPermissionError(logoErrorMessage)) {
-          Logger.debug(
-            `Site logo update skipped due to insufficient permissions: ${logoErrorMessage}`
-          );
-          Logger.debug(`Continuing without updating the site logo.`);
-        } else {
-          return Promise.reject(
-            new Error(
-              `Something failed while setting the site logo. ${logoErrorMessage}`
-            )
-          );
-        }
+        SiteHelpers.skipIfNotAllowed(
+          e,
+          "Change the site logo",
+          "setting the site logo"
+        );
       }
     }
   }

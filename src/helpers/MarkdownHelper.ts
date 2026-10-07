@@ -9,7 +9,7 @@ import markdownItMark from "markdown-it-mark";
 import markdownItFootnote from "markdown-it-footnote";
 import markdownItDeflist from "markdown-it-deflist";
 import markdownItTaskLists from "markdown-it-task-lists";
-import { CliCommand, ShortcodesHelpers, TempDataHelper } from "@helpers";
+import { CliCommand, ShortcodesHelpers } from "@helpers";
 import { CommandArguments, MarkdownSettings, PublishContext, TaskOutput } from "@models";
 import hljs from "highlight.js";
 import { encode } from "html-entities";
@@ -80,11 +80,12 @@ export class MarkdownHelper {
    * @param options
    * @returns
    */
-  public static async getHtmlData(markdown: string, options: CommandArguments) {
-    const mdOptions = CliCommand.options?.markdown;
-    const theme =
-      mdOptions && mdOptions.theme ? mdOptions.theme.toLowerCase() : "dark";
-    const useExtended = mdOptions?.extended !== false;
+  public static async getHtmlData(
+    markdown: string,
+    options: CommandArguments,
+    includeStyles: boolean = true
+  ) {
+    const useExtended = CliCommand.options?.markdown?.extended !== false;
 
     const converter = new MarkdownIt({
       html: true,
@@ -123,44 +124,75 @@ export class MarkdownHelper {
         .use(markdownItTaskLists, { label: true });
     }
 
-    const cleanCss = new CleanCSS({});
     // The blank lines around the markdown are required. Without them markdown-it
     // treats the opening `div` and the first block of the content as a single
     // HTML block, which leaves that first block unparsed.
+    //
+    // The outer `ExternalClass` div is a guard. Now and then SharePoint
+    // re-sanitizes the stored HTML when a page is checked in, and scopes every
+    // rule of the stylesheet under `.ExternalClass` — which nothing on a modern
+    // page carries, so the callouts, code and table of contents lost their
+    // styling. It cannot be triggered on demand, so it cannot be avoided; with
+    // the class on an ancestor, the rules match whether they were scoped or
+    // not. It has to wrap the container rather than sit on it, since a scoped
+    // `.ExternalClass .doctor__container` only matches a descendant.
     let htmlMarkup = await ShortcodesHelpers.parseBefore(`
+<div class="ExternalClass">
 <div class="doctor__container">
 <div class="doctor__container__markdown">
 
 ${markdown}
 
 </div>
+</div>
 </div>`);
     htmlMarkup = converter.render(htmlMarkup);
     htmlMarkup = await ShortcodesHelpers.parseAfter(htmlMarkup);
 
+    // A page split by web part shortcodes renders one Markdown web part per
+    // segment, but they all end up in the same document — so the stylesheet is
+    // only carried by the first of them instead of being repeated N times.
+    if (!includeStyles) {
+      return htmlMarkup;
+    }
+
+    return `${htmlMarkup}<style>${this.getStyles()}</style>`;
+  }
+
+  /**
+   * The stylesheet doctor's rendered markdown relies on: code highlighting in
+   * the configured theme, the shortcodes, and the extended syntax when it is on.
+   * Kept apart from the markup so a full HTML page can put it in its `<head>`.
+   */
+  public static getStyles(): string {
+    const mdOptions = CliCommand.options?.markdown;
+    const theme =
+      mdOptions && mdOptions.theme ? mdOptions.theme.toLowerCase() : "dark";
+    const useExtended = mdOptions?.extended !== false;
+
+    const cleanCss = new CleanCSS({});
     const editorCss = theme === "light" ? hljsLightCss : hljsDarkCss;
     const additionalCss = useExtended
       ? ` ${cleanCss.minify(extendedCss).styles}`
       : ``;
-    htmlMarkup = `${htmlMarkup}<style>${
-      cleanCss.minify(editorCss).styles
-    } ${cleanCss.minify(shortcodesCss).styles}${additionalCss}</style>`;
-
-    return htmlMarkup;
+    return `${cleanCss.minify(editorCss).styles} ${
+      cleanCss.minify(shortcodesCss).styles
+    }${additionalCss}`;
   }
 
   /**
-   * Retrieve the JSON data for the web part
+   * Retrieve the web part data for the markdown web part
    * @param webPartTitle
    * @param markdown
    */
-  public static async getJsonData(
+  public static async getWebPartData(
     webPartTitle: string,
     markdown: string,
     mdOptions: MarkdownSettings | null,
     options: CommandArguments,
-    wasAlreadyParsed: boolean = false
-  ): Promise<string> {
+    wasAlreadyParsed: boolean = false,
+    includeStyles: boolean = true
+  ): Promise<any> {
     const allowHtml = mdOptions && mdOptions.allowHtml;
     const theme =
       mdOptions && mdOptions.theme ? mdOptions.theme.toLowerCase() : "dark";
@@ -187,7 +219,7 @@ ${markdown}
     if (allowHtml) {
       let htmlMarkup = wasAlreadyParsed
         ? markdown
-        : await this.getHtmlData(markdown, options);
+        : await this.getHtmlData(markdown, options, includeStyles);
 
       if (htmlMarkup) {
         wpData.serverProcessedContent["htmlStrings"] = {
@@ -196,7 +228,7 @@ ${markdown}
       }
     }
 
-    return await TempDataHelper.create(wpData);
+    return wpData;
   }
 
 }

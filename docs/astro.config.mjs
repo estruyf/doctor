@@ -61,6 +61,7 @@ export default defineConfig({
           items: [
             { label: "Overview", link: "/docs/content/" },
             { label: "Pages", link: "/docs/content/pages/" },
+            { label: "HTML pages", link: "/docs/content/html-pages/", badge: { text: "Beta", variant: "caution" } },
             { label: "Navigation", link: "/docs/content/navigation/" },
             { label: "Markdown syntax", link: "/docs/content/markdown-syntax/" },
             {
@@ -68,6 +69,7 @@ export default defineConfig({
               items: [
                 { label: "Overview", link: "/docs/content/shortcodes/" },
                 { label: "Callout", link: "/docs/content/shortcodes/callout/" },
+                { label: "Web part shortcodes", link: "/docs/content/shortcodes/webpart/" },
                 { label: "Icon", link: "/docs/content/shortcodes/icon/" },
                 { label: "Mermaid", link: "/docs/content/shortcodes/mermaid/" },
                 { label: "Table of Contents", link: "/docs/content/shortcodes/toc/" },
@@ -107,6 +109,7 @@ export default defineConfig({
     }),
   ],
   redirects: {
+      "/docs/content/shortcodes/control/": "/docs/content/shortcodes/webpart/",
     "/docs/installation/": "/docs/getting-started/",
     "/docs/getting-started/installation/": "/docs/getting-started/",
     "/docs/certificate-authentication/": "/docs/getting-started/certificate-authentication/",

@@ -20,3 +20,26 @@ test("The parsed token never keeps a quote which would break the header", () => 
     assert.equal(AccessToken.parse(raw).includes('"'), false);
   }
 });
+
+const jwt = (claims) =>
+  `header.${Buffer.from(JSON.stringify(claims)).toString("base64url")}.signature`;
+
+test("A token is reused for ten minutes at most", () => {
+  const now = Date.UTC(2026, 0, 1);
+  const exp = now / 1000 + 60 * 60;
+  assert.equal(AccessToken.cacheUntil(jwt({ exp }), now), now + 10 * 60 * 1000);
+});
+
+test("A token close to its expiry is not reused past it", () => {
+  // The CLI hands back its own cached token, which can have minutes left
+  const now = Date.UTC(2026, 0, 1);
+  const exp = now / 1000 + 3 * 60;
+  const until = AccessToken.cacheUntil(jwt({ exp }), now);
+  assert.ok(until < exp * 1000, "cached until after the token expires");
+  assert.equal(until, exp * 1000 - 2 * 60 * 1000);
+});
+
+test("A token doctor cannot decode keeps the fixed window", () => {
+  const now = Date.UTC(2026, 0, 1);
+  assert.equal(AccessToken.cacheUntil("not-a-jwt", now), now + 10 * 60 * 1000);
+});

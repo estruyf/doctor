@@ -2,10 +2,19 @@ import { join } from "path";
 import arg from "arg";
 import kleur from "kleur";
 import inquirer from "inquirer";
-import { CommandArguments } from "@models";
+import { CommandArguments, PAGE_MODES, PageMode } from "@models";
 import { Command } from "@commands";
 import { existsAsync, readFileAsync } from "@utils";
 import { OutputHelper } from "./OutputHelper.js";
+
+
+/**
+ * The environment variable doctor reads the certificate password from when
+ * neither `--password` nor doctor.json supplies one. Named after the
+ * `CERTIFICATE_PASSWORD` secret the `workflow` command already sets up, so the
+ * two read as the same value.
+ */
+export const CERTIFICATE_PASSWORD_ENV = "DOCTOR_CERTIFICATE_PASSWORD";
 
 export class OptionsHelper {
   /**
@@ -40,6 +49,8 @@ export class OptionsHelper {
       "--webPartTitle": String,
       "--outputFolder": String,
       "--pageTemplate": String,
+      "--reapplyTemplates": Boolean,
+      "--pageMode": String,
       "--provider": String,
       "--output": String,
 
@@ -103,7 +114,18 @@ export class OptionsHelper {
         (args["--overwriteImages"] as any) ||
         options["overwriteImages"] ||
         false,
-      password: args["--password"] || options["password"] || null,
+      // The environment comes last, after doctor.json: it is the fallback for a
+      // password deliberately kept out of the file, which is the one case it
+      // exists for. It is also the only channel that does not leak — passed
+      // as --password, a value is echoed by the terminal that runs doctor and
+      // sits in the process list for the whole run, readable by every user on
+      // the machine. It lands on `password` like the others, so it is redacted
+      // and masked the same way.
+      password:
+        args["--password"] ||
+        options["password"] ||
+        process.env[CERTIFICATE_PASSWORD_ENV] ||
+        null,
       tenant: args["--tenant"] || options["tenant"] || null,
       appId: args["--appId"] || options["appId"] || null,
       certificate: args["--certificate"] || options["certificate"] || null,
@@ -184,10 +206,40 @@ export class OptionsHelper {
       cleanTopNavigation:
         args["--cleanTopNavigation"] || options["cleanTopNavigation"] || false,
       pageTemplate: args["--pageTemplate"] || options["pageTemplate"] || null,
+      reapplyTemplates:
+        args["--reapplyTemplates"] || options["reapplyTemplates"] || false,
+      pageMode: OptionsHelper.parsePageMode(
+        args["--pageMode"] ?? options["pageMode"]
+      ),
+      htmlTemplate: options["html"]?.["template"] || null,
+      htmlStyles: options["html"]?.["styles"] || null,
       disableComments:
         args["--disableComments"] || options["disableComments"] || false,
       provider: args["--provider"] || null,
     };
+  }
+
+  /**
+   * The page mode, refusing a value doctor does not know. Falling back to the
+   * default instead would quietly publish a site's worth of the wrong pages
+   * over a typo.
+   * @param value
+   */
+  public static parsePageMode(value: unknown): PageMode {
+    if (typeof value === "undefined" || value === null || value === "") {
+      return "webpart";
+    }
+
+    const mode = `${value}`.trim().toLowerCase();
+    if (PAGE_MODES.includes(mode as PageMode)) {
+      return mode as PageMode;
+    }
+
+    throw new Error(
+      `The "pageMode" option must be one of: ${PAGE_MODES.join(
+        ", "
+      )}, but received "${value}".`
+    );
   }
 
   /**

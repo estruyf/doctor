@@ -72,9 +72,18 @@ export class ApiHelper {
     Logger.debug(`POST Request URL: ${url}`);
     Logger.debug(`POST Request BODY: ${JSON.stringify(body)}`);
 
+    // The body is always JSON. Left unlabelled, fetch sends a string body as
+    // text/plain, which the pages API lets pass but `_api/web` refuses with a
+    // 400 ("A supported MIME type could not be found") — a page's CheckIn did.
+    const hasContentType = Object.keys(headers).some(
+      (name) => name.toLowerCase() === "content-type"
+    );
+
     const response = await fetch(url, {
       method: "POST",
-      headers,
+      headers: hasContentType
+        ? headers
+        : { ...headers, "content-type": "application/json" },
       body: JSON.stringify(body),
     });
     if (!response.ok) {

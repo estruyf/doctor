@@ -39,6 +39,8 @@ The [`--output json`](../configuration/cli-options/#json-output) argument makes 
 ```yaml
 - name: Check which pages change
   id: status
+  env:
+    DOCTOR_CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
   run: |
     doctor status --output json \
       --url ${{ secrets.SITE_URL }} \
@@ -70,5 +72,5 @@ The same document lets you skip the publish step altogether when nothing changed
 ```
 
 :::caution[Important]
-`doctor` cannot prompt while it reports JSON, as that would block your pipeline. Pass every value it needs as an argument or through the `doctor.json` file, including `--confirm` for the runs which remove content.
+`doctor` cannot prompt while it reports JSON, or anywhere without a terminal, as that would block your pipeline. Pass every value it needs as an argument, an environment variable or through the `doctor.json` file — the certificate password in `DOCTOR_CERTIFICATE_PASSWORD`, and `--confirm` for the runs which remove content.
 :::
