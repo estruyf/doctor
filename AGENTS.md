@@ -14,6 +14,25 @@ with a few direct REST calls where that CLI has no command.
 Docs live at [getdoctor.io](https://getdoctor.io) and are built with [Astro Starlight](https://starlight.astro.build/)
 from [docs/](docs/) — **not** Hugo (the site was migrated; ignore leftover Hugo-style paths referenced elsewhere).
 
+## Repository layout
+
+An npm workspaces repository. The root `package.json` is private and holds no code.
+
+```text
+apps/doctor/     @estruyf/doctor, the CLI: src, bin, tests, scripts, changelog.json
+docs/            the getdoctor.io site, its own package and lockfile, not a workspace
+schema/          the doctor.json JSON schema, addressed by URL, never move it
+assets/          repository images (the README logo)
+```
+
+`schema/` stays at the root because `https://raw.githubusercontent.com/estruyf/doctor/dev/schema/<version>.json`
+is written into every user's `doctor.json`. `docs/` stays out of the workspaces so Vercel keeps installing
+only the site. `readme.md` and `LICENSE` live at the root, where GitHub shows them, and are copied into
+`apps/doctor` while npm packs it.
+
+The rest of this file describes the CLI. Paths in it are relative to `apps/doctor/` unless they start with
+`docs/`, `schema/` or `.github/`.
+
 Node.js >= 22.13.0. ESM (`"type": "module"`) — **relative imports must carry the `.js` extension**, even
 from `.ts` sources. TypeScript 7 (the native compiler, installed as `@typescript/native`), `module: nodenext`,
 `strictNullChecks` and `noUnusedLocals` are on. `strict` is set to `false` on purpose: TS 7 turns it on
@@ -21,43 +40,53 @@ by default and the code has not been made strict yet.
 
 ## Commands
 
+Install once from the root (`npm install`), which also sets up the husky hook. From the root:
+
+```bash
+npm run build       # builds every workspace
+npm test            # tests every workspace
+npm run docs        # astro dev — serve the Astro Starlight docs site from docs/
+npm run docs:build  # npm install + astro build in docs/ (what the site deploy runs)
+```
+
+For the CLI alone, run these in `apps/doctor/` or add `-w @estruyf/doctor` from the root:
+
 ```bash
 npm run build       # clean + tsc + tsc-alias   (tsc-alias rewrites the @-aliases in dist)
 npm test            # build, then: node --test tests/**/*.test.mjs
 npm run watch       # tsc -w + tsc-alias -w
 npm run watch:debug # same, but patches bin/doctor to `node --inspect` + DEBUG=true
-npm run docs        # astro dev — serve the Astro Starlight docs site from docs/
-npm run docs:build  # npm install + astro build in docs/ (what the site deploy runs)
 ```
 
-Run a single test file (tests import from `dist/`, so build first):
+Run a single test file (tests import from `dist/`, so build first), in `apps/doctor/`:
 
 ```bash
 npm run build && node --test tests/locale.test.mjs
 ```
 
-Tests are plain `node:test` `.mjs` files in [tests/](tests/) that import compiled helpers from `../dist/...`.
+Tests are plain `node:test` `.mjs` files in [tests/](apps/doctor/tests/) that import compiled helpers from `../dist/...`.
 There is no linter and no test framework beyond the Node test runner — do not introduce one without being asked.
 
-`npm link` makes the local build available as the global `doctor` command. The sample content repo is
+`npm link`, run in `apps/doctor/`, makes the local build available as the global `doctor` command (at the
+root it would link the private workspace root). The sample content repo is
 [estruyf/doctor-sample](https://github.com/estruyf/doctor-sample) (what CI publishes against).
 
 ## Architecture
 
 ### Request flow
 
-`bin/doctor` → [src/cli.ts](src/cli.ts) → [src/main.ts](src/main.ts) → a command class in [src/commands/](src/commands/).
+`bin/doctor` → [src/cli.ts](apps/doctor/src/cli.ts) → [src/main.ts](apps/doctor/src/main.ts) → a command class in [src/commands/](apps/doctor/src/commands/).
 
-Commands are the `Command` enum in [src/commands/Command.ts](src/commands/Command.ts):
+Commands are the `Command` enum in [src/commands/Command.ts](apps/doctor/src/commands/Command.ts):
 `init`, `publish`, `workflow`, `status`, `version`, `setup`, `cleanup` (the last two wire up shell autocomplete).
 
-1. [OptionsHelper](src/helpers/OptionsHelper.ts) reads `doctor.json` from `process.cwd()`, merges CLI
+1. [OptionsHelper](apps/doctor/src/helpers/OptionsHelper.ts) reads `doctor.json` from `process.cwd()`, merges CLI
    arguments over it (`arg` package), then prompts via `inquirer` for anything still missing. Everything
    ends up in one flat `CommandArguments` object threaded through the whole run.
 2. `Commands.start()` calls `resetRuntimeState()` and initializes `Logger`/`OutputHelper`/`CliCommand`/`PartialsHelper`,
    then dispatches on `options.task`.
 3. Long-running commands (`publish`, `status`) render as a `listr2` task list. Each publish step is a task
-   with an `enabled:` predicate driven by the options — that list in [publish.ts](src/commands/publish.ts) is
+   with an `enabled:` predicate driven by the options — that list in [publish.ts](apps/doctor/src/commands/publish.ts) is
    the clearest description of the pipeline: clean → multilingual config → load state → collect markdown →
    precheck → pages → localized pages → remove deleted → navigation → site design → post cleanup → save state.
 
@@ -68,7 +97,7 @@ An option that is missing from any of these is silently ignored at runtime:
 1. `OptionsHelper.getArgs()` — the `arg` definition (`--flag`).
 2. `OptionsHelper.parseArguments()` — the merge, in the order **argument → `doctor.json` → default**.
    **Arguments always win over `doctor.json`.**
-3. The matching interface in [src/models/CommandArguments.ts](src/models/CommandArguments.ts)
+3. The matching interface in [src/models/CommandArguments.ts](apps/doctor/src/models/CommandArguments.ts)
    (`RuntimeOptions`, `AuthOptions`, `PublishOptions`, `ContentOptions`, `NavigationOptions`,
    `SiteOptions`, `TaskToggleOptions`).
 
@@ -83,13 +112,13 @@ and the docs page — see [Definition of done](#definition-of-done).
 Nearly every helper is a class of `static` methods holding module-level state (page cache, publish state,
 counters, partials cache, rendered-diagram cache). This only works because `Commands.resetRuntimeState()`
 clears them all at the start of a run — **any helper that keeps state must expose `reset()` and be added to
-that list in [main.ts](src/main.ts)**, otherwise tests (and repeat runs in the same process) leak state
+that list in [main.ts](apps/doctor/src/main.ts)**, otherwise tests (and repeat runs in the same process) leak state
 between cases. Tests call the compiled helpers directly, so a forgotten `reset()` shows up as an
 order-dependent test failure.
 
 ### Output: one stdout writer
 
-[OutputHelper](src/helpers/OutputHelper.ts) is the single place that writes to stdout. With `--output json`
+[OutputHelper](apps/doctor/src/helpers/OutputHelper.ts) is the single place that writes to stdout. With `--output json`
 the human-readable output has to disappear completely, and the run ends with exactly one JSON document
 written by `flush()`. **Never `console.log` from a helper** — go through `OutputHelper`. Debug output goes
 to stderr via `Logger`, so it never mixes with the parsed document. An unknown `--output` value throws
@@ -97,13 +126,13 @@ rather than falling back, so a typo can't hand a pipeline human output to parse.
 
 ### Publish state
 
-[StateHelper](src/helpers/StateHelper.ts) stores `.doctor/state.json` **in the SharePoint asset library, not
+[StateHelper](apps/doctor/src/helpers/StateHelper.ts) stores `.doctor/state.json` **in the SharePoint asset library, not
 on disk** (path relative to `--library`, configurable with `--stateFile`). It holds a SHA-256 hash per slug
 of everything the page is built from — front matter, content, partials, the images it references, the
 slugs of the pages it links to, and (with `--reapplyTemplates`) its page template — plus the instance
 ids of the controls doctor put on the page and a `configHash` of the publish settings and the custom
 shortcodes, which marks every page changed when it moves.
-[DependencyHelper](src/helpers/DependencyHelper.ts) works those inputs out, once per run per file. This drives three behaviours: skipping
+[DependencyHelper](apps/doctor/src/helpers/DependencyHelper.ts) works those inputs out, once per run per file. This drives three behaviours: skipping
 unchanged pages, the `status` command's new/modified/unchanged/deleted/orphaned report, and `--removeDeleted`
 (recycles pages present in state but absent locally — only with `--confirm`, and never when slugs cannot be
 resolved for every file). `--forceAll` bypasses the hash check; `--disableStatePersistence` turns the whole
@@ -112,27 +141,27 @@ mechanism off. Anything that changes what a page renders from must feed the hash
 ### Multilingual
 
 - A translation is identified **by file name**, not front matter: `*.lang.md` (`isLanguageFile`) and generated
-  `*.machinetranslated.md` — see [isLanguageFile.ts](src/utils/isLanguageFile.ts). `type: translation` in front
+  `*.machinetranslated.md` — see [isLanguageFile.ts](apps/doctor/src/utils/isLanguageFile.ts). `type: translation` in front
   matter is documentation, not the source of truth — matching on it would let a translation collide with its
   source page's slug.
 - Source pages link translations through `localization: { "nl-nl": ./page.nl.lang.md }`.
-  [LocaleHelper](src/helpers/LocaleHelper.ts) maps those culture names to the LCIDs `multilingual.languages`
+  [LocaleHelper](apps/doctor/src/helpers/LocaleHelper.ts) maps those culture names to the LCIDs `multilingual.languages`
   and SharePoint use.
 - Translations are processed in a **separate pipeline step after all normal pages** — SharePoint can only
   create a translation once the source page exists.
-- [Translator](src/helpers/Translator.ts) calls the Azure Translator Text API (key via `multilingual.translator`,
+- [Translator](apps/doctor/src/helpers/Translator.ts) calls the Azure Translator Text API (key via `multilingual.translator`,
   `TRANSLATOR_KEY` in CI).
 
 ### Markdown → SharePoint
 
-- [DoctorTranspiler](src/helpers/DoctorTranspiler.ts) is the core: parses front matter (`gray-matter`),
+- [DoctorTranspiler](apps/doctor/src/helpers/DoctorTranspiler.ts) is the core: parses front matter (`gray-matter`),
   resolves partials, renders Markdown (`markdown-it` + plugins), post-processes the HTML with `cheerio`,
-  uploads referenced images, and drives [PagesHelper](src/helpers/PagesHelper.ts) to create/update the page
+  uploads referenced images, and drives [PagesHelper](apps/doctor/src/helpers/PagesHelper.ts) to create/update the page
   and its controls.
-- [SegmentsHelper](src/helpers/SegmentsHelper.ts) cuts the markdown at every `kind: "control"` shortcode, so
+- [SegmentsHelper](apps/doctor/src/helpers/SegmentsHelper.ts) cuts the markdown at every `kind: "control"` shortcode, so
   one page can become several web parts. A page without one yields a single segment holding the whole
   document — byte-for-byte the input the Markdown web part has always received. Pure and stateless.
-- [CanvasHelper](src/helpers/CanvasHelper.ts) owns `CanvasContent1`: it composes the full control array and
+- [CanvasHelper](apps/doctor/src/helpers/CanvasHelper.ts) owns `CanvasContent1`: it composes the full control array and
   writes it with **one** `SavePageAsDraft`, rather than looping the CLI's add/set/remove commands (which
   cannot move an existing control, and republish the page on every remove). `compose()` is pure and is where
   the tests live; doctor's own controls are matched by the instance ids in the state file, falling back to
@@ -143,8 +172,8 @@ mechanism off. Anything that changes what a page renders from must feed the hash
 - **Two page modes** (`pageMode`): `webpart` (default) is everything above — a modern `.aspx` page with
   Markdown web parts. `html` (**beta** — `Publish.start` warns on every run, and the docs page, its sidebar
   badge, the option docs, schema and changelog say so; drop all of those together when it graduates) publishes each file as a self-contained `.html` file in Site Pages, which
-  SharePoint renders as an HTML page. [HtmlPageHelper](src/helpers/HtmlPageHelper.ts) renders it (same
-  `MarkdownHelper.getHtmlData` pipeline, wrapped in a template + [styles/htmlPage.ts](src/styles/htmlPage.ts)),
+  SharePoint renders as an HTML page. [HtmlPageHelper](apps/doctor/src/helpers/HtmlPageHelper.ts) renders it (same
+  `MarkdownHelper.getHtmlData` pipeline, wrapped in a template + [styles/htmlPage.ts](apps/doctor/src/styles/htmlPage.ts)),
   uploads it with `spo file add`, and publishes it by file level (checked out / draft / published).
   SharePoint shows it in an `<iframe sandbox="allow-scripts">` under the CSP it documents at
   `https://<tenant>.sharepoint.com/_html` (machine-readable: the `llms.txt` linked there) — the contract
@@ -165,39 +194,39 @@ mechanism off. Anything that changes what a page renders from must feed the hash
 - The `homepage: true` front matter is recorded in `DoctorTranspiler.addToSite` (every page that exists
   after the run passes there, published or unchanged) and applied by its own publish step with
   `spo web set --welcomePage`, in both page modes.
-- [MetadataHelper](src/helpers/MetadataHelper.ts) turns front matter values into the shapes
+- [MetadataHelper](apps/doctor/src/helpers/MetadataHelper.ts) turns front matter values into the shapes
   `ValidateUpdateListItem` accepts per column type (taxonomy, person claims, DateTime, Lookup, URL,
   MultiChoice). Pure — anything needing a question answered by SharePoint stays in `PagesHelper`.
   It works for HTML pages too: they are Site Page list items, looked up by file instead of `spo page get`.
-- [TermsHelper](src/helpers/TermsHelper.ts) resolves a managed metadata label to its term through the site
+- [TermsHelper](apps/doctor/src/helpers/TermsHelper.ts) resolves a managed metadata label to its term through the site
   term store (`_api/v2.1/termStore`), honouring a column's anchor term, synonyms and `Parent > Child` paths.
   A term it cannot resolve, or that matches more than one, fails the page rather than leaving the column
   empty.
-- [PartialsHelper](src/helpers/PartialsHelper.ts) resolves `<include file="..." />` plus the configured
+- [PartialsHelper](apps/doctor/src/helpers/PartialsHelper.ts) resolves `<include file="..." />` plus the configured
   `partials.header`/`partials.footer`, rewrites relative links inside included snippets, and contributes to
   the page hash so a changed partial re-publishes its pages.
-- [ShortcodesHelpers](src/helpers/ShortcodesHelpers.ts) loads the built-in shortcodes from
-  [src/shortcodes/](src/shortcodes/) (callout, icon, table of contents, mermaid) and user shortcodes from
+- [ShortcodesHelpers](apps/doctor/src/helpers/ShortcodesHelpers.ts) loads the built-in shortcodes from
+  [src/shortcodes/](apps/doctor/src/shortcodes/) (callout, icon, table of contents, mermaid) and user shortcodes from
   `markdown.shortcodesFolder`. These only apply when `markdown.allowHtml` is enabled.
-- [MermaidHelper](src/helpers/MermaidHelper.ts) renders diagrams **during publish**, in the Mermaid version
+- [MermaidHelper](apps/doctor/src/helpers/MermaidHelper.ts) renders diagrams **during publish**, in the Mermaid version
   this package ships, and uploads them as images to a `mermaid` folder in the asset library — SharePoint
   strips inline SVG and never executes the script tag. Diagram types that need a real browser
   (`C4Context`, `block-beta`) are left to SharePoint.
-- [TempDataHelper](src/helpers/TempDataHelper.ts) writes scratch files to `./temp` for command payloads,
+- [TempDataHelper](apps/doctor/src/helpers/TempDataHelper.ts) writes scratch files to `./temp` for command payloads,
   generated assets and machine-translated pages; it cleans up at the end of `cli()`, including on failure.
 
 ### Talking to SharePoint
 
-- [RunCommand.ts](src/helpers/RunCommand.ts) `executeWithRetry()` is the single choke point. For
+- [RunCommand.ts](apps/doctor/src/helpers/RunCommand.ts) `executeWithRetry()` is the single choke point. For
   `m365`/`localm365` it calls `executeCommand()` in-process; any other `--commandName` is spawned as a child
   process with the options serialized to argv. Both paths enforce `CliCommand.getTimeout()` (default 120s)
   and one 5s-delayed retry when `--retryWhenFailed` is set. Add new SharePoint calls here, not with ad-hoc
   `spawn`/`exec`.
-- [ApiHelper](src/helpers/ApiHelper.ts) + [AccessToken](src/helpers/AccessToken.ts) cover the direct REST
+- [ApiHelper](apps/doctor/src/helpers/ApiHelper.ts) + [AccessToken](apps/doctor/src/helpers/AccessToken.ts) cover the direct REST
   calls — the page canvas and the term store go this way, because the CLI has no command that does the job.
   Use the `*OrThrow` variants when a call must succeed — the plain ones swallow the SharePoint error
   message. `AccessToken.get()` caches per site for ten minutes, since fetching one runs two CLI commands.
-- [Authenticate](src/commands/authenticate.ts) handles login; a `--certificate` value ending in
+- [Authenticate](apps/doctor/src/commands/authenticate.ts) handles login; a `--certificate` value ending in
   `.pfx`/`.p12`/`.pem` is treated as a file path, anything else as base64 contents. A certificate that
   needs a password and was given none is asked for one in the terminal (masked, checked locally with
   `checkCertificatePassword` before the sign-in) — only with a TTY and never with `--output json`, so a
@@ -223,7 +252,7 @@ An [Astro Starlight](https://starlight.astro.build/) site with its own `package.
 - Renaming or moving a page means adding an entry to the `redirects` map in the same file; that is why the
   existing map is long, and old URLs must keep working.
 - [docs/src/content/docs/changelog/index.md](docs/src/content/docs/changelog/index.md) is **generated** by
-  `scripts/prepare-changelog.js` from [changelog.json](changelog.json) — never edit it by hand.
+  `scripts/prepare-changelog.js` from [changelog.json](apps/doctor/changelog.json) — never edit it by hand.
 
 ## Conventions
 
@@ -233,7 +262,7 @@ An [Astro Starlight](https://starlight.astro.build/) site with its own `package.
   path to avoid circular barrel imports.
 - **Config schema**: `doctor.json` options are documented in `schema/<version>.json`; adding an option means
   updating the current schema file.
-- **Changelog**: add entries to [changelog.json](changelog.json) — a new version object goes directly below
+- **Changelog**: add entries to [changelog.json](apps/doctor/changelog.json) — a new version object goes directly below
   the `template` entry, `id` = GitHub issue number or `null`. The husky `pre-commit` hook regenerates
   `CHANGELOG.md` and the docs changelog from it, and resets the debug shebang in `bin/doctor`.
 - **Comments** explain *why* a non-obvious decision was made (see the state-file, locale, output and
@@ -243,6 +272,7 @@ An [Astro Starlight](https://starlight.astro.build/) site with its own `package.
   release or a manual run). CI also runs a real publish against the `doctor-sample` site on macOS and Ubuntu.
   npm publishing uses **trusted publishing** (OIDC, no `NPM_TOKEN`), which npm ties to one workflow file —
   [main.yml](.github/workflows/main.yml). Don't add `npm publish` to any other workflow; it will fail to authenticate.
+  It publishes with `-w @estruyf/doctor`: a plain `npm publish` at the root hits the private workspace root.
 
 ## Definition of done
 
@@ -254,7 +284,7 @@ An [Astro Starlight](https://starlight.astro.build/) site with its own `package.
 | new/changed command | [docs/src/content/docs/docs/cli/](docs/src/content/docs/docs/cli/) |
 | new shortcode | a page under [docs/src/content/docs/docs/content/shortcodes/](docs/src/content/docs/docs/content/shortcodes/) **and** a sidebar entry |
 | changed front matter, partials or multilingual behaviour | the matching page under `docs/content/` |
-| any user-visible change | an entry in [changelog.json](changelog.json) |
+| any user-visible change | an entry in [changelog.json](apps/doctor/changelog.json) |
 | moved/renamed docs page | a `redirects` entry in [docs/astro.config.mjs](docs/astro.config.mjs) |
 
 Before calling a change done:
@@ -273,4 +303,5 @@ Before calling a change done:
 - Don't drop the `.js` extension on relative imports.
 - Don't add a linter, test framework or dependency that isn't asked for; the dependency versions in
   `package.json` are pinned exactly on purpose.
+- Don't move `schema/` or make `docs/` a workspace (see [Repository layout](#repository-layout)).
 - Don't commit, push, or publish unless asked — `#release` in a commit message triggers a real npm publish.

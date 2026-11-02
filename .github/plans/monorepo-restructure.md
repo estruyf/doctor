@@ -80,7 +80,7 @@ https://raw.githubusercontent.com/estruyf/doctor/dev/schema/2.1.0.json
 ```
 
 That URL is written into every user's `doctor.json` by `doctor init`
-([src/commands/init.ts](../../src/commands/init.ts)), documented on two configuration pages, and is
+([src/commands/init.ts](../../apps/doctor/src/commands/init.ts)), documented on two configuration pages, and is
 the `$id` inside the schema files themselves, across six versions. Moving the folder 404s it the
 moment the move lands on `dev`, and every existing project silently loses editor validation. It is
 a published contract, not an implementation detail.

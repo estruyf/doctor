@@ -1,6 +1,6 @@
 {
   "exportall.config.folderListener": [
-    "/src/utils"
+    "/apps/doctor/src/utils"
   ],
   "exportall.config.exportFileExtension": ".js",
   "biome.enabled": false

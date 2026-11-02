@@ -6,7 +6,7 @@
     {
       "label": "tsc: build",
       "type": "shell",
-      "command": "npm run build"
+      "command": "npm run build -w @estruyf/doctor"
     }
   ]
 }
