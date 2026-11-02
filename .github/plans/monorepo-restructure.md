@@ -1,6 +1,7 @@
 # Plan: one repository for the CLI and the metadata extension
 
-Status: agreed in principle, not started
+Status: agreed in principle. Step 1 is done (#209 merged), step 2 is next. Audited against both
+repositories on 2026-11-02
 Context: @estruyf asked for the **Doctor Metadata** VS Code extension
 ([involv-intranet/sharepoint-front-matter-vscode](https://github.com/involv-intranet/sharepoint-front-matter-vscode))
 to be merged into this repository. The code comes over as a clean copy; its history stays in the
@@ -21,6 +22,10 @@ Nothing keeps them in step, and the drift has already started: that file's own h
 `doctor-tools/doctor`, which is not where this project lives. A change to the contract on one side
 is invisible to the other until somebody publishes a page and reads the result.
 
+It already happened with 2.3.1. The HTML page mode (#205) added `pageMode`, `html` and a new
+`overwriteImages` description to the schema, and a `homepage` front matter key. The extension's
+schema copy and `doctorMappings.ts` have none of them.
+
 That is the same failure this release spent its review passes on — `status` and `publish` each
 computing "has this page changed" separately until one quietly stopped matching the other. The fix
 there was one entry point both call. The fix here is the same shape, and it needs one repository
@@ -31,9 +36,9 @@ so its pages belong downstream of the configuration pages rather than in a site 
 
 ## Structure
 
-```cd
+```text
 package.json              private workspace root, no code of its own
-docs/                     stays put — the site serves both packages
+docs/                     stays put, not a workspace — the site serves both packages
 schema/                   stays put — see below, this is a published URL
 assets/                   repository-level images
 .github/ .husky/          repository-wide
@@ -58,8 +63,14 @@ Different registries, different cadences, no shared version number.
 ### `docs/` and `schema/` stay at the repository root
 
 `docs/` is a site, not a publishable package. Its deploy and its long `redirects` map already point
-at that path, and moving it buys nothing. It gets listed as a workspace and gains a sidebar group
-for the extension, downstream of the configuration pages.
+at that path, and moving it buys nothing. It gains a sidebar group for the extension, downstream of
+the configuration pages.
+
+It stays **out** of the workspaces. Vercel builds it from `docs/` with its own `npm install` and its
+own lockfile ([docs/vercel.json](../../docs/vercel.json)). As a workspace, that install would run at
+the root and pull in the CLI's and the extension's dependencies too, and `npm run docs:build` (`cd
+docs && npm install`) would install the whole repository. Nothing is gained in return, since the site
+imports neither package.
 
 `schema/` **must not move**, and this is the one hard constraint in the whole plan. The schema is
 addressed by URL:
@@ -78,6 +89,9 @@ Keeping it at the root is also simply correct: the extension reads `doctor.json`
 is shared by both packages. If it needs to be importable rather than read by relative path, give
 `schema/` its own `package.json` and list it as a workspace — the files never move, so the URL keeps
 working.
+
+Unrelated to the move, but found while checking the `$id`s: `schema/1.12.0.json` has the `$id` of
+`1.2.0.json`.
 
 ### Two shared contracts, kept apart
 
@@ -122,6 +136,11 @@ also showed the value of the copy being exercised: rendering the editor from it 
 been in the published schema — and in every editor's IntelliSense for `doctor.json` — since August.
 Fixed on both sides in this release.
 
+That check fails today: the copy misses `pageMode`, `html` and the new `overwriteImages` text from
+#205. It is also the one row the move fixes for free. Once both live in one repository, esbuild can
+bundle `../../schema/2.1.0.json` straight into the extension, so PR B deletes the copy instead of
+syncing it.
+
 The last two rows copy *behaviour* rather than a list, which makes them the easiest to break without
 noticing: the editor warns about what doctor does, so a change to how doctor resolves a path or
 builds the navigation turns those warnings into wrong advice. Both were written from the code, and
@@ -136,22 +155,55 @@ published.
 |                               |                                                           |
 | ----------------------------- | --------------------------------------------------------- |
 | `.github/workflows/*.yml` (4) | none use `working-directory` today — all assume the root  |
+| `npm start` / `npm link` in CI | the root is a private package without a `bin`, so both need `-w @estruyf/doctor` |
 | `.husky/pre-commit`           | runs `node ./scripts/prepare-changelog.js`, root relative |
+| `prepare-changelog.js`        | writes `CHANGELOG.md` to the cwd and the docs page through `../docs/`, both shift |
+| `prepare-sample.js`           | resolves `../doctor-sample` from its own folder, but CI clones the sample into the root |
+| `update-package-version.js`   | edits the `package.json` in the cwd                       |
 | npm publish                   | the `#release` flow needs `-w @estruyf/doctor`            |
+| npm provenance                | `repository` needs `"directory": "apps/doctor"`           |
+| `readme.md`, `LICENSE`        | npm only packs them from the package folder, so `apps/doctor` needs its own or the npm page goes blank |
+| husky `prepare`               | moves to the root `package.json`. `husky install` is deprecated in husky 9, it becomes `husky` |
 | a local `npm link`            | re-run from the package directory                         |
 | `tsconfig` + `tsc-alias`      | the `@helpers`/`@models` aliases are package relative     |
+| `.vscode/launch.json`         | both repositories have one. `${workspaceFolder}` becomes the root, so they merge into one with `apps/...` paths. The extension's "Extension Tests" entry points at a `dist/test` that does not exist |
+| `.github/plans/*.md`          | the relative links into `src/`                            |
 | `AGENTS.md` / `CLAUDE.md`     | the command table and every path in it                    |
+
+Two more only break once the extension is in, so they belong to PR B:
+
+- **`main.yml` publishes the CLI on every published GitHub release.** An extension release would
+  publish doctor to npm. Releases need a tag per package (`doctor@2.4.0`, `doctor-vscode@0.2.0`) and
+  the workflow a gate on its own prefix.
+- **`release.yml` and `test-run.yml` run on every push to `dev`.** That is four real publishes against
+  the sample site for a change that only touches the extension. Both need a `paths` filter.
 
 ## Packaging the extension
 
 `vsce` is the Visual Studio Marketplace tool: `vsce package` builds a `.vsix` (a zip plus manifest),
-`vsce publish` uploads it. Two things to settle while moving it, both of which are broken today
-rather than broken by the move:
+`vsce publish` uploads it. Things to settle while moving it, all of them broken today rather than
+broken by the move:
 
 - **There is no `publisher` field**, so `vsce package` cannot succeed as the extension stands. It
   becomes part of the extension's permanent Marketplace id (`publisher.doctor-metadata`), so it is
-  worth agreeing before the first publish rather than after.
+  worth agreeing before the first publish rather than after. The same goes for the `doctor-metadata.*`
+  setting keys, which users end up with in their settings.
 - **There is no `.vscodeignore`**, so the `.vsix` ships `src/`, `test/` and `tsconfig.json`.
+- **There is no `vscode:prepublish` script**, so `vsce package` ships whatever is in `dist/`, which
+  can be an unminified watch build. It should run `node esbuild.js`.
+- **No `repository`, no `LICENSE`, no Marketplace `icon`.** vsce warns about the first two. The icon
+  has to be a PNG, and `media/icon.svg` is only the activity bar icon.
+- **The dependencies use `^` ranges.** This repository pins exact versions, so they get pinned on the
+  way in. `@types/vscode` matters most: it resolves to 1.137 while `engines.vscode` says `^1.85.0`, so
+  the compiler accepts API calls that the oldest supported VS Code does not have. It should match
+  `engines`.
+- **It has ESLint**, as part of `npm run compile`. `AGENTS.md` says no linter. Keep it for the
+  extension only and say so in a nested `AGENTS.md`/`CLAUDE.md` in `apps/doctor-vscode`, which also
+  holds the rest of its conventions (CommonJS, React, vitest).
+
+The copy itself: take the tracked files (`git archive main`), not the folder. `.impeccable/` is only
+hidden through `.git/info/exclude`. The only other branch, `dmitriyvde-fix-front-matter-parsing`, is
+a stray copy of the GitHub "Initial commit" with no shared history, so there is nothing to bring.
 
 `vsce` is also the one tool that dislikes workspaces: it walks the extension's own `node_modules` to
 decide what to ship, and workspaces hoist those to the root. The extension already bundles its six
@@ -161,7 +213,7 @@ the answer — the bundle is self contained and there is nothing for it to go lo
 ## Do the publish allowlist first, separately
 
 `.npmignore` denies `src`, `docs`, `schema`, `scripts` and more — and has never mentioned `tests`.
-`npm pack --dry-run` on 2.3.0:
+`npm pack --dry-run` on 2.3.0 (by 2.3.1 it is 36 test files):
 
 |                                      |                                         |
 | ------------------------------------ | --------------------------------------- |
@@ -192,17 +244,52 @@ They stay separate. Unifying them rewrites nearly 300 passing tests for no behav
 `AGENTS.md` says not to introduce a test framework. The root `npm test` fans out across workspaces.
 This is a decision, not an oversight — please do not tidy it.
 
+CI does not run either today. `test-build.yml` runs on pull requests but only builds. PR B adds
+`npm test` there, for both packages.
+
+`npm test` also deletes a tracked file, `temp/doctor-mermaid-1222fd6d86-eb8f4253.svg`, because the
+tests clean `./temp`. The file should be untracked and `temp/` added to `.gitignore`.
+
+## TypeScript 7
+
+`typescript@latest` on npm is now 7 (the native compiler). TS 6 only lives on as
+`@typescript/typescript6`, for tools that still need the JavaScript API. The extension already
+compiles on 7: it declares `"@typescript/native": "npm:typescript@^7.0.2"`, which provides its `tsc`,
+and keeps `"typescript": "npm:@typescript/typescript6@^6.0.2"` only because typescript-eslint
+imports `typescript`.
+
+Doctor moves from 5.9.3 to 7 with the same alias, pinned exactly
+(`"@typescript/native": "npm:typescript@7.0.2"`), so both packages share one compiler and the build
+keeps calling `tsc`. `tsc-alias` has no dependency on `typescript`, so it doesn't care which version
+gets hoisted. Watch mode (`tsc -w`) works on 7.
+
+Tested on 2026-11-02 with the extension's compiler: doctor builds on TS 7, `tsc-alias` resolves every
+alias, `doctor version` runs, and all 398 tests pass. The emitted JS differs from 5.9.3 in 8 files,
+and only in where the temporary variables of the `?.`/`??` downlevel are declared. TS 6 works too,
+with the same `tsconfig.json` changes:
+
+- drop `baseUrl` (deprecated in 6, gone in 7) and write the paths as `./src/...`
+- set `rootDir: "./src"`, or it refuses to emit
+- set `strict: false` explicitly next to `strictNullChecks`. `strict` is on by default since 6, which
+  gives five errors (implicit `any`s and a markdown-it plugin type). Turning it on is separate work.
+- set `"types": ["node"]` and declare `@types/node`, which doctor only gets by accident today (26.1.2,
+  through another dependency). Without `types`, doctor's compile would also load the extension's
+  hoisted `@types/react` and `@types/vscode`.
+
 ## Sequencing
 
-1. **Merge #209 first.** 69 files across 79 commits; rebasing that over a rename of the whole tree
-   is not worth anybody's afternoon.
+1. ~~**Merge #209 first.**~~ Done (`714781f6`).
 2. **The `files` allowlist**, on its own, small.
-3. **PR A — the mechanical move, no behaviour change.** One commit per step so a bisect can find a
+3. **TypeScript 7 for doctor**, on its own, small: the alias and the `tsconfig` changes above. Doing it before the move keeps PR A free of compiler changes.
+4. **PR A — the mechanical move, no behaviour change.** One commit per step so a bisect can find a
    break: `git mv` the CLI into `apps/doctor` and fix its aliases and scripts; workspaces at the
    root; CI paths; husky; `AGENTS.md`/`CLAUDE.md`. Green at every step. The only review question is
    whether anything broke.
-4. **PR B — drop the extension in**, with `.vscodeignore`, a `publisher`, and a `vsce` workflow.
-5. **PR C onward — the redundancy work**, starting with `packages/common`.
+5. **PR B — drop the extension in**, with `.vscodeignore`, a `publisher`, the packaging fixes above,
+   the schema import instead of the copy, per-package release tags, `paths` filters on the publish
+   workflows, `npm test` in `test-build.yml`, and a `vsce` workflow.
+6. **PR C onward — the redundancy work**, starting with `packages/common`. The `homepage` key the
+   extension misses is the first thing it should carry.
 
 A and B stay apart deliberately: A is a large diff that has to be boring, B is a small diff that
 needs real review.
