@@ -15,7 +15,9 @@ Docs live at [getdoctor.io](https://getdoctor.io) and are built with [Astro Star
 from [docs/](docs/) — **not** Hugo (the site was migrated; ignore leftover Hugo-style paths referenced elsewhere).
 
 Node.js >= 22.13.0. ESM (`"type": "module"`) — **relative imports must carry the `.js` extension**, even
-from `.ts` sources. TypeScript 5, `module: nodenext`, `strictNullChecks` and `noUnusedLocals` are on.
+from `.ts` sources. TypeScript 7 (the native compiler, installed as `@typescript/native`), `module: nodenext`,
+`strictNullChecks` and `noUnusedLocals` are on. `strict` is set to `false` on purpose: TS 7 turns it on
+by default and the code has not been made strict yet.
 
 ## Commands
 

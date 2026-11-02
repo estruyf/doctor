@@ -79,6 +79,7 @@
     }
   ],
   "devDependencies": {
+    "@typescript/native": "npm:typescript@7.0.2",
     "@types/clean-css": "4.2.11",
     "@types/inquirer": "9.0.9",
     "@types/listr": "0.14.10",
@@ -86,11 +87,11 @@
     "@types/markdown-it-emoji": "3.0.1",
     "@types/markdown-it-footnote": "3.0.4",
     "@types/mime-types": "3.0.1",
+    "@types/node": "26.5.1",
     "@types/omelette": "0.4.5",
     "husky": "9.1.7",
     "tsc-alias": "1.8.16",
-    "tslib": "2.8.1",
-    "typescript": "5.9.3"
+    "tslib": "2.8.1"
   },
   "dependencies": {
     "@fluentui/svg-icons": "1.1.321",

@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "target": "es6",
     "forceConsistentCasingInFileNames": true,
     "module": "nodenext",
@@ -12,30 +11,35 @@
     "experimentalDecorators": true,
     "skipLibCheck": true,
     "outDir": "dist",
+    "rootDir": "./src",
     "inlineSources": false,
+    "strict": false,
     "strictNullChecks": true,
     "noUnusedLocals": true,
+    "types": [
+      "node"
+    ],
     "lib": [
       "DOM",
       "ES2015"
     ],
     "paths": {
       "@commands": [
-        "src/commands/index.ts"
+        "./src/commands/index.ts"
       ],
       "@helpers": [
-        "src/helpers/index.ts"
+        "./src/helpers/index.ts"
       ],
       "@models": [
-        "src/models/index.ts"
+        "./src/models/index.ts"
       ],
       "@utils": [
-        "src/utils/index.ts"
+        "./src/utils/index.ts"
       ]
     }
   },
   "include": [
-    "src/**/*.ts"
+    "./src/**/*.ts"
   ],
   "exclude": [
     "node_modules"
