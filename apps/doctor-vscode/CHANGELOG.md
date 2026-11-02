@@ -1,6 +1,6 @@
 # Change Log
 
-## [0.1.0] - 2026-xx-xx
+## [0.1.0] - 2026-11-02
 
 The first release on the Visual Studio Marketplace.
 
