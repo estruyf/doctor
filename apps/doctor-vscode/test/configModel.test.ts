@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import schema from '../src/config/doctor-schema.json';
+import schema from '../../../schema/2.1.0.json';
 import {
   booleanValue,
   buildGroups,

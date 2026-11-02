@@ -2,7 +2,8 @@ import { randomBytes } from 'crypto';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { DOCTOR_RUNS, DoctorRun, runDoctor } from '../commands/runDoctor';
-import schema from './doctor-schema.json';
+// Read straight from the schema doctor publishes, so the editor cannot drift from it
+import schema from '../../../../schema/2.1.0.json';
 import { builtInLanguages, Language, readInstalledLanguages } from './languages';
 import { dialogStartFor, PATH_FIELDS, valueForPickedPath } from './pathFields';
 import {
