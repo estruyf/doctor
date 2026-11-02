@@ -1,0 +1,124 @@
+{
+  "name": "@estruyf/doctor",
+  "version": "2.3.1",
+  "description": "Maintain your documentation on SharePoint without pain.",
+  "main": "dist/main.js",
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "homepage": "https://github.com/estruyf/doctor",
+  "bin": {
+    "doctor": "bin/doctor",
+    "doctor_auto": "bin/autocomplete"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "scripts": {
+    "start": "npm run build",
+    "build": "npm run clean && tsc && tsc-alias",
+    "test": "npm run build && node --test tests/**/*.test.mjs",
+    "clean": "rm -rf dist",
+    "watch": "node ./scripts/reset-debug.js && (tsc -w & tsc-alias -w)",
+    "watch:debug": "node ./scripts/init-debug.js && (tsc -w & tsc-alias -w)",
+    "prepack": "node ./scripts/package-files.js copy",
+    "postpack": "node ./scripts/package-files.js remove"
+  },
+  "keywords": [
+    "cli",
+    "markdown",
+    "documentation"
+  ],
+  "author": "Elio Struyf",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/estruyf/doctor/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/estruyf/doctor.git",
+    "directory": "apps/doctor"
+  },
+  "maintainers": [
+    {
+      "name": "Elio Struyf",
+      "email": "elio@struyfconsulting.be",
+      "url": "https://www.eliostruyf.com"
+    },
+    {
+      "name": "Dmitriy Van der Elst",
+      "email": "dmitriy.vde@proton.me",
+      "url": "https://www.linkedin.com/in/dmitriy-van-der-elst/"
+    }
+  ],
+  "contributors": [
+    {
+      "name": "Elio Struyf",
+      "email": "elio@struyfconsulting.be",
+      "url": "https://www.eliostruyf.com"
+    },
+    {
+      "name": "Dmitriy Van der Elst",
+      "email": "dmitriy.vde@proton.me",
+      "url": "https://www.linkedin.com/in/dmitriy-van-der-elst/"
+    }
+  ],
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/estruyf"
+    },
+    {
+      "type": "buymeacoffee",
+      "url": "https://www.buymeacoffee.com/zMeFRy9"
+    }
+  ],
+  "devDependencies": {
+    "@typescript/native": "npm:typescript@7.0.2",
+    "@types/clean-css": "4.2.11",
+    "@types/inquirer": "9.0.9",
+    "@types/listr": "0.14.10",
+    "@types/markdown-it": "14.1.2",
+    "@types/markdown-it-emoji": "3.0.1",
+    "@types/markdown-it-footnote": "3.0.4",
+    "@types/mime-types": "3.0.1",
+    "@types/node": "26.5.1",
+    "@types/omelette": "0.4.5",
+    "tsc-alias": "1.8.16",
+    "tslib": "2.8.1"
+  },
+  "dependencies": {
+    "@fluentui/svg-icons": "1.1.321",
+    "@pnp/cli-microsoft365": "11.11.0",
+    "arg": "5.0.2",
+    "cheerio": "1.2.0",
+    "clean-css": "5.3.3",
+    "dompurify": "3.4.14",
+    "fast-glob": "3.3.3",
+    "gray-matter": "4.0.3",
+    "highlight.js": "11.11.1",
+    "html-entities": "2.6.0",
+    "inquirer": "13.3.2",
+    "jsdom": "29.1.1",
+    "kleur": "4.1.5",
+    "listr2": "11.0.0",
+    "markdown-it": "14.1.1",
+    "markdown-it-anchor": "9.2.0",
+    "markdown-it-deflist": "4.0.0",
+    "markdown-it-emoji": "3.1.0",
+    "markdown-it-footnote": "4.0.0",
+    "markdown-it-mark": "4.0.0",
+    "markdown-it-shortcode-tag": "1.1.0",
+    "markdown-it-table-of-contents": "1.1.0",
+    "markdown-it-task-lists": "2.1.1",
+    "mermaid": "11.17.0",
+    "mime": "4.1.0",
+    "omelette": "0.4.17",
+    "svgdom": "0.1.28"
+  }
+}

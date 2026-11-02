@@ -1,2 +1,2 @@
-node ./scripts/prepare-changelog.js
-node ./scripts/reset-debug.js
+node ./apps/doctor/scripts/prepare-changelog.js
+node ./apps/doctor/scripts/reset-debug.js

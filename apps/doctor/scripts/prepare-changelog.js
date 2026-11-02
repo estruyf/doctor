@@ -40,7 +40,9 @@ if (changelog && changelog.length > 0) {
     const changelogMain = `# Changelog
     
 ${markdown.join("\n")}`;
-    fs.writeFileSync("CHANGELOG.md", changelogMain, { encoding: "utf-8" });
+    fs.writeFileSync(path.join(__dirname, "../CHANGELOG.md"), changelogMain, {
+      encoding: "utf-8",
+    });
 
     const changelogDocs = `---
 title: Changelog
@@ -49,7 +51,7 @@ description: The changelog of Doctor
 
 ${markdown.join("\n")}`;
     fs.writeFileSync(
-      path.join(__dirname, "../docs/src/content/docs/changelog/index.md"),
+      path.join(__dirname, "../../../docs/src/content/docs/changelog/index.md"),
       changelogDocs,
       { encoding: "utf-8" },
     );

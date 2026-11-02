@@ -1,12 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const config = path.join(__dirname, `../doctor-sample/doctor.sample.json`);
-const newPath = path.join(__dirname, `../doctor-sample/doctor.json`);
+// CI clones the sample into the folder it runs this script from
+const config = path.resolve(`doctor-sample/doctor.sample.json`);
+const newPath = path.resolve(`doctor-sample/doctor.json`);
 fs.copyFileSync(config, newPath);
 
 const file = fs.readFileSync(newPath, { encoding: "utf-8" });

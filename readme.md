@@ -1,6 +1,6 @@
 <h1 align="center">
   <a href="https://github.com/estruyf/doctor">
-    <img alt="Doctor" src="./assets/doctor.svg" height="200">
+    <img alt="Doctor" src="https://raw.githubusercontent.com/estruyf/doctor/main/assets/doctor.svg" height="200">
   </a>
 </h1>
 
