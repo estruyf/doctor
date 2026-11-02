@@ -3,6 +3,10 @@
   "version": "2.3.1",
   "description": "Maintain your documentation on SharePoint without pain.",
   "main": "dist/main.js",
+  "files": [
+    "dist",
+    "bin"
+  ],
   "homepage": "https://github.com/estruyf/doctor",
   "bin": {
     "doctor": "bin/doctor",
