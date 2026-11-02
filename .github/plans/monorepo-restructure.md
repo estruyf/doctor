@@ -173,6 +173,8 @@ Two more only break once the extension is in, so they belong to PR B:
   the workflow a gate on its own prefix.
 - **`release.yml` and `test-run.yml` run on every push to `dev`.** That is four real publishes against
   the sample site for a change that only touches the extension. Both need a `paths` filter.
+  (`test-run.yml` was dropped later: it repeated `release.yml`'s Ubuntu job against the same site, at
+  the same time.)
 
 ## Packaging the extension
 
