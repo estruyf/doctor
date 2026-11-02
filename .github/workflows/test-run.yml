@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - dev
+    # The extension has its own workflow (vscode.yml)
+    paths-ignore:
+      - "apps/doctor-vscode/**"
   workflow_dispatch:
 
 jobs:

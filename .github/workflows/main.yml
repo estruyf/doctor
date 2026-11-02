@@ -1,13 +1,16 @@
 name: Publish to NPM
 
 # Runs on:
-# - a published GitHub release (full release)
+# - a published GitHub release (full release), unless it is tagged doctor-vscode@ (see vscode.yml)
 # - a push to dev when the commit message contains `#release` (beta release)
 # - a manual run (full release by default, beta when the `release` input is unchecked)
 on:
   push:
     branches:
       - dev
+    # The extension has its own workflow (vscode.yml)
+    paths-ignore:
+      - "apps/doctor-vscode/**"
   release:
     types:
       - published
@@ -33,7 +36,7 @@ jobs:
     # the event name instead of the ref.
     if: >-
       contains(github.event.head_commit.message, '#release')
-      || github.event_name == 'release'
+      || (github.event_name == 'release' && !startsWith(github.event.release.tag_name, 'doctor-vscode@'))
       || github.event_name == 'workflow_dispatch'
 
     steps:

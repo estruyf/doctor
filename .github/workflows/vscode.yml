@@ -1,0 +1,87 @@
+name: VS Code extension
+
+# Packages the extension on every change to it, and publishes it to the Visual Studio Marketplace
+# from a published GitHub release tagged doctor-vscode@<version>. Other releases are CLI releases
+# (main.yml).
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths:
+      - "apps/doctor-vscode/**"
+      - "schema/**"
+      - "package-lock.json"
+      - ".github/workflows/vscode.yml"
+  push:
+    branches:
+      - dev
+    paths:
+      - "apps/doctor-vscode/**"
+      - "schema/**"
+      - "package-lock.json"
+      - ".github/workflows/vscode.yml"
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Test and package
+    runs-on: ubuntu-latest
+    if: github.event_name != 'release' || startsWith(github.event.release.tag_name, 'doctor-vscode@')
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - run: npm ci
+
+      - name: Check the tag matches the version
+        if: github.event_name == 'release'
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version=$(node -p "require('./apps/doctor-vscode/package.json').version")
+          if [ "$TAG" != "doctor-vscode@$version" ]; then
+            echo "The tag $TAG does not match the extension's version $version"
+            exit 1
+          fi
+
+      - run: npm test
+        working-directory: apps/doctor-vscode
+
+      # vscode:prepublish compiles (type check, lint, bundle) before packaging
+      - run: npm run package -- --out doctor-metadata.vsix
+        working-directory: apps/doctor-vscode
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: doctor-metadata
+          path: apps/doctor-vscode/doctor-metadata.vsix
+
+  publish:
+    name: Publish to the Marketplace
+    needs: package
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' && startsWith(github.event.release.tag_name, 'doctor-vscode@')
+
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: doctor-metadata
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      # Needs a publisher in apps/doctor-vscode/package.json and a VSCE_PAT secret from its owner
+      - run: npx @vscode/vsce@3.9.2 publish --packagePath doctor-metadata.vsix
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
