@@ -279,6 +279,16 @@ export class DoctorTranspiler {
       const { file, slug, data } = sources[i];
       task.output = `[${i + 1}/${sources.length}] Translating ${relativePath(file)}`;
 
+      // SharePoint creates a translation from its source page, so a source
+      // page skipped before it was ever created has none to make. Its own skip
+      // was reported already; the translations follow once it is published.
+      if (PagesHelper.isMissing(slug)) {
+        StatusHelper.addWarning(
+          `The localizations of "${relativePath(file)}" were skipped, as the page itself was skipped and is not on the site yet. They are published on the run that publishes it.`,
+        );
+        continue;
+      }
+
       try {
         await MultilingualHelper.linkPage(
           data.localization as PageLocalization,
@@ -462,6 +472,7 @@ export class DoctorTranspiler {
   ) {
     PagesHelper.markKnown(slug);
     if (mayNotExist && !PagesHelper.isListedPage(webUrl, slug)) {
+      PagesHelper.markMissing(slug);
       Logger.debug(`Not adding ${slug} to the navigation, it does not exist yet.`);
       return;
     }

@@ -215,3 +215,43 @@ test("A skipped page is not treated as one whose markdown file is gone", async (
 
   assert.deepEqual(PagesHelper.getUntouchedPages(), ["tests/gone.aspx"]);
 });
+
+test("A page skipped before it was ever created gets no translations", async (t) => {
+  // SharePoint creates a translation from its source page. Asking it for the
+  // translations of a page that is not there answered with a 404, which failed
+  // the whole run over a source page that had only been skipped.
+  const { StatusHelper } = await import("../dist/helpers/StatusHelper.js");
+  t.after(() => {
+    PagesHelper.reset();
+    StatusHelper.reset();
+  });
+  PagesHelper.reset();
+  StatusHelper.reset();
+
+  const startFolder = await mkdtemp(join(tmpdir(), "doctor-nav-"));
+  const file = join(startFolder, "home.md");
+  await writeFile(
+    file,
+    `---\ntitle: Home\nslug: home.aspx\nlocalization:\n  "nl-nl": ./home.nl.lang.md\n---\n\n# Home\n`,
+    { encoding: "utf-8" },
+  );
+
+  DoctorTranspiler.skipPage(WEB_URL, { navigation: {} }, { title: "Home" }, "home.aspx", "Home", true);
+
+  const task = { output: "" };
+  // Reaching SharePoint here would fail: there is no access token to get
+  await DoctorTranspiler.processTranslations(
+    [file],
+    task,
+    {
+      webUrl: WEB_URL,
+      startFolder,
+      multilingual: { enableTranslations: true, languages: [1043] },
+    },
+    { navigation: {} },
+  );
+
+  const warnings = StatusHelper.getWarnings();
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /localizations of ".*home\.md" were skipped/);
+});

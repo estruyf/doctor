@@ -80,6 +80,12 @@ export class PagesHelper {
    * skipped is treated as one whose markdown file is gone, and recycled.
    */
   private static knownPages: Set<string> = new Set();
+  /**
+   * The pages this run skipped before they were ever created, so they are not
+   * on the site. A step after the pages, like the translations, has nothing to
+   * work on for them.
+   */
+  private static missingPages: Set<string> = new Set();
   private static listFieldMap: { [listId: string]: Map<string, FieldInfo> } = {};
   /** Set once the tenant refuses a CSOM system update, see setPageDescription */
   private static systemUpdateRefused = false;
@@ -108,6 +114,7 @@ export class PagesHelper {
     PagesHelper.pages = [];
     PagesHelper.processedPages = {};
     PagesHelper.knownPages = new Set();
+    PagesHelper.missingPages = new Set();
     PagesHelper.listFieldMap = {};
     PagesHelper.systemUpdateRefused = false;
     PagesHelper.templateSkipReported = false;
@@ -1857,6 +1864,25 @@ export class PagesHelper {
     if (slug) {
       PagesHelper.knownPages.add(slug.toLowerCase());
     }
+  }
+
+  /**
+   * Record a page this run skipped which is not on the site, as it was never
+   * created
+   * @param slug
+   */
+  public static markMissing(slug: string): void {
+    if (slug) {
+      PagesHelper.missingPages.add(slug.toLowerCase());
+    }
+  }
+
+  /**
+   * Whether this run skipped the page before it was ever created
+   * @param slug
+   */
+  public static isMissing(slug: string): boolean {
+    return !!slug && PagesHelper.missingPages.has(slug.toLowerCase());
   }
 
   /**
