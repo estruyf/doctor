@@ -1,5 +1,5 @@
 /**
- * Doctor (doctor-tools/doctor) uses a fixed set of front matter keys that map
+ * Doctor (estruyf/doctor) uses a fixed set of front matter keys that map
  * to specific SharePoint Site Page fields.
  *
  * Each entry describes:
@@ -53,6 +53,13 @@ export const DOCTOR_FIELD_MAPPINGS: DoctorFieldMapping[] = [
     fallbackType: 'Boolean',
     label: 'Draft',
     description: 'When true, doctor skips publishing this page',
+  },
+  {
+    frontMatterKey: 'homepage',
+    spInternalName: null,
+    fallbackType: 'Boolean',
+    label: 'Homepage',
+    description: "When true, doctor makes this page the site's homepage. Only one page can be.",
   },
   {
     frontMatterKey: 'layout',
