@@ -88,6 +88,7 @@ export default defineConfig({
             { label: "doctor.json", link: "/docs/configuration/doctor-json/" },
           ],
         },
+        { label: "VS Code extension", link: "/docs/vscode-extension/" },
         { label: "CI/CD", link: "/docs/ci-cd/" },
         {
           label: "About",

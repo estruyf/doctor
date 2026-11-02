@@ -61,6 +61,10 @@ yarn global add @estruyf/doctor
 
 To quickly get started, we provided a [sample repository](https://github.com/estruyf/doctor-sample) which allows you to test out all the functionalities of `Doctor`.
 
+## VS Code extension
+
+The **Doctor: Metadata Editor** extension edits a page's front matter and your `doctor.json` in VS Code, with pickers for your SharePoint columns. It lives in [apps/doctor-vscode](https://github.com/estruyf/doctor/tree/dev/apps/doctor-vscode) of this repository. Read more in [VS Code extension](https://getdoctor.io/docs/vscode-extension/).
+
 ## Todo
 
 All ideas can be found in our [issue list](https://github.com/estruyf/doctor/issues) tagged with [enhancement](https://github.com/estruyf/doctor/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement).

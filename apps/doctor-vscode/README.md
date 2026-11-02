@@ -71,7 +71,7 @@ Missing a permission produces a clear, non-silent error (an inline message in th
 
 1. Open a `.md` file that's part of a doctor-managed site.
 2. Open the **Doctor Metadata** icon in the activity bar to reveal the "Page Details" panel.
-3. The panel always shows the fixed set of **doctor front-matter fields** (title, description, draft, layout, header, template, type, menu, partials, localization, slug, author, comments) — these don't depend on SharePoint being reachable at all.
+3. The panel always shows the fixed set of **doctor front-matter fields** (title, description, draft, homepage, layout, header, template, type, menu, partials, localization, slug, author, comments) — these don't depend on SharePoint being reachable at all.
 4. Below that, a **SharePoint metadata** section lists the site's other page columns (from the `metadata:` front matter block), fetched live via SharePoint REST. If auth isn't configured, hasn't finished loading yet, or fails, that section shows a clear status message instead of silently being empty.
 5. Editing a field writes the value back into the front matter of the file that was open **when you started editing it** — even if you switch to a different file mid-edit, the write is still scoped to the original file (see [Cross-file safety](#cross-file-safety)).
 
