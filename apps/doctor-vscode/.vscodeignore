@@ -1,8 +1,9 @@
 # Everything is bundled into dist/ by esbuild, and vsce runs with --no-dependencies,
-# so the package needs dist/, media/, the manifest, README and LICENSE only.
+# so the package needs dist/, media/, the manifest, README, CHANGELOG and LICENSE only.
 **
 !dist/*.js
 !media/**
 !package.json
 !README.md
+!CHANGELOG.md
 !LICENSE

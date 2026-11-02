@@ -94,7 +94,7 @@ export class CertificateAuthProvider {
     const keyBag = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag]?.[0];
     if (!keyBag?.key) {
       throw new Error(
-        'No private key found in the certificate file. If it is password protected, set doctor-metadata.certificatePassword.'
+        'No private key found in the certificate file. If it is password protected, set doctor.certificatePassword.'
       );
     }
     const rsaPrivateKey = forge.pki.privateKeyToAsn1(keyBag.key);

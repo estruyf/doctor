@@ -11,7 +11,7 @@
     {
       "label": "extension: compile",
       "type": "shell",
-      "command": "npm run compile -w doctor-metadata"
+      "command": "npm run compile -w vscode-doctor"
     }
   ]
 }

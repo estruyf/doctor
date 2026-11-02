@@ -63,7 +63,7 @@ To quickly get started, we provided a [sample repository](https://github.com/est
 
 ## VS Code extension
 
-The **Doctor: Metadata Editor** extension edits a page's front matter and your `doctor.json` in VS Code, with pickers for your SharePoint columns. It lives in [apps/doctor-vscode](https://github.com/estruyf/doctor/tree/dev/apps/doctor-vscode) of this repository. Read more in [VS Code extension](https://getdoctor.io/docs/vscode-extension/).
+The **Doctor — Markdown to SharePoint Pages** extension edits a page's front matter and your `doctor.json` in VS Code, with pickers for your SharePoint columns. It lives in [apps/doctor-vscode](https://github.com/estruyf/doctor/tree/dev/apps/doctor-vscode) of this repository. Read more in [VS Code extension](https://getdoctor.io/docs/vscode-extension/).
 
 ## Todo
 

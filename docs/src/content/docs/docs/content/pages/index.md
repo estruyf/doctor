@@ -293,7 +293,7 @@ author: 12
 
 The value is the user's **site user ID**: the id they have in *this* site's user list. A user only
 has one once they are a member of the site or have visited it, which is why the id means nothing on
-another site. The Doctor Metadata VS Code extension picks one for you, or you
+another site. The Doctor VS Code extension picks one for you, or you
 can look it up at `https://<site>/_api/web/siteusers`.
 
 A UPN works too, for front matter written by hand:

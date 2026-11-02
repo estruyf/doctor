@@ -25,7 +25,7 @@ export async function runPickTerm(
   // certificate auth config. Only fall back to the legacy VS Code setting
   // when that isn't available (e.g. interactive-auth fallback path).
   const resolvedSiteUrl =
-    siteUrl || vscode.workspace.getConfiguration('doctor-metadata').get<string>('siteUrl');
+    siteUrl || vscode.workspace.getConfiguration('doctor').get<string>('siteUrl');
   if (!resolvedSiteUrl) {
     vscode.window.showErrorMessage('Site URL not configured');
     return;
@@ -87,7 +87,7 @@ export async function runPickTerm(
     );
   } catch (error: any) {
     console.error('[pickTerm] Failed to load terms:', error);
-    vscode.window.showErrorMessage(`Doctor Metadata: failed to load terms — ${error?.message ?? error}`);
+    vscode.window.showErrorMessage(`Doctor: failed to load terms — ${error?.message ?? error}`);
     return;
   }
 

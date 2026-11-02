@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-const CERT_PASSWORD_PREFIX = 'doctor-metadata-cert-password-';
+const CERT_PASSWORD_PREFIX = 'doctor-cert-password-';
 
 /**
  * Securely stores/retrieves certificate passwords the user enters interactively

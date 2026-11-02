@@ -58,13 +58,13 @@ jobs:
         working-directory: apps/doctor-vscode
 
       # vscode:prepublish compiles (type check, lint, bundle) before packaging
-      - run: npm run package -- --out doctor-metadata.vsix
+      - run: npm run package -- --out vscode-doctor.vsix
         working-directory: apps/doctor-vscode
 
       - uses: actions/upload-artifact@v7
         with:
-          name: doctor-metadata
-          path: apps/doctor-vscode/doctor-metadata.vsix
+          name: vscode-doctor
+          path: apps/doctor-vscode/vscode-doctor.vsix
 
   publish:
     name: Publish to the Marketplace
@@ -75,13 +75,13 @@ jobs:
     steps:
       - uses: actions/download-artifact@v8
         with:
-          name: doctor-metadata
+          name: vscode-doctor
 
       - uses: actions/setup-node@v7
         with:
           node-version: 22
 
-      # Needs a publisher in apps/doctor-vscode/package.json and a VSCE_PAT secret from its owner
-      - run: npx @vscode/vsce@3.9.2 publish --packagePath doctor-metadata.vsix
+      # Needs a VSCE_PAT secret for the eliostruyf publisher
+      - run: npx @vscode/vsce@3.9.2 publish --packagePath vscode-doctor.vsix
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}

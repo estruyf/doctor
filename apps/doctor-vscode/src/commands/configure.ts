@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 // FALLBACK AUTH PATH configuration — these settings are only used when no
 // doctor.json with complete certificate auth settings (appId/tenant/certificate/url)
 // can be found. See CertificateAuthProvider / doctorConfig.ts for the primary path.
-const CONFIG_SECTION = 'doctor-metadata';
+const CONFIG_SECTION = 'doctor';
 
 function getMissingConfigKeys() {
   const config = vscode.workspace.getConfiguration(CONFIG_SECTION);
@@ -33,12 +33,12 @@ export async function promptToConfigureIfMissing(): Promise<boolean> {
     return false;
   }
 
-  await vscode.commands.executeCommand('doctor-metadata.configure');
+  await vscode.commands.executeCommand('doctor.configure');
   return getMissingConfigKeys().missing.length === 0;
 }
 
 export function registerConfigureCommand(context: vscode.ExtensionContext) {
-  const command = vscode.commands.registerCommand('doctor-metadata.configure', async () => {
+  const command = vscode.commands.registerCommand('doctor.configure', async () => {
     const config = vscode.workspace.getConfiguration(CONFIG_SECTION);
 
     const currentSiteUrl = config.get<string>('siteUrl') ?? '';

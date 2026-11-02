@@ -181,8 +181,8 @@ Two more only break once the extension is in, so they belong to PR B:
 broken by the move:
 
 - **There is no `publisher` field.** `vsce package` works without one (checked with vsce 3.9.2), but
-  `vsce publish` does not. It becomes part of the extension's permanent Marketplace id (`publisher.doctor-metadata`), so it is
-  worth agreeing before the first publish rather than after. The same goes for the `doctor-metadata.*`
+  `vsce publish` does not. It becomes part of the extension's permanent Marketplace id (`publisher.doctor-metadata`; settled as `eliostruyf.vscode-doctor`), so it is
+  worth agreeing before the first publish rather than after. The same goes for the `doctor-metadata.*` (now `doctor.*`)
   setting keys, which users end up with in their settings.
 - **There is no `.vscodeignore`**, so the `.vsix` ships `src/`, `test/` and `tsconfig.json`.
 - **There is no `vscode:prepublish` script**, so `vsce package` ships whatever is in `dist/`, which

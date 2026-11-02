@@ -6,7 +6,7 @@ description: The changelog of Doctor
 ## [2.3.1]
 
 
-- New: the **Doctor: Metadata Editor** VS Code extension now lives in the `doctor` repository. It edits a page's front matter and your `doctor.json`, with pickers for your SharePoint columns, and runs `doctor` from the editor. Read more in [VS Code extension](https://getdoctor.io/docs/vscode-extension/).
+- New: the **Doctor — Markdown to SharePoint Pages** VS Code extension now lives in the `doctor` repository. It edits a page's front matter and your `doctor.json`, with pickers for your SharePoint columns, and runs `doctor` from the editor. Read more in [VS Code extension](https://getdoctor.io/docs/vscode-extension/).
 - Fix: the npm package only ships what `Doctor` runs on. It no longer includes the test suites, a scratch file and the repository's AI tooling instructions.
 - [#205](https://github.com/estruyf/doctor/issues/205): Fix: an HTML page's title shows its accents and symbols correctly in the browser tab, instead of `Home Â· Doctor docs` for `Home · Doctor docs`. SharePoint reads the tab title out of the page with its own parser, which takes the text in the wrong encoding, so `Doctor` now writes the page title and description with character references. Republish with `--forceAll` to fix pages that are already published.
 

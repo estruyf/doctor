@@ -1,8 +1,33 @@
 {
-  "name": "doctor-metadata",
-  "displayName": "Doctor: Metadata Editor",
-  "description": "VS Code extension for editing SharePoint metadata in Markdown front matter via a sidebar panel with taxonomy/user pickers",
+  "name": "vscode-doctor",
+  "displayName": "Doctor — Markdown to SharePoint Pages",
+  "description": "Write and publish the Markdown that doctor turns into SharePoint pages: edit front matter with pickers for your SharePoint columns, edit doctor.json in a form, and run doctor publish and status from VS Code.",
   "version": "0.1.0",
+  "publisher": "eliostruyf",
+  "icon": "media/logo.png",
+  "galleryBanner": {
+    "color": "#002019",
+    "theme": "dark"
+  },
+  "keywords": [
+    "doctor",
+    "sharepoint",
+    "sharepoint pages",
+    "microsoft 365",
+    "m365",
+    "markdown",
+    "front matter",
+    "metadata",
+    "managed metadata",
+    "taxonomy",
+    "static site generator",
+    "documentation",
+    "publish"
+  ],
+  "author": "Elio Struyf <elio@struyfconsulting.be> (https://www.eliostruyf.com)",
+  "sponsor": {
+    "url": "https://github.com/sponsors/estruyf"
+  },
   "license": "MIT",
   "homepage": "https://getdoctor.io/docs/vscode-extension/",
   "repository": {
@@ -25,30 +50,30 @@
   "main": "./dist/extension.js",
   "contributes": {
     "configuration": {
-      "title": "Doctor Metadata",
+      "title": "Doctor",
       "properties": {
-        "doctor-metadata.certificatePassword": {
+        "doctor.certificatePassword": {
           "type": "string",
           "description": "Password for the certificate configured in doctor.json's \"certificate\" field. Only needed as a fallback/override — doctor.json's own \"password\" field is used first, matching how doctor itself reads it. If neither is set and the certificate is password-protected, you'll be prompted for it and it will be stored securely (VS Code SecretStorage), so you don't have to set this or commit a password anywhere. Set this in your User Settings — never commit it to source control."
         },
-        "doctor-metadata.siteUrl": {
+        "doctor.siteUrl": {
           "type": "string",
           "description": "(Fallback sign-in) Target SharePoint site URL, e.g. https://contoso.sharepoint.com/sites/docs. Only used when no doctor.json with certificate authentication (appId/tenant/certificate/url) can be found."
         },
-        "doctor-metadata.tenantId": {
+        "doctor.tenantId": {
           "type": "string",
           "description": "(Fallback sign-in) Microsoft Entra tenant ID or domain, e.g. contoso.onmicrosoft.com. Only used when no doctor.json with certificate authentication can be found."
         },
-        "doctor-metadata.clientId": {
+        "doctor.clientId": {
           "type": "string",
           "description": "(Fallback sign-in) Entra App Registration client ID (public client with device code enabled). Only used when no doctor.json with certificate authentication can be found."
         },
-        "doctor-metadata.openConfigInEditor": {
+        "doctor.openConfigInEditor": {
           "type": "boolean",
           "default": true,
           "description": "Open doctor.json in the Doctor config editor instead of as text. Either way the file is the same, and \"Doctor: Open doctor.json as Text\" switches back at any time."
         },
-        "doctor-metadata.doctorCommand": {
+        "doctor.doctorCommand": {
           "type": "string",
           "default": "",
           "markdownDescription": "The command used to run doctor. Leave empty to use the project's own `node_modules/.bin/doctor` when it has one, and the global `doctor` otherwise (`npm i -g @estruyf/doctor`). Set it to run something else, such as a local build: `/path/to/doctor/bin/doctor`."
@@ -57,54 +82,54 @@
     },
     "commands": [
       {
-        "command": "doctor-metadata.configure",
+        "command": "doctor.configure",
         "title": "Doctor: Configure Fallback Sign-in"
       },
       {
-        "command": "doctor-metadata.login",
+        "command": "doctor.login",
         "title": "Doctor: Sign in to Microsoft 365 (fallback)"
       },
       {
-        "command": "doctor-metadata.logout",
+        "command": "doctor.logout",
         "title": "Doctor: Sign out (fallback)"
       },
       {
-        "command": "doctor-metadata.refreshSchema",
+        "command": "doctor.refreshSchema",
         "title": "Doctor: Refresh Column Schema"
       },
       {
-        "command": "doctor-metadata.clearCertificatePassword",
+        "command": "doctor.clearCertificatePassword",
         "title": "Doctor: Clear Stored Certificate Password"
       },
       {
-        "command": "doctor-metadata.pickTerm",
+        "command": "doctor.pickTerm",
         "title": "Doctor: Pick Taxonomy Term"
       },
       {
-        "command": "doctor-metadata.pickUser",
+        "command": "doctor.pickUser",
         "title": "Doctor: Pick User / Group"
       },
       {
-        "command": "doctor-metadata.openConfigEditor",
+        "command": "doctor.openConfigEditor",
         "title": "Doctor: Open doctor.json in the Config Editor",
         "icon": "$(settings-gear)"
       },
       {
-        "command": "doctor-metadata.openConfigAsText",
+        "command": "doctor.openConfigAsText",
         "title": "Doctor: Open doctor.json as Text",
         "icon": "$(go-to-file)"
       },
       {
-        "command": "doctor-metadata.publish",
+        "command": "doctor.publish",
         "title": "Doctor: Publish",
         "icon": "$(cloud-upload)"
       },
       {
-        "command": "doctor-metadata.publishAll",
+        "command": "doctor.publishAll",
         "title": "Doctor: Publish All Pages"
       },
       {
-        "command": "doctor-metadata.status",
+        "command": "doctor.status",
         "title": "Doctor: Show Publish Status",
         "icon": "$(checklist)"
       }
@@ -112,16 +137,16 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "doctor-metadata",
-          "title": "Doctor Metadata",
+          "id": "doctor",
+          "title": "Doctor",
           "icon": "media/icon.svg"
         }
       ]
     },
     "views": {
-      "doctor-metadata": [
+      "doctor": [
         {
-          "id": "doctor-metadata.panel",
+          "id": "doctor.panel",
           "name": "Page Details",
           "type": "webview",
           "icon": "media/icon.svg"
@@ -130,7 +155,7 @@
     },
     "customEditors": [
       {
-        "viewType": "doctor-metadata.configEditor",
+        "viewType": "doctor.configEditor",
         "displayName": "Doctor Config Editor",
         "selector": [
           {
@@ -143,30 +168,30 @@
     "menus": {
       "editor/title": [
         {
-          "command": "doctor-metadata.openConfigEditor",
+          "command": "doctor.openConfigEditor",
           "when": "resourceFilename == doctor.json && activeEditor == workbench.editors.files.textFileEditor",
           "group": "navigation"
         },
         {
-          "command": "doctor-metadata.openConfigAsText",
-          "when": "activeCustomEditorId == doctor-metadata.configEditor",
+          "command": "doctor.openConfigAsText",
+          "when": "activeCustomEditorId == doctor.configEditor",
           "group": "navigation"
         }
       ],
       "view/title": [
         {
-          "command": "doctor-metadata.status",
-          "when": "view == doctor-metadata.panel",
+          "command": "doctor.status",
+          "when": "view == doctor.panel",
           "group": "navigation@1"
         },
         {
-          "command": "doctor-metadata.publish",
-          "when": "view == doctor-metadata.panel",
+          "command": "doctor.publish",
+          "when": "view == doctor.panel",
           "group": "navigation@2"
         },
         {
-          "command": "doctor-metadata.publishAll",
-          "when": "view == doctor-metadata.panel",
+          "command": "doctor.publishAll",
+          "when": "view == doctor.panel",
           "group": "doctor@1"
         }
       ]

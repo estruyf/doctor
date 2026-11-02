@@ -1,4 +1,4 @@
-# Doctor: Metadata Editor
+# Doctor — Markdown to SharePoint Pages
 
 A VS Code extension for editing [Doctor](https://getdoctor.io)/SharePoint page metadata via a sidebar panel, with taxonomy/user pickers and live validation against your site's column schema.
 
@@ -6,7 +6,7 @@ A VS Code extension for editing [Doctor](https://getdoctor.io)/SharePoint page m
 
 **Doctor** is a tool that syncs Markdown files to SharePoint pages. It reads YAML front matter from `.md` files and maps it (plus a nested `metadata:` object) to SharePoint page column values.
 
-This extension adds a **"Doctor Metadata" sidebar panel** in the activity bar that shows every field relevant to the Markdown file currently open in the editor, and lets you edit it with the right control for its type — a text box, a dropdown, a taxonomy term picker, a user picker, a JSON editor for structured doctor concepts (`header`, `menu`, `partials`, `localization`), etc. Edits are written straight back into the file's front matter.
+This extension adds a **"Doctor" sidebar panel** in the activity bar that shows every field relevant to the Markdown file currently open in the editor, and lets you edit it with the right control for its type — a text box, a dropdown, a taxonomy term picker, a user picker, a JSON editor for structured doctor concepts (`header`, `menu`, `partials`, `localization`), etc. Edits are written straight back into the file's front matter.
 
 ## How authentication works
 
@@ -29,7 +29,7 @@ If a `doctor.json` file is found in your workspace (searched upward from the cur
 
 - `certificate` may be a path to a `.pfx`/`.p12`/`.pem` file (relative to `doctor.json`), or a raw base64-encoded certificate string.
 - `password` is optional. If your certificate needs a password and you don't want to commit it to `doctor.json`:
-  - Set the `doctor-metadata.certificatePassword` **User** setting instead (never commit this), **or**
+  - Set the `doctor.certificatePassword` **User** setting instead (never commit this), **or**
   - Leave both empty — the extension will prompt you for the password the first time it's needed, verify it against the certificate, and store it securely in VS Code's `SecretStorage` (never written to disk in plaintext). It keeps re-prompting until either a working password is entered or you cancel.
   - If you rotate the certificate and the stored password stops working, the extension detects the specific "invalid password" failure from the PKCS#12 parser and automatically re-prompts — or you can run **"Doctor: Clear Stored Certificate Password"** to force a fresh prompt.
 - This app registration needs **Application** permissions on the **SharePoint** API — see [Permissions](#permissions) below.
@@ -40,9 +40,9 @@ If no usable `doctor.json` is found, the extension falls back to a device-code i
 
 ```json
 {
-  "doctor-metadata.siteUrl": "https://contoso.sharepoint.com/sites/docs",
-  "doctor-metadata.tenantId": "contoso.onmicrosoft.com",
-  "doctor-metadata.clientId": "00000000-0000-0000-0000-000000000000"
+  "doctor.siteUrl": "https://contoso.sharepoint.com/sites/docs",
+  "doctor.tenantId": "contoso.onmicrosoft.com",
+  "doctor.clientId": "00000000-0000-0000-0000-000000000000"
 }
 ```
 
@@ -65,12 +65,12 @@ If your certificate/app registration is also used to run `doctor` itself (which 
 
 Whichever auth mode you use, remember to **Grant admin consent for &lt;tenant&gt;** after adding these permissions — permissions with pending consent behave identically to missing ones.
 
-Missing a permission produces a clear, non-silent error (an inline message in the relevant picker plus a `Doctor Metadata: ... failed — ...` toast naming the HTTP status and the server's own error message) rather than a picker that just hangs or silently returns nothing — see [Error handling philosophy](#error-handling-philosophy).
+Missing a permission produces a clear, non-silent error (an inline message in the relevant picker plus a `Doctor: ... failed — ...` toast naming the HTTP status and the server's own error message) rather than a picker that just hangs or silently returns nothing — see [Error handling philosophy](#error-handling-philosophy).
 
 ## Using the panel
 
 1. Open a `.md` file that's part of a doctor-managed site.
-2. Open the **Doctor Metadata** icon in the activity bar to reveal the "Page Details" panel.
+2. Open the **Doctor** icon in the activity bar to reveal the "Page Details" panel.
 3. The panel always shows the fixed set of **doctor front-matter fields** (title, description, draft, homepage, layout, header, template, type, menu, partials, localization, slug, author, comments) — these don't depend on SharePoint being reachable at all.
 4. Below that, a **SharePoint metadata** section lists the site's other page columns (from the `metadata:` front matter block), fetched live via SharePoint REST. If auth isn't configured, hasn't finished loading yet, or fails, that section shows a clear status message instead of silently being empty.
 5. Editing a field writes the value back into the front matter of the file that was open **when you started editing it** — even if you switch to a different file mid-edit, the write is still scoped to the original file (see [Cross-file safety](#cross-file-safety)).
@@ -142,7 +142,7 @@ It is still the same file. The form is a custom *text* editor, so each change is
 `doctor.json`: undo, the unsaved-changes dot, save and Git all behave exactly as they do in the text
 view. **Open as text** in the top right, or `Doctor: Open doctor.json as Text`, switches over at any
 time, and `Doctor: Open doctor.json in the Config Editor` switches back. To always get the text view,
-turn off `doctor-metadata.openConfigInEditor`.
+turn off `doctor.openConfigInEditor`.
 
 A few things it does on purpose:
 
@@ -234,7 +234,7 @@ would otherwise run with the old one.
 
 Which `doctor` runs:
 
-1. `doctor-metadata.doctorCommand`, when it is set — a local build, for instance;
+1. `doctor.doctorCommand`, when it is set — a local build, for instance;
 2. otherwise the project's own `node_modules/.bin/doctor`, so a pinned version is the one that runs;
 3. otherwise the global `doctor` (`npm i -g @estruyf/doctor`).
 
@@ -245,7 +245,7 @@ where `doctor` is an unrelated package.
 
 A password-protected certificate needs its password for doctor too, and the buttons hand doctor the
 same one the panel signs in with: `password` in `doctor.json` when there is one (doctor reads that
-itself), otherwise the `doctor-metadata.certificatePassword` setting, otherwise the password the
+itself), otherwise the `doctor.certificatePassword` setting, otherwise the password the
 extension stored after asking you for it. With none of those, doctor asks in the task terminal.
 
 It is passed in the `DOCTOR_CERTIFICATE_PASSWORD` environment variable, never on the command line —
@@ -331,13 +331,13 @@ Fields are always read from, and written to, the specific `vscode.TextDocument` 
 ## Troubleshooting
 
 ### "Site not found" / 403s from SharePoint REST
-- Verify the site URL (`doctor.json`'s `url`, or the `doctor-metadata.siteUrl` fallback setting) is correct.
+- Verify the site URL (`doctor.json`'s `url`, or the `doctor.siteUrl` fallback setting) is correct.
 - Confirm the app registration has been granted (and admin-consented) all the permissions listed in [Permissions](#permissions) — a 403 with "Insufficient privileges" almost always means a missing/unconsented permission, not a code bug.
 - For the taxonomy picker specifically, remember `TermStore.Read.All` must be granted under the **SharePoint** API — see [Permissions](#permissions).
 
 ### Certificate auth keeps prompting for a password
 - The stored password may no longer match the certificate (e.g. it was rotated). Run **"Doctor: Clear Stored Certificate Password"** and re-enter the current password.
-- If you don't want to be prompted at all, set the password directly in `doctor.json` or the `doctor-metadata.certificatePassword` setting.
+- If you don't want to be prompted at all, set the password directly in `doctor.json` or the `doctor.certificatePassword` setting.
 
 ### No fields showing / "SharePoint metadata" section stuck
 - Run **"Doctor: Refresh Column Schema"** to rebuild the cached schema.

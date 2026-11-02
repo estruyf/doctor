@@ -69,7 +69,7 @@ export const SpinnerIcon: React.FC = () => (
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
     aria-hidden
-    style={{ animation: 'doctor-metadata-spin 0.8s linear infinite' }}
+    style={{ animation: 'doctor-spin 0.8s linear infinite' }}
   >
     <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeOpacity="0.25" strokeWidth="1.8" />
     <path d="M14.25 8a6.25 6.25 0 0 0-6.25-6.25" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />

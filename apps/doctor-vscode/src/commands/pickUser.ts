@@ -42,7 +42,7 @@ export async function runPickUser(
   // certificate auth config. Only fall back to the legacy VS Code setting
   // when that isn't available (e.g. interactive-auth fallback path).
   const resolvedSiteUrl =
-    siteUrl || vscode.workspace.getConfiguration('doctor-metadata').get<string>('siteUrl');
+    siteUrl || vscode.workspace.getConfiguration('doctor').get<string>('siteUrl');
   if (!resolvedSiteUrl) {
     vscode.window.showErrorMessage('Site URL not configured');
     return;
@@ -66,7 +66,7 @@ export async function runPickUser(
     field = fields.find((f: FieldInfo) => f.internalName === schemaFieldName);
   } catch (error: any) {
     console.error('[pickUser] Failed to load schema:', error);
-    vscode.window.showErrorMessage(`Doctor Metadata: failed to load field schema — ${error?.message ?? error}`);
+    vscode.window.showErrorMessage(`Doctor: failed to load field schema — ${error?.message ?? error}`);
     return;
   }
 
@@ -169,7 +169,7 @@ export async function runPickUser(
         ];
         if (lastSearchErrorShown !== message) {
           lastSearchErrorShown = message;
-          vscode.window.showErrorMessage(`Doctor Metadata: user search failed — ${message}`);
+          vscode.window.showErrorMessage(`Doctor: user search failed — ${message}`);
         }
       }
     }, 300);
@@ -272,7 +272,7 @@ async function pickSiteUser(
         ];
         if (lastSearchErrorShown !== message) {
           lastSearchErrorShown = message;
-          vscode.window.showErrorMessage(`Doctor Metadata: user search failed — ${message}`);
+          vscode.window.showErrorMessage(`Doctor: user search failed — ${message}`);
         }
       }
     }, 300);

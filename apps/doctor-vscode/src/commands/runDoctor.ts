@@ -56,7 +56,7 @@ async function environmentFor(
 
   const password = passwordToHandOver({
     inDoctorJson: auth.password,
-    setting: vscode.workspace.getConfiguration('doctor-metadata').get<string>('certificatePassword'),
+    setting: vscode.workspace.getConfiguration('doctor').get<string>('certificatePassword'),
     stored: await new CertificatePasswordStore(context).get(
       CertificatePasswordStore.idFor(auth.doctorJsonPath, auth.appId)
     ),
@@ -81,7 +81,7 @@ export const DOCTOR_RUNS: DoctorRun[] = [
 /**
  * The doctor executable for a project.
  *
- * In order: the `doctor-metadata.doctorCommand` setting when it has been set;
+ * In order: the `doctor.doctorCommand` setting when it has been set;
  * a `doctor` the project installed itself, so a pinned version is the one
  * that runs; otherwise the global `doctor` the docs tell people to install.
  *
@@ -171,7 +171,7 @@ export async function runDoctor(
   const projectFolder = path.dirname(doctorJson);
   const executable = resolveDoctorExecutable(
     projectFolder,
-    vscode.workspace.getConfiguration('doctor-metadata').get<string>('doctorCommand')
+    vscode.workspace.getConfiguration('doctor').get<string>('doctorCommand')
   );
 
   // A file being edited would publish as it was last saved, which is not what

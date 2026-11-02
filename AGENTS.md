@@ -20,7 +20,7 @@ An npm workspaces repository. The root `package.json` is private and holds no co
 
 ```text
 apps/doctor/         @estruyf/doctor, the CLI: src, bin, tests, scripts, changelog.json
-apps/doctor-vscode/  doctor-metadata, the VS Code extension, with its own AGENTS.md
+apps/doctor-vscode/  vscode-doctor, the VS Code extension, with its own AGENTS.md
 docs/                the getdoctor.io site, its own package and lockfile, not a workspace
 schema/              the doctor.json JSON schema, addressed by URL, never move it
 assets/              repository images (the README logo)

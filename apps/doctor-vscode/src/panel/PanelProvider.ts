@@ -83,7 +83,7 @@ function toEnumOptions(choices?: string[]): EnumOption[] | undefined {
 }
 
 export class PanelProvider implements vscode.WebviewViewProvider {
-  public static readonly viewType = 'doctor-metadata.panel';
+  public static readonly viewType = 'doctor.panel';
   private static instance: PanelProvider | null = null;
 
   private view?: vscode.WebviewView;
@@ -184,13 +184,13 @@ export class PanelProvider implements vscode.WebviewViewProvider {
           await this.updateField(msg.fileUri, msg.field, msg.value, msg.group);
           break;
         case 'pickTerm':
-          await vscode.commands.executeCommand('doctor-metadata.pickTerm', msg.field, undefined, msg.fileUri, msg.group);
+          await vscode.commands.executeCommand('doctor.pickTerm', msg.field, undefined, msg.fileUri, msg.group);
           break;
         case 'pickUser':
-          await vscode.commands.executeCommand('doctor-metadata.pickUser', msg.field, msg.fileUri, msg.group);
+          await vscode.commands.executeCommand('doctor.pickUser', msg.field, msg.fileUri, msg.group);
           break;
         case 'refreshData':
-          await vscode.commands.executeCommand('doctor-metadata.refreshSchema');
+          await vscode.commands.executeCommand('doctor.refreshSchema');
           break;
       }
     } catch (error: any) {
@@ -199,7 +199,7 @@ export class PanelProvider implements vscode.WebviewViewProvider {
       // silently swallowed (an unhandled rejection here would otherwise just
       // vanish, since onDidReceiveMessage doesn't await/observe the result).
       console.error('[PanelProvider] handleMessage failed:', msg.command, error);
-      vscode.window.showErrorMessage(`Doctor Metadata: ${error?.message ?? error}`);
+      vscode.window.showErrorMessage(`Doctor: ${error?.message ?? error}`);
     }
   }
 
@@ -515,11 +515,11 @@ export class PanelProvider implements vscode.WebviewViewProvider {
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src 'unsafe-inline';">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Doctor Metadata</title>
+  <title>Doctor</title>
   <style>
     body { margin: 0; padding: 0; font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); color: var(--vscode-foreground); background: var(--vscode-sideBar-background); }
     button { font-family: inherit; }
-    @keyframes doctor-metadata-spin { to { transform: rotate(360deg); } }
+    @keyframes doctor-spin { to { transform: rotate(360deg); } }
     .doctor-field-row + .doctor-field-row { border-top: 1px solid rgba(128, 128, 128, 0.12); }
     .doctor-field-row:hover { background: rgba(128, 128, 128, 0.05); }
     input:focus, select:focus, textarea:focus { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }

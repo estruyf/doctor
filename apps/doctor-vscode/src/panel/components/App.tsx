@@ -9,7 +9,7 @@ const NOT_READY_MESSAGES: Record<NotReadyReason, string> = {
   'no-editor': 'Open a markdown file to see its metadata.',
   'not-markdown': 'Open a markdown file to see its metadata.',
   'not-doctor-project':
-    'This file is not inside a doctor.json project. Doctor Metadata only activates for files under a folder that has a doctor.json.',
+    'This file is not inside a doctor.json project. Doctor only activates for files under a folder that has a doctor.json.',
   'no-front-matter': 'This file has no front matter yet.',
 };
 

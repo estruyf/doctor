@@ -58,7 +58,7 @@ export type ConfigEditorMessage =
   | { command: 'openSource' }
   | { command: 'run'; run: DoctorRun['id'] };
 
-const VIEW_TYPE = 'doctor-metadata.configEditor';
+const VIEW_TYPE = 'doctor.configEditor';
 
 const flatten = (fields: FieldDescriptor[]): FieldDescriptor[] =>
   fields.flatMap((f) => (f.children ? [f, ...flatten(f.children)] : [f]));
@@ -84,14 +84,14 @@ export class ConfigEditorProvider implements vscode.CustomTextEditorProvider {
         webviewOptions: { retainContextWhenHidden: true },
         supportsMultipleEditorsPerDocument: false,
       }),
-      vscode.commands.registerCommand('doctor-metadata.openConfigAsText', (uri?: vscode.Uri) =>
+      vscode.commands.registerCommand('doctor.openConfigAsText', (uri?: vscode.Uri) =>
         vscode.commands.executeCommand(
           'vscode.openWith',
           uri ?? vscode.window.activeTextEditor?.document.uri,
           'default'
         )
       ),
-      vscode.commands.registerCommand('doctor-metadata.openConfigEditor', (uri?: vscode.Uri) =>
+      vscode.commands.registerCommand('doctor.openConfigEditor', (uri?: vscode.Uri) =>
         vscode.commands.executeCommand(
           'vscode.openWith',
           uri ?? vscode.window.activeTextEditor?.document.uri,
@@ -146,7 +146,7 @@ export class ConfigEditorProvider implements vscode.CustomTextEditorProvider {
     panel: vscode.WebviewPanel
   ): Promise<void> {
     const useForm = vscode.workspace
-      .getConfiguration('doctor-metadata')
+      .getConfiguration('doctor')
       .get<boolean>('openConfigInEditor', true);
 
     if (!useForm) {

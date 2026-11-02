@@ -11,10 +11,10 @@ export function setOnLoginSuccess(cb: () => Promise<void>) {
 }
 
 export function registerLoginCommand(context: vscode.ExtensionContext) {
-  const command = vscode.commands.registerCommand('doctor-metadata.login', async () => {
+  const command = vscode.commands.registerCommand('doctor.login', async () => {
     if (getAuthMode() === 'certificate') {
       vscode.window.showInformationMessage(
-        'Doctor Metadata is using certificate authentication from doctor.json — no interactive sign-in is needed.'
+        'Doctor is using certificate authentication from doctor.json — no interactive sign-in is needed.'
       );
       return;
     }
@@ -25,7 +25,7 @@ export function registerLoginCommand(context: vscode.ExtensionContext) {
         return;
       }
 
-      const cfg = vscode.workspace.getConfiguration('doctor-metadata');
+      const cfg = vscode.workspace.getConfiguration('doctor');
       const clientId = cfg.get<string>('clientId')!;
       const tenantId = cfg.get<string>('tenantId')!;
       const siteUrl = cfg.get<string>('siteUrl')!;

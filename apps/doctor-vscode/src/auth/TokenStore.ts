@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 
-const TOKEN_KEY_PREFIX = 'doctor-metadata-token-';
-const TOKEN_EXPIRY_PREFIX = 'doctor-metadata-token-expiry-';
-const MSAL_CACHE_KEY_PREFIX = 'doctor-metadata-msal-cache-';
+const TOKEN_KEY_PREFIX = 'doctor-token-';
+const TOKEN_EXPIRY_PREFIX = 'doctor-token-expiry-';
+const MSAL_CACHE_KEY_PREFIX = 'doctor-msal-cache-';
 
 export class TokenStore {
   constructor(private context: vscode.ExtensionContext) {}

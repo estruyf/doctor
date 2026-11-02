@@ -42,7 +42,7 @@ let services: Services | null = null;
 let initializedDoctorJsonPath: string | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log("doctor-metadata extension activated");
+  console.log("doctor extension activated");
 
   // Register the side panel webview
   const panelProvider = PanelProvider.getInstance(context.extensionUri);
@@ -62,10 +62,10 @@ export function activate(context: vscode.ExtensionContext) {
   setOnLoginSuccess(() => tryInitServices(context));
   registerLogoutCommand(context, {
     logout: async (tenantId: string) => {
-      const cfg = vscode.workspace.getConfiguration("doctor-metadata");
+      const cfg = vscode.workspace.getConfiguration("doctor");
       const clientId = cfg.get<string>("clientId");
       if (!clientId) {
-        throw new Error("Missing configuration: doctor-metadata.clientId");
+        throw new Error("Missing configuration: doctor.clientId");
       }
       await new AuthService(clientId, tenantId, context).logout(tenantId);
     },
@@ -74,7 +74,7 @@ export function activate(context: vscode.ExtensionContext) {
   // Register pick/refresh commands that lazily use services set by tryInitServices.
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      "doctor-metadata.pickTerm",
+      "doctor.pickTerm",
       async (
         fieldName: string,
         termSetId: string,
@@ -84,7 +84,7 @@ export function activate(context: vscode.ExtensionContext) {
         await tryInitServices(context);
         if (!services) {
           vscode.window.showWarningMessage(
-            "Doctor Metadata is not ready. Check your doctor.json (or configure the fallback sign-in).",
+            "Doctor is not ready. Check your doctor.json (or configure the fallback sign-in).",
           );
           return;
         }
@@ -113,9 +113,9 @@ export function activate(context: vscode.ExtensionContext) {
             services.siteUrl,
           );
         } catch (error: any) {
-          console.error("doctor-metadata.pickTerm failed:", error);
+          console.error("doctor.pickTerm failed:", error);
           vscode.window.showErrorMessage(
-            `Doctor Metadata: ${error?.message ?? error}`,
+            `Doctor: ${error?.message ?? error}`,
           );
         }
         PanelProvider.getInstance(context.extensionUri).refresh();
@@ -125,7 +125,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      "doctor-metadata.pickUser",
+      "doctor.pickUser",
       async (
         fieldName: string,
         fileUri?: string,
@@ -134,7 +134,7 @@ export function activate(context: vscode.ExtensionContext) {
         await tryInitServices(context);
         if (!services) {
           vscode.window.showWarningMessage(
-            "Doctor Metadata is not ready. Check your doctor.json (or configure the fallback sign-in).",
+            "Doctor is not ready. Check your doctor.json (or configure the fallback sign-in).",
           );
           return;
         }
@@ -157,9 +157,9 @@ export function activate(context: vscode.ExtensionContext) {
             services.siteUrl,
           );
         } catch (error: any) {
-          console.error("doctor-metadata.pickUser failed:", error);
+          console.error("doctor.pickUser failed:", error);
           vscode.window.showErrorMessage(
-            `Doctor Metadata: ${error?.message ?? error}`,
+            `Doctor: ${error?.message ?? error}`,
           );
         }
         PanelProvider.getInstance(context.extensionUri).refresh();
@@ -168,21 +168,21 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("doctor-metadata.refreshSchema", async () => {
+    vscode.commands.registerCommand("doctor.refreshSchema", async () => {
       if (!services) {
         vscode.window.showWarningMessage(
-          "Doctor Metadata is not ready. Check your doctor.json (or configure the fallback sign-in).",
+          "Doctor is not ready. Check your doctor.json (or configure the fallback sign-in).",
         );
         return;
       }
       await refreshAllData(services, context);
-      vscode.window.showInformationMessage("Doctor Metadata: schema and term data refreshed");
+      vscode.window.showInformationMessage("Doctor: schema and term data refreshed");
     }),
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      "doctor-metadata.clearCertificatePassword",
+      "doctor.clearCertificatePassword",
       async () => {
         const doctorJsonPath = await discoverDoctorJsonPath();
         const certAuth = doctorJsonPath
@@ -210,7 +210,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor(() => {
       tryInitServices(context).catch((err) =>
-        console.error("doctor-metadata init error:", err),
+        console.error("doctor init error:", err),
       );
     }),
   );
@@ -220,7 +220,7 @@ export function activate(context: vscode.ExtensionContext) {
   // these do not need the extension to be signed in — doctor signs in itself.
   for (const run of DOCTOR_RUNS) {
     context.subscriptions.push(
-      vscode.commands.registerCommand(`doctor-metadata.${run.id}`, (uri?: vscode.Uri) =>
+      vscode.commands.registerCommand(`doctor.${run.id}`, (uri?: vscode.Uri) =>
         runDoctor(context, run, uri instanceof vscode.Uri ? uri : undefined),
       ),
     );
@@ -287,7 +287,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.workspace.createFileSystemWatcher("**/doctor.json");
   const reinit = () =>
     tryInitServices(context, /* force */ true).catch((err) =>
-      console.error("doctor-metadata init error:", err),
+      console.error("doctor init error:", err),
     );
   // doctor.json says where the shortcodes folder is, so it invalidates those too
   doctorJsonWatcher.onDidChange((uri) => {
@@ -305,7 +305,7 @@ export function activate(context: vscode.ExtensionContext) {
   // reload the window after fixing a config value.
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("doctor-metadata")) {
+      if (e.affectsConfiguration("doctor")) {
         reinit();
       }
     }),
@@ -313,7 +313,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Eagerly initialize if config is present (non-blocking).
   tryInitServices(context).catch((err) =>
-    console.error("doctor-metadata init error:", err),
+    console.error("doctor init error:", err),
   );
 }
 
@@ -374,7 +374,7 @@ async function createCertificateAuthProvider(
   const explicitPassword =
     certAuth.password ??
     vscode.workspace
-      .getConfiguration("doctor-metadata")
+      .getConfiguration("doctor")
       .get<string>("certificatePassword");
 
   const tryCreate = (password?: string) =>
@@ -508,7 +508,7 @@ async function tryInitServices(
           certProvider.getSharePointToken(spSiteUrl);
       } catch (error) {
         const message = `Certificate authentication configured in "${doctorJsonPath}" failed to initialize: ${error}`;
-        vscode.window.showErrorMessage(`Doctor Metadata: ${message}`);
+        vscode.window.showErrorMessage(`Doctor: ${message}`);
         console.error("Certificate auth init error:", error);
         services = null;
         PanelProvider.getInstance(context.extensionUri).setServicesError(
@@ -519,7 +519,7 @@ async function tryInitServices(
     } else {
       // doctor.json exists but is missing appId/tenant/certificate/url — fall back.
       vscode.window.showWarningMessage(
-        `Doctor Metadata: found "${doctorJsonPath}" but it is missing appId/tenant/certificate/url for certificate authentication. Falling back to interactive sign-in.`,
+        `Doctor: found "${doctorJsonPath}" but it is missing appId/tenant/certificate/url for certificate authentication. Falling back to interactive sign-in.`,
       );
       const fallback = await initInteractiveFallback(context);
       if (!fallback) {
@@ -574,10 +574,10 @@ async function tryInitServices(
     // non-blocking revalidation per (re)init — "refetch on startup" — rather
     // than waiting for the cache's own TTL to expire.
     refreshAllData(services, context).catch((error) =>
-      console.error("doctor-metadata startup refresh error:", error),
+      console.error("doctor startup refresh error:", error),
     );
   } catch (error) {
-    const message = `Failed to initialize Doctor Metadata: ${error}`;
+    const message = `Failed to initialize Doctor: ${error}`;
     vscode.window.showErrorMessage(message);
     console.error("Extension init error:", error);
     services = null;
@@ -620,12 +620,12 @@ async function refreshAllData(
         currentServices.termStoreService
           .getTerms(termSetId, currentServices.siteUrl, anchorId, { forceRefresh: true })
           .catch((error) =>
-            console.error(`doctor-metadata: failed to refresh term set "${termSetId}":`, error),
+            console.error(`doctor: failed to refresh term set "${termSetId}":`, error),
           ),
       ),
     );
   } catch (error) {
-    console.error("doctor-metadata: failed to refresh column schema:", error);
+    console.error("doctor: failed to refresh column schema:", error);
     throw error;
   } finally {
     panelProvider.setSyncing(false);
@@ -634,7 +634,7 @@ async function refreshAllData(
 
 /**
  * FALLBACK AUTH PATH — used only when no doctor.json with complete certificate
- * settings can be found. Reads the legacy doctor-metadata.* VS Code settings and
+ * settings can be found. Reads the doctor.* VS Code settings and
  * uses interactive (device code) sign-in. See AuthService for details.
  */
 async function initInteractiveFallback(
@@ -643,7 +643,7 @@ async function initInteractiveFallback(
   siteUrl: string;
   getSharePointToken: (siteUrl: string) => Promise<string | null>;
 } | null> {
-  const cfg = vscode.workspace.getConfiguration("doctor-metadata");
+  const cfg = vscode.workspace.getConfiguration("doctor");
   const clientId = cfg.get<string>("clientId");
   const tenantId = cfg.get<string>("tenantId");
   const siteUrl = cfg.get<string>("siteUrl");
@@ -651,7 +651,7 @@ async function initInteractiveFallback(
   if (!clientId || !tenantId || !siteUrl) {
     setAuthMode("unconfigured");
     vscode.window.showWarningMessage(
-      'Doctor Metadata is not configured: no doctor.json with certificate auth was found, and the fallback sign-in settings (siteUrl/tenantId/clientId) are incomplete. Run "Doctor: Configure Fallback Sign-in" to get started.',
+      'Doctor is not configured: no doctor.json with certificate auth was found, and the fallback sign-in settings (siteUrl/tenantId/clientId) are incomplete. Run "Doctor: Configure Fallback Sign-in" to get started.',
     );
     return null;
   }
@@ -666,5 +666,5 @@ async function initInteractiveFallback(
 }
 
 export function deactivate() {
-  console.log("doctor-metadata extension deactivated");
+  console.log("doctor extension deactivated");
 }

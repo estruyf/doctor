@@ -5,7 +5,7 @@ Guidance for AI coding agents working in `apps/doctor-vscode`. The repository-wi
 
 ## What this is
 
-**Doctor: Metadata Editor** (`doctor-metadata`), a VS Code extension that edits what doctor reads: a side
+**Doctor — Markdown to SharePoint Pages** (`eliostruyf.vscode-doctor`), a VS Code extension that edits what doctor reads: a side
 panel for a page's front matter (SharePoint columns with taxonomy and people pickers, navigation,
 shortcode completion) and a form editor for `doctor.json`. It can also start `doctor publish` and
 `doctor status` as VS Code tasks. It never imports the CLI: it runs the `doctor` command and reads the
@@ -64,13 +64,18 @@ root, so it is never copied. Point the import at the new file when the schema ve
 
 ## Publishing
 
-`vsce publish` needs a `publisher`, which is not set yet: it becomes part of the extension's permanent
-Marketplace id, so its owner picks it. [vscode.yml](../../.github/workflows/vscode.yml) packages the
+The Marketplace id is `eliostruyf.vscode-doctor` (`publisher` + `name` in `package.json`) and is
+permanent once published, as are the `doctor.*` command and setting keys users end up with. Don't rename
+them. The Marketplace icon is `media/logo.png` (256px, rendered from `docs/src/assets/doctor_no-text.svg`);
+`media/icon.svg` is the activity bar icon. [vscode.yml](../../.github/workflows/vscode.yml) packages the
 extension on every change and publishes it from a GitHub release tagged `doctor-vscode@<version>`.
 
 ## Definition of done
 
 - `npm test` and `npm run compile` pass (lint warnings are fine, errors are not).
 - [README.md](README.md) is the Marketplace page: user-visible changes go there.
+- A user-visible change gets an entry in [CHANGELOG.md](CHANGELOG.md), the Marketplace's **Changelog**
+  tab. It is written by hand, not generated like the CLI's. Before a release, replace the `xx-xx` in the
+  version heading with the date.
 - The docs page [docs/vscode-extension](../../docs/src/content/docs/docs/vscode-extension/index.md) covers
   what a doctor user needs to know about the extension.
