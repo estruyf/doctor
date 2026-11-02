@@ -11,3 +11,6 @@ mochawesome-report
 # Astro
 .astro
 docs/.astro
+
+# Scratch files doctor and its tests write while running
+temp
