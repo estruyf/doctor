@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { AccessToken } from "./AccessToken.js";
 import { ApiHelper } from "./ApiHelper.js";
 import { Logger } from "./Logger.js";
+import { OutputHelper } from "./OutputHelper.js";
 import { toODataPath } from "@utils";
 
 /**
@@ -537,7 +538,67 @@ export class CanvasHelper {
     // SharePoint reject the save as a conflict with "changes made concurrently"
     // — which is what a checkout left behind by an interrupted run looks like.
     Logger.debug(`Checking out the page ${slug} before rewriting its canvas.`);
-    return await ApiHelper.postOrThrow(`${url}/checkoutpage`, headers);
+    try {
+      return await ApiHelper.postOrThrow(`${url}/checkoutpage`, headers);
+    } catch (e) {
+      if (!CanvasHelper.isUnreadableCanvas(e)) {
+        throw e;
+      }
+
+      // SharePoint can leave a page with a canvas it cannot read back itself:
+      // creating a translation copies the source page through its HTML
+      // sanitizer, which can mangle it (code highlighting styles did). Every
+      // call on such a page answers 500, in SharePoint's own editor too, so
+      // nothing on it can be kept. Clearing the canvas makes the page usable
+      // again, and doctor writes it in full right after.
+      OutputHelper.warning(
+        `SharePoint could not read the content of "${slug}", so doctor cleared it before writing the page again. Web parts added to that page on SharePoint are gone.`,
+      );
+      await CanvasHelper.clear(webUrl, slug);
+      return await ApiHelper.postOrThrow(`${url}/checkoutpage`, headers);
+    }
+  }
+
+  /**
+   * Whether SharePoint failed on the page's own stored canvas rather than on
+   * the request — "Error reading JObject from JsonReader" on an empty body.
+   */
+  public static isUnreadableCanvas(error: unknown): boolean {
+    const message =
+      typeof error === "string"
+        ? error
+        : (error as any)?.message || JSON.stringify(error);
+
+    return (
+      !!message &&
+      message.includes("status 500") &&
+      message.includes("Error reading JObject")
+    );
+  }
+
+  /**
+   * Replace the page's canvas with an empty one, through its list item, which
+   * does not need SharePoint to read the canvas that is there.
+   */
+  private static async clear(webUrl: string, slug: string): Promise<void> {
+    const result = await ApiHelper.postOrThrow(
+      `${pageFileApiUrl(webUrl, slug)}/ListItemAllFields/ValidateUpdateListItem`,
+      {
+        ...(await CanvasHelper.getHeaders(webUrl)),
+        "content-type": "application/json;odata=nometadata",
+      },
+      {
+        formValues: [{ FieldName: "CanvasContent1", FieldValue: "<div></div>" }],
+        bNewDocumentUpdate: false,
+      },
+    );
+
+    const failed = (result?.value || []).find((field: any) => field.HasException);
+    if (failed) {
+      throw new Error(
+        `Clearing the content of "${slug}" failed: ${failed.ErrorMessage || "SharePoint gave no reason"}`,
+      );
+    }
   }
 
   /**

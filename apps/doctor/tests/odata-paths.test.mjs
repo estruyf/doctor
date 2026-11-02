@@ -179,3 +179,80 @@ test("the permission probe quotes a library path holding a quote", async (t) => 
     `asked: ${requested.join("\n")}`,
   );
 });
+
+test("a canvas SharePoint cannot read is cleared, and the checkout taken again", async (t) => {
+  // Creating a translation copies the source page through SharePoint's HTML
+  // sanitizer, which can leave a canvas SharePoint itself cannot read. Every
+  // call on the page then answers 500, the checkout included.
+  const realFetch = globalThis.fetch;
+  const realToken = AccessToken.get;
+  t.after(() => {
+    globalThis.fetch = realFetch;
+    AccessToken.get = realToken;
+  });
+
+  const requests = [];
+  let cleared = false;
+  AccessToken.get = async () => "token";
+  globalThis.fetch = async (url, init) => {
+    requests.push({ url, body: init.body });
+    if (url.endsWith("/checkoutpage") && !cleared) {
+      return new Response(
+        JSON.stringify({
+          "odata.error": { message: { value: "Error reading JObject from JsonReader. Path '', line 1, position 1." } },
+        }),
+        { status: 500 },
+      );
+    }
+    if (url.endsWith("/ValidateUpdateListItem")) {
+      cleared = true;
+      return new Response(
+        JSON.stringify({ value: [{ FieldName: "CanvasContent1", HasException: false }] }),
+        { status: 200 },
+      );
+    }
+    return new Response(JSON.stringify({ CanvasContent1: "[]" }), { status: 200 });
+  };
+
+  const web = "https://contoso.sharepoint.com/sites/doctor";
+  const page = await CanvasHelper.checkout(web, "doctor/nl/page-creation.aspx");
+
+  assert.equal(page.CanvasContent1, "[]");
+  assert.deepEqual(
+    requests.map(({ url }) => url.split("/").pop()),
+    ["checkoutpage", "ValidateUpdateListItem", "checkoutpage"],
+  );
+  assert.match(
+    requests[1].url,
+    /GetFileByServerRelativePath\(DecodedUrl='\/sites\/doctor\/sitepages\/doctor\/nl\/page-creation\.aspx'\)\/ListItemAllFields/,
+  );
+  assert.deepEqual(JSON.parse(requests[1].body).formValues, [
+    { FieldName: "CanvasContent1", FieldValue: "<div></div>" },
+  ]);
+});
+
+test("any other failed checkout is not mistaken for an unreadable canvas", async (t) => {
+  const realFetch = globalThis.fetch;
+  const realToken = AccessToken.get;
+  t.after(() => {
+    globalThis.fetch = realFetch;
+    AccessToken.get = realToken;
+  });
+
+  const requests = [];
+  AccessToken.get = async () => "token";
+  globalThis.fetch = async (url) => {
+    requests.push(url);
+    return new Response(
+      JSON.stringify({ "odata.error": { message: { value: "Access denied." } } }),
+      { status: 500 },
+    );
+  };
+
+  await assert.rejects(
+    CanvasHelper.checkout("https://contoso.sharepoint.com/sites/doctor", "home.aspx"),
+    /Access denied/,
+  );
+  assert.equal(requests.length, 1);
+  assert.equal(CanvasHelper.isUnreadableCanvas(new Error("failed with status 404. Error reading JObject")), false);
+});

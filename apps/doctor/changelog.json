@@ -24,6 +24,10 @@
         "title": "Fix: a multilingual page that is skipped before it was ever created, for example over a metadata problem, no longer fails the publish when its translations are processed. Its translations are skipped with a warning, and published on the run that publishes the page."
       },
       {
+        "id": null,
+        "title": "Fix: a page SharePoint can no longer read no longer fails the publish. Creating a translation of a page with code blocks could leave the translated page with content SharePoint itself cannot open. `Doctor` now clears that content, with a warning, and writes the page again. Pages left broken by an earlier run are repaired the same way."
+      },
+      {
         "id": 205,
         "title": "Fix: an HTML page's title shows its accents and symbols correctly in the browser tab, instead of `Home Â· Doctor docs` for `Home · Doctor docs`. SharePoint reads the tab title out of the page with its own parser, which takes the text in the wrong encoding, so `Doctor` now writes the page title and description with character references. Republish with `--forceAll` to fix pages that are already published."
       }
