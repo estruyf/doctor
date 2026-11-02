@@ -21,13 +21,13 @@
   "type": "module",
   "scripts": {
     "start": "npm run build",
-    "build": "npm run clean && tsc6 && tsc-alias",
+    "build": "npm run clean && npm run build --prefix ../../packages/common && tsc6 && tsc-alias",
     "test": "npm run build && node --test tests/**/*.test.mjs",
     "clean": "rm -rf dist",
-    "watch": "node ./scripts/reset-debug.js && (tsc6 -w & tsc-alias -w)",
-    "watch:debug": "node ./scripts/init-debug.js && (tsc6 -w & tsc-alias -w)",
-    "prepack": "node ./scripts/package-files.js copy",
-    "postpack": "node ./scripts/package-files.js remove"
+    "watch": "node ./scripts/reset-debug.js && npm run build --prefix ../../packages/common && (tsc6 -w & tsc-alias -w)",
+    "watch:debug": "node ./scripts/init-debug.js && npm run build --prefix ../../packages/common && (tsc6 -w & tsc-alias -w)",
+    "prepack": "node ./scripts/package-files.js copy && node ./scripts/bundle-common.js copy",
+    "postpack": "node ./scripts/package-files.js remove && node ./scripts/bundle-common.js remove"
   },
   "keywords": [
     "cli",
@@ -93,6 +93,7 @@
     "typescript": "npm:@typescript/typescript6@6.0.2"
   },
   "dependencies": {
+    "@estruyf/doctor-common": "0.1.0",
     "@fluentui/svg-icons": "1.1.321",
     "@pnp/cli-microsoft365": "11.11.0",
     "arg": "5.0.2",
@@ -120,5 +121,8 @@
     "mime": "4.1.0",
     "omelette": "0.4.17",
     "svgdom": "0.1.28"
-  }
+  },
+  "bundleDependencies": [
+    "@estruyf/doctor-common"
+  ]
 }

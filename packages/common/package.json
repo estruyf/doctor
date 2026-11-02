@@ -1,0 +1,26 @@
+{
+  "name": "@estruyf/doctor-common",
+  "version": "0.1.0",
+  "private": true,
+  "description": "What the doctor CLI and its VS Code extension have to agree on. Never published on its own: the CLI bundles it into its npm package, the extension into its .vsix.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rm -rf dist && tsc6",
+    "watch": "tsc6 -w"
+  },
+  "devDependencies": {
+    "typescript": "npm:@typescript/typescript6@6.0.2"
+  }
+}

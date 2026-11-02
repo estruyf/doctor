@@ -1,17 +1,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { CERTIFICATE_PASSWORD_ENV, Command, FORCE_ALL_OPTION } from '@estruyf/doctor-common';
 import { CertificatePasswordStore } from '../auth/CertificatePasswordStore';
 import { resolveDoctorCertificateAuth } from '../utils/doctorConfig';
 import { findDoctorJson } from '../utils/doctorContext';
 
-/**
- * The environment variable doctor reads the certificate password from. It has
- * to match `CERTIFICATE_PASSWORD_ENV` in doctor's OptionsHelper — one of the
- * copies listed in doctor's restructure plan. Read by doctor 2.3.0 and later;
- * an older doctor ignores it and asks for the password itself.
- */
-export const CERTIFICATE_PASSWORD_ENV = 'DOCTOR_CERTIFICATE_PASSWORD';
+// Shared with doctor, which reads the password from it
+export { CERTIFICATE_PASSWORD_ENV };
 
 /**
  * Which certificate password, if any, the extension should hand doctor.
@@ -73,9 +69,9 @@ export interface DoctorRun {
 }
 
 export const DOCTOR_RUNS: DoctorRun[] = [
-  { id: 'publish', title: 'Publish', args: ['publish'] },
-  { id: 'publishAll', title: 'Publish all pages', args: ['publish', '--forceAll'] },
-  { id: 'status', title: 'Show status', args: ['status'] },
+  { id: 'publish', title: 'Publish', args: [Command.publish] },
+  { id: 'publishAll', title: 'Publish all pages', args: [Command.publish, FORCE_ALL_OPTION] },
+  { id: 'status', title: 'Show status', args: [Command.status] },
 ];
 
 /**
@@ -176,7 +172,7 @@ export async function runDoctor(
 
   // A file being edited would publish as it was last saved, which is not what
   // somebody pressing Publish while looking at it expects
-  if (run.args[0] === 'publish') {
+  if (run.args[0] === Command.publish) {
     const dirty = vscode.workspace.textDocuments.filter(
       (d) => d.isDirty && d.uri.fsPath.startsWith(projectFolder + path.sep)
     );

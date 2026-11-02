@@ -1,3 +1,4 @@
+import { CERTIFICATE_PASSWORD_ENV, FORCE_ALL_OPTION } from "@estruyf/doctor-common";
 import { join } from "path";
 import arg from "arg";
 import kleur from "kleur";
@@ -7,14 +8,8 @@ import { Command } from "@commands";
 import { existsAsync, readFileAsync } from "@utils";
 import { OutputHelper } from "./OutputHelper.js";
 
-
-/**
- * The environment variable doctor reads the certificate password from when
- * neither `--password` nor doctor.json supplies one. Named after the
- * `CERTIFICATE_PASSWORD` secret the `workflow` command already sets up, so the
- * two read as the same value.
- */
-export const CERTIFICATE_PASSWORD_ENV = "DOCTOR_CERTIFICATE_PASSWORD";
+// Shared with the VS Code extension, which hands a stored password over in it
+export { CERTIFICATE_PASSWORD_ENV };
 
 export class OptionsHelper {
   /**
@@ -79,7 +74,7 @@ export class OptionsHelper {
       "--skipSiteDesign": Boolean,
       "--applyTheme": Boolean,
       "--skipPrecheck": Boolean,
-      "--forceAll": Boolean,
+      [FORCE_ALL_OPTION]: Boolean,
       "--removeDeleted": Boolean,
       "--disableStatePersistence": Boolean,
 
@@ -155,7 +150,7 @@ export class OptionsHelper {
         options["skipExistingPages"] ||
         false,
       forceAll:
-        (args["--forceAll"] as any) ||
+        (args[FORCE_ALL_OPTION] as any) ||
         options["forceAll"] ||
         false,
       removeDeleted:

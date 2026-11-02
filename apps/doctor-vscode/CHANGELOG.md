@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.2.0] - xx-xx
+
+- Shortcode completion offers exactly the attributes doctor reads: `bgColor` and `fgColor` on `callout`, only `right` as the `toc` position, and no more `size` on `icon` or `width` and `height` on `mermaid`, which doctor ignores. The callout types are the five doctor styles, without `important` and `warning`, which doctor shows as a note. The list now comes from doctor itself, so it stays right
+
 ## [0.1.0] - 2026-11-02
 
 The first release on the Visual Studio Marketplace.
