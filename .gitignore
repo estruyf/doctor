@@ -11,3 +11,10 @@ mochawesome-report
 # Astro
 .astro
 docs/.astro
+
+# Scratch files doctor and its tests write while running
+temp
+
+# Copied in from the root while npm packs the CLI
+apps/doctor/readme.md
+apps/doctor/LICENSE

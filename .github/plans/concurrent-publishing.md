@@ -7,7 +7,7 @@ Related: raised while looking at publish runtime — pages are processed strictl
 ## Problem
 
 `DoctorTranspiler.processFiles()` walks the changed pages in a plain `for` loop with `await`
-([DoctorTranspiler.ts:96](../../src/helpers/DoctorTranspiler.ts)). Each changed page costs roughly
+([DoctorTranspiler.ts:96](../../apps/doctor/src/helpers/DoctorTranspiler.ts)). Each changed page costs roughly
 eight to ten round trips:
 
 | Call | Count |
@@ -40,7 +40,7 @@ one.
 
 Today there is no throttling story at all:
 
-- `executeWithRetry()` ([RunCommand.ts](../../src/helpers/RunCommand.ts)) retries **once**, after a
+- `executeWithRetry()` ([RunCommand.ts](../../apps/doctor/src/helpers/RunCommand.ts)) retries **once**, after a
   fixed 5 seconds, only when `--retryWhenFailed` is set, and treats every failure the same. It never
   looks at `Retry-After`, and a 429 is retried exactly as a 404 is.
 - `ApiHelper` has **no retry at all**. The canvas read and write, the term store walk and the site

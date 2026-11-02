@@ -1,0 +1,210 @@
+{
+  "name": "doctor-metadata",
+  "displayName": "Doctor: Metadata Editor",
+  "description": "VS Code extension for editing SharePoint metadata in Markdown front matter via a sidebar panel with taxonomy/user pickers",
+  "version": "0.1.0",
+  "license": "MIT",
+  "homepage": "https://getdoctor.io/docs/vscode-extension/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/estruyf/doctor.git",
+    "directory": "apps/doctor-vscode"
+  },
+  "bugs": {
+    "url": "https://github.com/estruyf/doctor/issues"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:markdown"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Doctor Metadata",
+      "properties": {
+        "doctor-metadata.certificatePassword": {
+          "type": "string",
+          "description": "Password for the certificate configured in doctor.json's \"certificate\" field. Only needed as a fallback/override — doctor.json's own \"password\" field is used first, matching how doctor itself reads it. If neither is set and the certificate is password-protected, you'll be prompted for it and it will be stored securely (VS Code SecretStorage), so you don't have to set this or commit a password anywhere. Set this in your User Settings — never commit it to source control."
+        },
+        "doctor-metadata.siteUrl": {
+          "type": "string",
+          "description": "(Fallback sign-in) Target SharePoint site URL, e.g. https://contoso.sharepoint.com/sites/docs. Only used when no doctor.json with certificate authentication (appId/tenant/certificate/url) can be found."
+        },
+        "doctor-metadata.tenantId": {
+          "type": "string",
+          "description": "(Fallback sign-in) Microsoft Entra tenant ID or domain, e.g. contoso.onmicrosoft.com. Only used when no doctor.json with certificate authentication can be found."
+        },
+        "doctor-metadata.clientId": {
+          "type": "string",
+          "description": "(Fallback sign-in) Entra App Registration client ID (public client with device code enabled). Only used when no doctor.json with certificate authentication can be found."
+        },
+        "doctor-metadata.openConfigInEditor": {
+          "type": "boolean",
+          "default": true,
+          "description": "Open doctor.json in the Doctor config editor instead of as text. Either way the file is the same, and \"Doctor: Open doctor.json as Text\" switches back at any time."
+        },
+        "doctor-metadata.doctorCommand": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The command used to run doctor. Leave empty to use the project's own `node_modules/.bin/doctor` when it has one, and the global `doctor` otherwise (`npm i -g @estruyf/doctor`). Set it to run something else, such as a local build: `/path/to/doctor/bin/doctor`."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "doctor-metadata.configure",
+        "title": "Doctor: Configure Fallback Sign-in"
+      },
+      {
+        "command": "doctor-metadata.login",
+        "title": "Doctor: Sign in to Microsoft 365 (fallback)"
+      },
+      {
+        "command": "doctor-metadata.logout",
+        "title": "Doctor: Sign out (fallback)"
+      },
+      {
+        "command": "doctor-metadata.refreshSchema",
+        "title": "Doctor: Refresh Column Schema"
+      },
+      {
+        "command": "doctor-metadata.clearCertificatePassword",
+        "title": "Doctor: Clear Stored Certificate Password"
+      },
+      {
+        "command": "doctor-metadata.pickTerm",
+        "title": "Doctor: Pick Taxonomy Term"
+      },
+      {
+        "command": "doctor-metadata.pickUser",
+        "title": "Doctor: Pick User / Group"
+      },
+      {
+        "command": "doctor-metadata.openConfigEditor",
+        "title": "Doctor: Open doctor.json in the Config Editor",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "doctor-metadata.openConfigAsText",
+        "title": "Doctor: Open doctor.json as Text",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "doctor-metadata.publish",
+        "title": "Doctor: Publish",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "doctor-metadata.publishAll",
+        "title": "Doctor: Publish All Pages"
+      },
+      {
+        "command": "doctor-metadata.status",
+        "title": "Doctor: Show Publish Status",
+        "icon": "$(checklist)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "doctor-metadata",
+          "title": "Doctor Metadata",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "doctor-metadata": [
+        {
+          "id": "doctor-metadata.panel",
+          "name": "Page Details",
+          "type": "webview",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "customEditors": [
+      {
+        "viewType": "doctor-metadata.configEditor",
+        "displayName": "Doctor Config Editor",
+        "selector": [
+          {
+            "filenamePattern": "**/doctor.json"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "doctor-metadata.openConfigEditor",
+          "when": "resourceFilename == doctor.json && activeEditor == workbench.editors.files.textFileEditor",
+          "group": "navigation"
+        },
+        {
+          "command": "doctor-metadata.openConfigAsText",
+          "when": "activeCustomEditorId == doctor-metadata.configEditor",
+          "group": "navigation"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "doctor-metadata.status",
+          "when": "view == doctor-metadata.panel",
+          "group": "navigation@1"
+        },
+        {
+          "command": "doctor-metadata.publish",
+          "when": "view == doctor-metadata.panel",
+          "group": "navigation@2"
+        },
+        {
+          "command": "doctor-metadata.publishAll",
+          "when": "view == doctor-metadata.panel",
+          "group": "doctor@1"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "npm run check-types && npm run lint && node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "check-types": "tsc6 --noEmit",
+    "lint": "eslint src test",
+    "package": "vsce package --no-dependencies",
+    "test": "vitest run",
+    "test:watch": "vitest --watch"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@stylistic/eslint-plugin": "5.10.0",
+    "@types/node": "26.5.1",
+    "@types/node-forge": "1.3.14",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/vscode": "1.85.0",
+    "@vscode/vsce": "3.9.2",
+    "esbuild": "0.28.2",
+    "eslint": "10.10.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "typescript-eslint": "8.70.0",
+    "vitest": "5.0.0"
+  },
+  "dependencies": {
+    "@azure/msal-node": "6.0.0",
+    "@types/js-yaml": "4.0.9",
+    "axios": "1.20.0",
+    "gray-matter": "4.0.3",
+    "js-yaml": "5.4.1",
+    "node-forge": "1.4.0"
+  }
+}

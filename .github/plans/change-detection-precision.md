@@ -3,7 +3,7 @@
 Status: draft / not started
 Author: proposed via AI coding agent session, for @estruyf to review
 Related: follow-up to "change detection covers what a page is built from, not just its text"
-([DependencyHelper.ts](../../src/helpers/DependencyHelper.ts)), observed while testing that change
+([DependencyHelper.ts](../../apps/doctor/src/helpers/DependencyHelper.ts)), observed while testing that change
 
 ## Problem
 

@@ -30,7 +30,7 @@ them later.
 
 ### 1. Where it goes
 
-The `publish` pipeline already opens with a **pre-check** task ([PrecheckHelper](../../src/helpers/PrecheckHelper.ts)),
+The `publish` pipeline already opens with a **pre-check** task ([PrecheckHelper](../../apps/doctor/src/helpers/PrecheckHelper.ts)),
 which validates the local files and slug collisions before any SharePoint call. The capability probe
 belongs in the same task, after the local checks and before anything is written — and equally in
 `doctor status`, which should be able to report what a publish *would* be able to do.
