@@ -39,9 +39,10 @@ jobs:
 
       - run: npm i
 
-      - run: npm start
+      - run: npm run build -w @estruyf/doctor
 
       - run: npm link
+        working-directory: apps/doctor
 
       - name: Publish via Doctor
         run: |
@@ -52,7 +53,7 @@ jobs:
             git clone https://github.com/estruyf/doctor-sample
           fi
 
-          node ./scripts/prepare-sample.js
+          node ./apps/doctor/scripts/prepare-sample.js
           cd doctor-sample
 
           startClean=""

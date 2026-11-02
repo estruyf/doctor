@@ -25,4 +25,4 @@ jobs:
 
       - run: npm i
 
-      - run: npm start
+      - run: npm test

@@ -66,17 +66,17 @@ jobs:
 
       - run: npm i
 
-      - run: npm start
+      - run: npm run build -w @estruyf/doctor
 
       # No token: npm authenticates with the workflow's OIDC token and adds provenance
       - name: Publish release
         if: steps.check.outputs.release == 'true'
-        run: npm publish --access public
+        run: npm publish -w @estruyf/doctor --access public
 
       - name: Update the package version
         if: steps.check.outputs.release != 'true'
-        run: node scripts/update-package-version.js $GITHUB_RUN_ID
+        run: node apps/doctor/scripts/update-package-version.js $GITHUB_RUN_ID
 
       - name: Publish beta release
         if: steps.check.outputs.release != 'true'
-        run: npm publish --tag next --access public
+        run: npm publish -w @estruyf/doctor --tag next --access public

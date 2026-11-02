@@ -47,9 +47,10 @@ jobs:
 
       - run: npm i
 
-      - run: npm start
+      - run: npm run build -w @estruyf/doctor
 
       - run: npm link
+        working-directory: apps/doctor
 
       - name: Publish via Doctor
         run: |
@@ -60,7 +61,7 @@ jobs:
             git clone https://github.com/estruyf/doctor-sample
           fi
 
-          node ./scripts/prepare-sample.js
+          node ./apps/doctor/scripts/prepare-sample.js
           cd doctor-sample
 
           startClean=""
@@ -109,10 +110,11 @@ jobs:
       - run: npm i
         shell: powershell
 
-      - run: npm start
+      - run: npm run build -w @estruyf/doctor
         shell: powershell
 
       - run: npm link
+        working-directory: apps/doctor
         shell: powershell
 
       - name: Publish via Doctor
@@ -123,7 +125,7 @@ jobs:
             git clone https://github.com/estruyf/doctor-sample
           }
 
-          node ./scripts/prepare-sample.js
+          node ./apps/doctor/scripts/prepare-sample.js
           cd doctor-sample
 
           $startClean = ""
@@ -172,10 +174,11 @@ jobs:
       - run: npm i
         shell: cmd
 
-      - run: npm start
+      - run: npm run build -w @estruyf/doctor
         shell: cmd
 
       - run: npm link
+        working-directory: apps/doctor
         shell: cmd
 
       - name: Publish via Doctor
@@ -183,7 +186,7 @@ jobs:
           IF not "%GITHUB_REF%"=="refs/heads/main" (git clone -b dev https://github.com/estruyf/doctor-sample) else (git clone https://github.com/estruyf/doctor-sample)
 
 
-          node ./scripts/prepare-sample.js
+          node ./apps/doctor/scripts/prepare-sample.js
           cd doctor-sample
 
           IF "%GITHUB_REF%"=="refs/heads/main" (SET startClean="--cleanStart")
