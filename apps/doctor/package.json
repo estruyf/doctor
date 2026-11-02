@@ -21,11 +21,11 @@
   "type": "module",
   "scripts": {
     "start": "npm run build",
-    "build": "npm run clean && tsc && tsc-alias",
+    "build": "npm run clean && tsc6 && tsc-alias",
     "test": "npm run build && node --test tests/**/*.test.mjs",
     "clean": "rm -rf dist",
-    "watch": "node ./scripts/reset-debug.js && (tsc -w & tsc-alias -w)",
-    "watch:debug": "node ./scripts/init-debug.js && (tsc -w & tsc-alias -w)",
+    "watch": "node ./scripts/reset-debug.js && (tsc6 -w & tsc-alias -w)",
+    "watch:debug": "node ./scripts/init-debug.js && (tsc6 -w & tsc-alias -w)",
     "prepack": "node ./scripts/package-files.js copy",
     "postpack": "node ./scripts/package-files.js remove"
   },
@@ -79,7 +79,6 @@
     }
   ],
   "devDependencies": {
-    "@typescript/native": "npm:typescript@7.0.2",
     "@types/clean-css": "4.2.11",
     "@types/inquirer": "9.0.9",
     "@types/listr": "0.14.10",
@@ -90,7 +89,8 @@
     "@types/node": "26.5.1",
     "@types/omelette": "0.4.5",
     "tsc-alias": "1.8.16",
-    "tslib": "2.8.1"
+    "tslib": "2.8.1",
+    "typescript": "npm:@typescript/typescript6@6.0.2"
   },
   "dependencies": {
     "@fluentui/svg-icons": "1.1.321",

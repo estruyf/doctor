@@ -250,37 +250,36 @@ CI does not run either today. `test-build.yml` runs on pull requests but only bu
 `npm test` also deletes a tracked file, `temp/doctor-mermaid-1222fd6d86-eb8f4253.svg`, because the
 tests clean `./temp`. The file should be untracked and `temp/` added to `.gitignore`.
 
-## TypeScript 7
+## TypeScript 6, through `tsc6`
 
 `typescript@latest` on npm is now 7 (the native compiler). TS 6 only lives on as
-`@typescript/typescript6`, for tools that still need the JavaScript API. The extension already
-compiles on 7: it declares `"@typescript/native": "npm:typescript@^7.0.2"`, which provides its `tsc`,
-and keeps `"typescript": "npm:@typescript/typescript6@^6.0.2"` only because typescript-eslint
-imports `typescript`.
+`@typescript/typescript6`, for tools that still need the JavaScript API.
 
-Doctor moves from 5.9.3 to 7 with the same alias, pinned exactly
-(`"@typescript/native": "npm:typescript@7.0.2"`), so both packages share one compiler and the build
-keeps calling `tsc`. `tsc-alias` has no dependency on `typescript`, so it doesn't care which version
-gets hoisted. Watch mode (`tsc -w`) works on 7.
+Doctor builds and passes all 398 tests on both 6 and 7 (tested 2026-11-02, the emitted JS differs from
+5.9.3 only in where the temporary variables of the `?.`/`??` downlevel are declared). 7 was the first
+choice, but it cannot be run reliably in the workspace:
 
-Tested on 2026-11-02 with the extension's compiler: doctor builds on TS 7, `tsc-alias` resolves every
-alias, `doctor version` runs, and all 398 tests pass. The emitted JS differs from 5.9.3 in 8 files,
-and only in where the temporary variables of the `?.`/`??` downlevel are declared. TS 6 works too,
-with the same `tsconfig.json` changes:
+- the extension's ESLint needs `typescript` to be 6: typescript-eslint supports `>=4.8.4 <6.1.0`
+- TS 7 only ships a binary called `tsc`, and so do the TS 6 inside `@typescript/typescript6` and the TS 5
+  that `@pnp/cli-microsoft365` depends on. npm links whichever it reaches last: three installs of the
+  same lockfile gave TS 6 once and TS 7 twice.
+
+So both packages declare `"typescript": "npm:@typescript/typescript6@6.0.2"` and run `tsc6`, the one
+binary with a single owner. Moving to 7 is a one line change per package once typescript-eslint supports
+it. The `tsconfig.json` changes doctor needed apply to both versions:
 
 - drop `baseUrl` (deprecated in 6, gone in 7) and write the paths as `./src/...`
 - set `rootDir: "./src"`, or it refuses to emit
 - set `strict: false` explicitly next to `strictNullChecks`. `strict` is on by default since 6, which
   gives five errors (implicit `any`s and a markdown-it plugin type). Turning it on is separate work.
-- set `"types": ["node"]` and declare `@types/node`, which doctor only gets by accident today (26.1.2,
-  through another dependency). Without `types`, doctor's compile would also load the extension's
-  hoisted `@types/react` and `@types/vscode`.
+- set `"types": ["node"]` and declare `@types/node`, which doctor only got by accident before. Without
+  `types`, doctor's compile would also load the extension's hoisted `@types/react` and `@types/vscode`.
 
 ## Sequencing
 
 1. ~~**Merge #209 first.**~~ Done (`714781f6`).
 2. **The `files` allowlist**, on its own, small.
-3. **TypeScript 7 for doctor**, on its own, small: the alias and the `tsconfig` changes above. Doing it before the move keeps PR A free of compiler changes.
+3. **TypeScript 6 for doctor**, on its own, small: the alias, `tsc6` and the `tsconfig` changes above. Doing it before the move keeps PR A free of compiler changes.
 4. **PR A — the mechanical move, no behaviour change.** One commit per step so a bisect can find a
    break: `git mv` the CLI into `apps/doctor` and fix its aliases and scripts; workspaces at the
    root; CI paths; husky; `AGENTS.md`/`CLAUDE.md`. Green at every step. The only review question is

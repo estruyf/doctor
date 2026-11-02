@@ -165,10 +165,10 @@
   "scripts": {
     "compile": "npm run check-types && npm run lint && node esbuild.js",
     "watch": "node esbuild.js --watch",
-    "check-types": "tsc --noEmit",
+    "check-types": "tsc6 --noEmit",
     "lint": "eslint src test",
     "package": "vsce package",
-    "test": "vitest",
+    "test": "vitest run",
     "test:watch": "vitest --watch"
   },
   "devDependencies": {
@@ -184,7 +184,6 @@
     "eslint": "10.10.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "@typescript/native": "npm:typescript@7.0.2",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "typescript-eslint": "8.70.0",
     "vitest": "5.0.0"

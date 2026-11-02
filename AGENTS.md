@@ -34,9 +34,14 @@ The rest of this file describes the CLI. Paths in it are relative to `apps/docto
 `docs/`, `schema/` or `.github/`.
 
 Node.js >= 22.13.0. ESM (`"type": "module"`) — **relative imports must carry the `.js` extension**, even
-from `.ts` sources. TypeScript 7 (the native compiler, installed as `@typescript/native`), `module: nodenext`,
-`strictNullChecks` and `noUnusedLocals` are on. `strict` is set to `false` on purpose: TS 7 turns it on
-by default and the code has not been made strict yet.
+from `.ts` sources. TypeScript 6, `module: nodenext`, `strictNullChecks` and `noUnusedLocals` are on.
+`strict` is set to `false` on purpose: TS 6 turns it on by default and the code has not been made strict yet.
+
+TypeScript is installed as `"typescript": "npm:@typescript/typescript6@..."` and run as **`tsc6`, never
+`tsc`**. Several packages in the repository ship a `tsc` binary (the TS 5 the CLI for Microsoft 365 depends
+on, the TS 6 inside `@typescript/typescript6`), and npm links whichever it reaches last, so `tsc` is not
+reliably the compiler you think. `tsc6` has one owner. TS 7 is held back by the extension's ESLint:
+typescript-eslint supports TypeScript < 6.1 and is what the `typescript` name has to resolve to.
 
 ## Commands
 
