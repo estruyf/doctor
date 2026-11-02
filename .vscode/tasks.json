@@ -7,6 +7,11 @@
       "label": "tsc: build",
       "type": "shell",
       "command": "npm run build -w @estruyf/doctor"
+    },
+    {
+      "label": "extension: compile",
+      "type": "shell",
+      "command": "npm run compile -w doctor-metadata"
     }
   ]
 }

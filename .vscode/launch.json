@@ -34,6 +34,17 @@
         "DEBUG": "true"
       }
     },
-
+    {
+      "name": "Run the extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/apps/doctor-vscode"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/apps/doctor-vscode/dist/**/*.js"
+      ],
+      "preLaunchTask": "extension: compile"
+    }
   ]
 }

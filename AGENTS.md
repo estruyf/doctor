@@ -19,16 +19,20 @@ from [docs/](docs/) — **not** Hugo (the site was migrated; ignore leftover Hug
 An npm workspaces repository. The root `package.json` is private and holds no code.
 
 ```text
-apps/doctor/     @estruyf/doctor, the CLI: src, bin, tests, scripts, changelog.json
-docs/            the getdoctor.io site, its own package and lockfile, not a workspace
-schema/          the doctor.json JSON schema, addressed by URL, never move it
-assets/          repository images (the README logo)
+apps/doctor/         @estruyf/doctor, the CLI: src, bin, tests, scripts, changelog.json
+apps/doctor-vscode/  doctor-metadata, the VS Code extension, with its own AGENTS.md
+docs/                the getdoctor.io site, its own package and lockfile, not a workspace
+schema/              the doctor.json JSON schema, addressed by URL, never move it
+assets/              repository images (the README logo)
 ```
 
 `schema/` stays at the root because `https://raw.githubusercontent.com/estruyf/doctor/dev/schema/<version>.json`
 is written into every user's `doctor.json`. `docs/` stays out of the workspaces so Vercel keeps installing
 only the site. `readme.md` and `LICENSE` live at the root, where GitHub shows them, and are copied into
 `apps/doctor` while npm packs it.
+
+The two packages never import each other. They release separately: the CLI to npm, the extension to the
+Visual Studio Marketplace (see [apps/doctor-vscode/AGENTS.md](apps/doctor-vscode/AGENTS.md)).
 
 The rest of this file describes the CLI. Paths in it are relative to `apps/doctor/` unless they start with
 `docs/`, `schema/` or `.github/`.
@@ -71,6 +75,7 @@ npm run build && node --test tests/locale.test.mjs
 
 Tests are plain `node:test` `.mjs` files in [tests/](apps/doctor/tests/) that import compiled helpers from `../dist/...`.
 There is no linter and no test framework beyond the Node test runner — do not introduce one without being asked.
+(The extension's ESLint and vitest are the exception, and stay inside `apps/doctor-vscode`.)
 
 `npm link`, run in `apps/doctor/`, makes the local build available as the global `doctor` command (at the
 root it would link the private workspace root). The sample content repo is
@@ -278,6 +283,8 @@ An [Astro Starlight](https://starlight.astro.build/) site with its own `package.
   npm publishing uses **trusted publishing** (OIDC, no `NPM_TOKEN`), which npm ties to one workflow file —
   [main.yml](.github/workflows/main.yml). Don't add `npm publish` to any other workflow; it will fail to authenticate.
   It publishes with `-w @estruyf/doctor`: a plain `npm publish` at the root hits the private workspace root.
+  A published GitHub release is a CLI release unless its tag starts with `doctor-vscode@`, which releases
+  the extension instead. Pushes that only touch `apps/doctor-vscode/` don't run the CLI workflows.
 
 ## Definition of done
 
