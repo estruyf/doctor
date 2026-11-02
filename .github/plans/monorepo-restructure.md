@@ -1,7 +1,8 @@
 # Plan: one repository for the CLI and the metadata extension
 
-Status: agreed in principle. Step 1 is done (#209 merged), step 2 is next. Audited against both
-repositories on 2026-11-02
+Status: steps 2 to 5 are done on `refactor/monorepo`, as one commit per step in a single pull request.
+What is left: a Marketplace `publisher` and its `VSCE_PAT` secret, a PNG icon, and `packages/common`.
+Audited against both repositories on 2026-11-02
 Context: @estruyf asked for the **Doctor Metadata** VS Code extension
 ([involv-intranet/sharepoint-front-matter-vscode](https://github.com/involv-intranet/sharepoint-front-matter-vscode))
 to be merged into this repository. The code comes over as a clean copy; its history stays in the
@@ -90,8 +91,8 @@ is shared by both packages. If it needs to be importable rather than read by rel
 `schema/` its own `package.json` and list it as a workspace — the files never move, so the URL keeps
 working.
 
-Unrelated to the move, but found while checking the `$id`s: `schema/1.12.0.json` has the `$id` of
-`1.2.0.json`.
+Unrelated to the move, but found while checking the `$id`s: `schema/1.12.0.json` had the `$id` of
+`1.2.0.json`. Fixed.
 
 ### Two shared contracts, kept apart
 
@@ -116,7 +117,6 @@ accurate as it grows:
 | --- | --- |
 | front matter keys and the `metadata` transforms | `src/utils/doctorMappings.ts` |
 | `src/shortcodes/`, `ShortcodeKind` | `src/shortcodes/ShortcodeRegistry.ts` — the `BUILT_IN` list and the `kind` values |
-| `schema/2.1.0.json` | `src/config/doctor-schema.json` — a byte-for-byte copy the `doctor.json` editor is built from |
 | `src/commands/Command.ts`, the `--forceAll` option | `src/commands/runDoctor.ts` — `DOCTOR_RUNS`, the commands and flags the editor starts |
 | `CERTIFICATE_PASSWORD_ENV` in `OptionsHelper` | `src/commands/runDoctor.ts` — the variable the stored certificate password is handed over in |
 | `LCID_BY_LOCALE` in `LocaleHelper` | `src/config/languages.ts` — `DOCTOR_LOCALES`, the `doctor.json` editor's language list when SharePoint cannot be asked |
@@ -129,17 +129,13 @@ their *names*, which is why the editor writes LCIDs. A language missing here is 
 doctor's `localization` front matter as well — a page cannot name it as a locale — and comparing the
 table against SharePoint's live list is the way to find them.
 
-The schema row is the one copy that can be checked mechanically, because it is meant to be identical:
-`cmp schema/2.1.0.json <extension>/src/config/doctor-schema.json` says whether it has drifted. It
-also showed the value of the copy being exercised: rendering the editor from it surfaced a
-`pageTemplate` default of `"doctor-placeholder"`, copied by mistake from `webPartTitle`, which had
-been in the published schema — and in every editor's IntelliSense for `doctor.json` — since August.
-Fixed on both sides in this release.
-
-That check fails today: the copy misses `pageMode`, `html` and the new `overwriteImages` text from
-#205. It is also the one row the move fixes for free. Once both live in one repository, esbuild can
-bundle `../../schema/2.1.0.json` straight into the extension, so PR B deletes the copy instead of
-syncing it.
+The schema used to be a row here too: the extension carried a byte-for-byte copy of
+`schema/2.1.0.json`. Rendering the editor from it surfaced a `pageTemplate` default of
+`"doctor-placeholder"`, copied by mistake from `webPartTitle`, which had been in the published schema —
+and in every editor's IntelliSense for `doctor.json` — since August (fixed in 2.3.0). By 2.3.1 the copy
+had drifted, missing `pageMode`, `html` and the new `overwriteImages` text from #205. Now that both
+live in one repository, esbuild bundles `schema/2.1.0.json` straight into the extension, and the copy is
+gone.
 
 The last two rows copy *behaviour* rather than a list, which makes them the easiest to break without
 noticing: the editor warns about what doctor does, so a change to how doctor resolves a path or
@@ -184,8 +180,8 @@ Two more only break once the extension is in, so they belong to PR B:
 `vsce publish` uploads it. Things to settle while moving it, all of them broken today rather than
 broken by the move:
 
-- **There is no `publisher` field**, so `vsce package` cannot succeed as the extension stands. It
-  becomes part of the extension's permanent Marketplace id (`publisher.doctor-metadata`), so it is
+- **There is no `publisher` field.** `vsce package` works without one (checked with vsce 3.9.2), but
+  `vsce publish` does not. It becomes part of the extension's permanent Marketplace id (`publisher.doctor-metadata`), so it is
   worth agreeing before the first publish rather than after. The same goes for the `doctor-metadata.*`
   setting keys, which users end up with in their settings.
 - **There is no `.vscodeignore`**, so the `.vsix` ships `src/`, `test/` and `tsconfig.json`.
@@ -244,11 +240,11 @@ They stay separate. Unifying them rewrites nearly 300 passing tests for no behav
 `AGENTS.md` says not to introduce a test framework. The root `npm test` fans out across workspaces.
 This is a decision, not an oversight — please do not tidy it.
 
-CI does not run either today. `test-build.yml` runs on pull requests but only builds. PR B adds
-`npm test` there, for both packages.
+CI ran neither before: `test-build.yml` ran on pull requests but only built. It now runs `npm test`
+for both packages.
 
-`npm test` also deletes a tracked file, `temp/doctor-mermaid-1222fd6d86-eb8f4253.svg`, because the
-tests clean `./temp`. The file should be untracked and `temp/` added to `.gitignore`.
+`npm test` also deleted a tracked file, `temp/doctor-mermaid-1222fd6d86-eb8f4253.svg`, because the
+tests clean `./temp`. It is untracked now and `temp/` is ignored.
 
 ## TypeScript 6, through `tsc6`
 
@@ -279,19 +275,21 @@ it. The `tsconfig.json` changes doctor needed apply to both versions:
 
 1. ~~**Merge #209 first.**~~ Done (`714781f6`).
 2. **The `files` allowlist**, on its own, small.
-3. **TypeScript 6 for doctor**, on its own, small: the alias, `tsc6` and the `tsconfig` changes above. Doing it before the move keeps PR A free of compiler changes.
+3. **TypeScript 6 for doctor**, on its own, small: the alias, `tsc6` and the `tsconfig` changes above.
+   Doing it before the move keeps PR A free of compiler changes.
 4. **PR A — the mechanical move, no behaviour change.** One commit per step so a bisect can find a
    break: `git mv` the CLI into `apps/doctor` and fix its aliases and scripts; workspaces at the
    root; CI paths; husky; `AGENTS.md`/`CLAUDE.md`. Green at every step. The only review question is
    whether anything broke.
-5. **PR B — drop the extension in**, with `.vscodeignore`, a `publisher`, the packaging fixes above,
-   the schema import instead of the copy, per-package release tags, `paths` filters on the publish
-   workflows, `npm test` in `test-build.yml`, and a `vsce` workflow.
-6. **PR C onward — the redundancy work**, starting with `packages/common`. The `homepage` key the
-   extension misses is the first thing it should carry.
+5. **PR B — drop the extension in**, with `.vscodeignore`, the packaging fixes above, the schema
+   import instead of the copy, per-package release tags, `paths` filters on the publish workflows,
+   `npm test` in `test-build.yml`, and a `vsce` workflow. The `homepage` key came along, by hand.
+   Still open: the `publisher`, the `VSCE_PAT` secret and a PNG icon.
+6. **PR C onward — the redundancy work**, starting with `packages/common`.
 
-A and B stay apart deliberately: A is a large diff that has to be boring, B is a small diff that
-needs real review.
+A and B were meant to be separate pull requests: A is a large diff that has to be boring, B is a small
+diff that needs real review. They ended up as one pull request with a commit per step, so review it
+commit by commit.
 
 ## Not in scope
 
