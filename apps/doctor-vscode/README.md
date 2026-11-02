@@ -213,8 +213,8 @@ would fail the publish if it were written by name. Entries already in the file k
 were written in; one doctor cannot resolve is flagged, and when the language is known the form
 offers to swap it for its LCID.
 
-The form is built from a copy of doctor's `schema/2.1.0.json`, so a setting added to the schema
-appears in the form without any form changes. Anything no group names lands under **Other** rather
+The form is built from doctor's own `schema/2.1.0.json`, bundled into the extension, so a setting
+added to the schema appears in the form without any form changes. Anything no group names lands under **Other** rather
 than being left out.
 
 ## Running doctor
@@ -349,29 +349,21 @@ Fields are always read from, and written to, the specific `vscode.TextDocument` 
 
 ## Development
 
-### Building
+The extension lives in `apps/doctor-vscode` of the [doctor repository](https://github.com/estruyf/doctor),
+next to the CLI. Install once from the repository root, then work in `apps/doctor-vscode`:
 
 ```bash
-npm install
-npm run compile
-```
-
-### Watching for changes
-
-```bash
-npm run watch
-```
-
-### Running tests
-
-```bash
-npm run test
+npm install          # at the repository root
+npm run compile      # type check, lint and bundle
+npm run watch        # bundle on every change
+npm test             # vitest, once
 npm run test:watch
 ```
 
 ### Debugging
 
-Press `F5` in VS Code to open the Extension Development Host. Set breakpoints in the code and they will be hit.
+Open the repository root in VS Code and run **Run the extension** (`F5`) to open the Extension
+Development Host. Set breakpoints in the code and they will be hit.
 
 ## How it relates to Doctor
 
@@ -381,4 +373,4 @@ See https://getdoctor.io for more information about Doctor and the publishing pi
 
 ## License
 
-This extension is part of the Involv Intranet platform.
+MIT, like doctor itself.
