@@ -1,10 +1,2 @@
-
-export enum Command {
-  init = "init",
-  publish = "publish",
-  workflow = "workflow",
-  version = "version",
-  setup = "setup",
-  cleanup = "cleanup",
-  status = "status",
-}
+// Shared with the VS Code extension, which starts some of these commands itself
+export { Command } from "@estruyf/doctor-common";

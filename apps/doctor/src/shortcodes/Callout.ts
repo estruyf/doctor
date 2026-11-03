@@ -1,3 +1,4 @@
+import { CALLOUT_TYPES, type CalloutType } from "@estruyf/doctor-common";
 import { ShortcodeRender } from "@models";
 
 const getIcon = (type: string) => {
@@ -22,27 +23,11 @@ export const CalloutRenderer: ShortcodeRender = {
   ) {
     const title = attrs.title || "";
 
-    let type = attrs.type || "note";
-    switch (type.toLowerCase()) {
-      case "note":
-        type = "note";
-        break;
-      case "tip":
-        type = "tip";
-        break;
-      case "info":
-        type = "info";
-        break;
-      case "caution":
-        type = "caution";
-        break;
-      case "danger":
-        type = "danger";
-        break;
-      default:
-        type = "note";
-        break;
-    }
+    // The types the extension offers are this list, so the two cannot drift
+    const requested = `${attrs.type || ""}`.toLowerCase();
+    const type: CalloutType = (CALLOUT_TYPES as readonly string[]).includes(requested)
+      ? (requested as CalloutType)
+      : "note";
 
     let styles = ``;
     if (attrs.bgColor) {

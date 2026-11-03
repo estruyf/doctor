@@ -2,14 +2,8 @@ export interface Shortcode {
   [name: string]: ShortcodeRender;
 }
 
-/**
- * What a shortcode contributes to the page. An `inline` shortcode returns HTML
- * that is spliced into the Markdown web part; a `webpart` shortcode becomes a
- * SharePoint web part of its own, splitting the page canvas around it.
- */
-export type ShortcodeKind = "inline" | "webpart";
-
-export const SHORTCODE_KINDS: ShortcodeKind[] = ["inline", "webpart"];
+// Shared with the VS Code extension, which offers the shortcodes while typing
+export { SHORTCODE_KINDS, type ShortcodeKind } from "@estruyf/doctor-common";
 
 /**
  * Page-level facts a web part shortcode may need to build its web part

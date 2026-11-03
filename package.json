@@ -1,11 +1,12 @@
 {
   "name": "doctor-repository",
   "private": true,
-  "description": "The doctor CLI and its VS Code extension. The packages live in apps/.",
+  "description": "The doctor CLI and its VS Code extension. The packages live in apps/, the code they share in packages/.",
   "engines": {
     "node": ">=22.13.0"
   },
   "workspaces": [
+    "packages/*",
     "apps/*"
   ],
   "scripts": {

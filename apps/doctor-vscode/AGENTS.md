@@ -55,7 +55,14 @@ esbuild bundles three entry points into `dist/`: `extension.js` (Node, CommonJS)
 ## The contract with doctor
 
 The extension writes what doctor reads, so parts of it describe doctor's behaviour and have to change with
-it. The list of those pairs is in
+it. The lists both sides agree on live in [packages/common](../../packages/common/) and are imported from
+`@estruyf/doctor-common`: the locale table, the built-in shortcodes with their attributes and the callout
+types, the commands and flags the editor starts, the certificate password variable, and the front matter
+keys. `compile`, `watch` and `test` build it first (`npm run build:common`), and esbuild bundles it into
+`dist/` like every other dependency. It is never published.
+
+What is still copied by hand, the behaviour rather than lists (how doctor resolves a path setting, its
+navigation rules, the `metadata` transforms), is listed in
 [.github/plans/monorepo-restructure.md](../../.github/plans/monorepo-restructure.md#until-then-the-copies-are-kept-in-sync-by-hand).
 A change to either side of a pair without the other is a bug that only shows when a page is published.
 

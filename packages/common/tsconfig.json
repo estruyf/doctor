@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    // Plain ES2022 without Node or DOM types: the extension's webviews run it in a browser
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "types": [],
+    "module": "nodenext",
+    "moduleResolution": "NodeNext",
+    "declaration": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "rootDir": "./src",
+    // Strict, because the extension is: it compiles against these declarations
+    "strict": true,
+    "noUnusedLocals": true,
+    "skipLibCheck": true
+  },
+  "include": ["./src/**/*.ts"]
+}

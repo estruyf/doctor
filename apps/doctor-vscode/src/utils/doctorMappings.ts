@@ -1,3 +1,5 @@
+import type { FrontMatterKey } from '@estruyf/doctor-common';
+
 /**
  * Doctor (estruyf/doctor) uses a fixed set of front matter keys that map
  * to specific SharePoint Site Page fields.
@@ -10,7 +12,8 @@
  *  - `description`     — optional tooltip / hint
  */
 export interface DoctorFieldMapping {
-  frontMatterKey: string;
+  /** One of doctor's own keys; `metadata` is the custom columns, edited apart */
+  frontMatterKey: Exclude<FrontMatterKey, 'metadata'>;
   spInternalName: string | null;  // null = no SP equivalent, pure doctor concept
   fallbackType: string;
   label: string;

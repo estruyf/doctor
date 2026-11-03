@@ -21,6 +21,7 @@ An npm workspaces repository. The root `package.json` is private and holds no co
 ```text
 apps/doctor/         @estruyf/doctor, the CLI: src, bin, tests, scripts, changelog.json
 apps/doctor-vscode/  vscode-doctor, the VS Code extension, with its own AGENTS.md
+packages/common/     @estruyf/doctor-common, what both packages agree on, bundled into both, never published
 docs/                the getdoctor.io site, its own package and lockfile, not a workspace
 schema/              the doctor.json JSON schema, addressed by URL, never move it
 assets/              repository images (the README logo)
@@ -33,6 +34,20 @@ only the site. `readme.md` and `LICENSE` live at the root, where GitHub shows th
 
 The two packages never import each other. They release separately: the CLI to npm, the extension to the
 Visual Studio Marketplace (see [apps/doctor-vscode/AGENTS.md](apps/doctor-vscode/AGENTS.md)).
+
+What they have to agree on lives in `packages/common` (`@estruyf/doctor-common`): the locale table, the
+built-in shortcodes with their attributes and the callout types, the commands and flags the extension
+starts, the certificate password variable, and the front matter keys. Both packages import it by name.
+It is plain TypeScript without Node or DOM types, because the extension's webviews run it in a browser,
+and it is built with `tsc6` into `packages/common/dist`. The CLI's and the extension's `build`, `test`
+and `watch` build it first, and the root lists `packages/*` before `apps/*` so it builds first there too.
+
+**It is never published on its own.** The extension bundles it with esbuild. The CLI lists it in
+`dependencies` and `bundleDependencies`, so it travels inside `@estruyf/doctor`'s tarball. npm leaves a
+workspace symlink out of the tarball, so the CLI's `prepack` puts a real copy of the built package in
+`apps/doctor/node_modules/@estruyf/doctor-common` (`scripts/bundle-common.js`) and `postpack` removes it.
+Each side holds the lists to its own code: doctor's tests check the shortcodes against its renderers and
+a type check ties `PageFrontMatter` to the keys; the extension's tests check its field mappings.
 
 The rest of this file describes the CLI. Paths in it are relative to `apps/doctor/` unless they start with
 `docs/`, `schema/` or `.github/`.
@@ -268,7 +283,7 @@ An [Astro Starlight](https://starlight.astro.build/) site with its own `package.
 
 - **Path aliases**: `@commands`, `@helpers`, `@models`, `@utils` resolve to the barrel `index.ts` of each
   folder (tsconfig `paths`, rewritten at build time by `tsc-alias`). **A new file must be exported from its
-  folder's `index.ts`** or the alias import fails. Inside a folder, import siblings by relative `./File.js`
+  folder's `index.ts`** or the alias import fails; the same goes for `packages/common/src/index.ts`. Inside a folder, import siblings by relative `./File.js`
   path to avoid circular barrel imports.
 - **Config schema**: `doctor.json` options are documented in `schema/<version>.json`; adding an option means
   updating the current schema file.

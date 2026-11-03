@@ -10,6 +10,7 @@ on:
       - dev
     paths:
       - "apps/doctor-vscode/**"
+      - "packages/common/**"
       - "schema/**"
       - "package-lock.json"
       - ".github/workflows/vscode.yml"
@@ -18,6 +19,7 @@ on:
       - dev
     paths:
       - "apps/doctor-vscode/**"
+      - "packages/common/**"
       - "schema/**"
       - "package-lock.json"
       - ".github/workflows/vscode.yml"

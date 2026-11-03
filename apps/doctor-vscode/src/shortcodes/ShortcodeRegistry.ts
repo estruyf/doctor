@@ -1,9 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { BUILT_IN_SHORTCODES, type ShortcodeKind } from '@estruyf/doctor-common';
 import { readDoctorJson } from '../utils/doctorConfig';
 
-/** What a shortcode contributes to the page, mirroring doctor's own `kind`. */
-export type ShortcodeKind = 'inline' | 'webpart';
+// doctor's own `kind`, shared through `@estruyf/doctor-common`
+export type { ShortcodeKind };
 
 export interface ShortcodeAttribute {
   name: string;
@@ -27,63 +28,22 @@ export interface ShortcodeInfo {
 }
 
 /**
- * The shortcodes doctor ships, which are available in every project.
- *
- * Hard-coded because the extension cannot import doctor — it is a published npm
- * package the edited project need not even depend on. This is the same
- * duplication `doctorMappings.ts` carries for the front matter contract, and it
- * goes the same way once the two live in one repository: a shared package both
- * read, rather than one copying the other.
+ * The shortcodes doctor ships, which are available in every project. The list
+ * lives in `@estruyf/doctor-common`, held to doctor's renderers by a test there,
+ * so what is offered here is what doctor reads.
  */
-const BUILT_IN: ShortcodeInfo[] = [
-  {
-    tag: 'callout',
-    kind: 'inline',
-    builtIn: true,
-    paired: true,
-    description: 'A coloured callout box around its content.',
-    attributes: [
-      { name: 'type', source: 'declared', description: 'note, info, tip, caution, important, warning or danger' },
-      { name: 'title', source: 'declared', description: 'Heading shown above the content' },
-    ],
-  },
-  {
-    tag: 'icon',
-    kind: 'inline',
-    builtIn: true,
-    paired: false,
-    description: 'A Fluent UI icon.',
-    attributes: [
-      { name: 'name', source: 'declared', description: 'Fluent UI icon name' },
-      { name: 'size', source: 'declared', description: 'Icon size in pixels' },
-    ],
-  },
-  {
-    tag: 'toc',
-    kind: 'inline',
-    builtIn: true,
-    paired: false,
-    description:
-      'A table of contents built from the page headings. Cannot be combined with a web part shortcode.',
-    attributes: [
-      { name: 'position', source: 'declared', description: 'top or bottom' },
-      { name: 'title', source: 'declared' },
-    ],
-  },
-  {
-    tag: 'mermaid',
-    kind: 'inline',
-    builtIn: true,
-    paired: true,
-    description: 'A Mermaid diagram, drawn during the publish and uploaded as an image.',
-    attributes: [
-      { name: 'alt', source: 'declared', description: 'Image description' },
-      { name: 'title', source: 'declared' },
-      { name: 'width', source: 'declared' },
-      { name: 'height', source: 'declared' },
-    ],
-  },
-];
+const BUILT_IN: ShortcodeInfo[] = BUILT_IN_SHORTCODES.map((shortcode) => ({
+  tag: shortcode.tag,
+  kind: shortcode.kind,
+  builtIn: true,
+  paired: shortcode.paired,
+  description: shortcode.description,
+  attributes: shortcode.attributes.map((attribute) => ({
+    name: attribute.name,
+    source: 'declared',
+    description: attribute.description,
+  })),
+}));
 
 const SHORTCODE_EXTENSIONS = ['.js', '.cjs', '.mjs'];
 
