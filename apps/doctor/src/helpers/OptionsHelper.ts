@@ -3,7 +3,13 @@ import { join } from "path";
 import arg from "arg";
 import kleur from "kleur";
 import inquirer from "inquirer";
-import { CommandArguments, PAGE_MODES, PageMode } from "@models";
+import {
+  CommandArguments,
+  EXISTING_PAGES_MODES,
+  ExistingPagesMode,
+  PAGE_MODES,
+  PageMode,
+} from "@models";
 import { Command } from "@commands";
 import { existsAsync, readFileAsync } from "@utils";
 import { OutputHelper } from "./OutputHelper.js";
@@ -70,6 +76,7 @@ export class OptionsHelper {
 
       "--skipExistingPages": Boolean,
       "--skipExisting": Boolean,
+      "--existingPages": String,
       "--skipPages": Boolean,
       "--skipNavigation": Boolean,
       "--skipSiteDesign": Boolean,
@@ -150,6 +157,9 @@ export class OptionsHelper {
         (args["--skipExisting"] as any) ||
         options["skipExistingPages"] ||
         false,
+      existingPages: OptionsHelper.parseExistingPages(
+        args["--existingPages"] ?? options["existingPages"]
+      ),
       forceAll:
         (args[FORCE_ALL_OPTION] as any) ||
         options["forceAll"] ||
@@ -270,6 +280,29 @@ export class OptionsHelper {
   }
 
   /**
+   * What to do with a page on the site that doctor did not publish. An
+   * unknown value is refused rather than read as `update`: a typo in
+   * `protect` would otherwise write over the site's own pages.
+   * @param value
+   */
+  public static parseExistingPages(value: unknown): ExistingPagesMode {
+    if (typeof value === "undefined" || value === null || value === "") {
+      return "update";
+    }
+
+    const mode = `${value}`.trim().toLowerCase();
+    if (EXISTING_PAGES_MODES.includes(mode as ExistingPagesMode)) {
+      return mode as ExistingPagesMode;
+    }
+
+    throw new Error(
+      `The "existingPages" option must be one of: ${EXISTING_PAGES_MODES.join(
+        ", "
+      )}, but received "${value}".`
+    );
+  }
+
+  /**
    * Prompt for missing parameters
    * @param options
    */
@@ -311,7 +344,9 @@ export class OptionsHelper {
         type: "confirm",
         name: "confirm",
         message:
-          "Are you sure you want to clean up all pages which have not been touched?",
+          options.existingPages && options.existingPages !== "update"
+            ? "Are you sure you want to clean up the pages doctor published which have not been touched?"
+            : "Are you sure you want to clean up all pages which have not been touched?",
         default: false,
       });
     }
@@ -320,7 +355,10 @@ export class OptionsHelper {
       questions.push({
         type: "confirm",
         name: "confirm",
-        message: "Are you sure you want to clean up all pages and assets?",
+        message:
+          options.existingPages && options.existingPages !== "update"
+            ? "Are you sure you want to clean up the pages doctor published and all assets?"
+            : "Are you sure you want to clean up all pages and assets?",
         default: false,
       });
     }

@@ -16,6 +16,7 @@ import { AccessToken } from "./AccessToken.js";
 import { ApiHelper } from "./ApiHelper.js";
 import { CanvasHelper, WebPartControl } from "./CanvasHelper.js";
 import { CliCommand } from "./CliCommand.js";
+import { ExistingPagesHelper } from "./ExistingPagesHelper.js";
 import { FileHelpers } from "./FileHelpers.js";
 import { FolderHelpers } from "./FolderHelpers.js";
 import { FrontMatterHelper } from "./FrontMatterHelper.js";
@@ -154,11 +155,14 @@ export class PagesHelper {
     const extension = `.${FrontMatterHelper.getPageExtension()}`;
     // With a `pagesFolder`, the rest of Site Pages belongs to the site, like
     // its own homepage, and is never doctor's to remove
-    const untouched = this.getUntouchedPages().filter(
+    let untouched = this.getUntouchedPages().filter(
       (slug) =>
         !slug.toLowerCase().startsWith("templates") &&
         slug.endsWith(extension)
     ).filter((slug) => FrontMatterHelper.isInPagesFolder(slug));
+    // A site doctor shares keeps its own pages: only the ones in the publish
+    // state are doctor's to remove
+    untouched = ExistingPagesHelper.onlyOwned(untouched, options);
     Logger.debug(`Removing the following files`);
     Logger.debug(untouched);
     for (const slug of untouched) {

@@ -183,7 +183,7 @@ The `pages` lists are always complete, also for the unchanged pages. The `--verb
   "version": "2.1.0",
   "url": "https://<tenant>.sharepoint.com/sites/<documentation>",
   "summary": {
-    "pages": { "total": 14, "created": 1, "updated": 2, "skipped": 11, "removed": 0 },
+    "pages": { "total": 14, "created": 1, "updated": 2, "skipped": 11, "notOwned": 0, "removed": 0 },
     "images": { "total": 3, "uploaded": 3, "skipped": 0 },
     "retries": 0,
     "errors": 0,
@@ -194,7 +194,7 @@ The `pages` lists are always complete, also for the unchanged pages. The `--verb
 }
 ```
 
-The `timings` property is added when you pass the `--timingDetails` flag.
+The `timings` property is added when you pass the `--timingDetails` flag. `notOwned` counts the skipped pages that were left alone because the site's page by that name isn't `doctor`'s (`--existingPages protect`).
 
 :::note[Info]
 A publish run with `--continueOnError` exits with code `0`, also when pages failed. Gate on `success` or on `summary.errors`, and use `failedFiles` to report which pages need attention.
@@ -240,14 +240,14 @@ This flag can only be added to the command execution. Using it in the `doctor.js
 :::
 
 `--cleanEnd`
-: Removes the pages which the run did not want, at the end of the whole process. A page which was *skipped* — as unchanged, or because its metadata could not be worked out — is still a page `doctor` wants, and is left alone. What gets removed is what has no markdown file behind it any more.
+: Removes the pages which the run did not want, at the end of the whole process. A page which was *skipped* — as unchanged, or because its metadata could not be worked out — is still a page `doctor` wants, and is left alone. What gets removed is what has no markdown file behind it any more. With [`--existingPages`](../doctor-json/#existingpages) `protect` or `fail`, only pages `doctor` published are removed.
 
 :::caution[Important]
 This flag can only be added to the command execution. Using it in the `doctor.json` file has no effect.
 :::
 
 `--cleanStart`
-: Removes all pages before creation. This ensures that you that all changes made to your documentation get removed.
+: Removes all pages before creation. This ensures that you that all changes made to your documentation get removed. With [`--existingPages`](../doctor-json/#existingpages) `protect` or `fail`, it only removes the pages and asset library files `doctor` published, as recorded in the publish state, and keeps the state file. The rest of Site Pages and the asset library is left alone.
 
 :::caution[Important]
 This flag can only be added to the command execution. Using it in the `doctor.json` file has no effect.
@@ -262,6 +262,14 @@ This flag can only be added to the command execution. Using it in the `doctor.js
 
 `--skipExistingPages`
 : Will not overwrite pages if they already existed on the site. The shorter `--skipExisting` alias can be used as well.
+
+`--existingPages <update|protect|fail>`
+: What to do with a page on the site that has the name of a local page, but that `doctor` did not publish (it isn't in
+  the publish state). `update` (the default) writes over it. `protect` leaves it alone and skips the local page with a
+  warning. `fail` stops the run before any page is written and lists every such page. With `protect` and `fail`,
+  `--cleanStart` and `--cleanEnd` only remove `doctor`'s own pages and uploaded files, and a homepage `doctor` did not publish is not
+  replaced. It needs the publish state, so it cannot be combined with `--disableStatePersistence`. An unknown value
+  stops the run. Check [`existingPages`](../doctor-json/#existingpages) for more information.
 
 `--forceAll`
 : Reprocess all pages, ignoring the saved publish state. By default `doctor` only publishes pages which are new or whose content changed since the last run. Check the [change detection](#change-detection--publish-state) section for more information.
@@ -418,7 +426,7 @@ The removal needs to be confirmed. When you do not pass the `--confirm` flag, `d
 
 Good to know:
 
-- The state file is the source of truth. Pages which were created outside of `doctor`, or before the state file existed, are not touched. Use the `--cleanEnd` flag when you want to remove everything `doctor` does not have a markdown file for, whether or not it is in the state.
+- The state file is the source of truth. Pages which were created outside of `doctor`, or before the state file existed, are not touched. Use the `--cleanEnd` flag when you want to remove everything `doctor` does not have a markdown file for, whether or not it is in the state (unless [`--existingPages`](../doctor-json/#existingpages) is `protect` or `fail`).
 - Multilingual pages are removed together with their source page. Translations of a page which still exists are kept.
 - Pages which are already gone from the site are removed from the state as well, so the state keeps matching your site.
 - When a markdown file cannot be resolved to a page (an unreadable file, or one without a `title`), no pages get removed at all. The [pre-process checks](#pre-process-checks) catch these before the publishing run, unless you use `--skipPrecheck`.

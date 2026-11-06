@@ -21,6 +21,10 @@
       },
       {
         "id": null,
+        "title": "New: the `existingPages` option (`--existingPages`) for publishing into a site that has pages of its own. `protect` leaves a page `Doctor` did not publish alone and skips the local page with a warning, `fail` stops the run before anything is written and lists every such page, and `update`, the default, writes over it as before. With `protect` and `fail`, `--cleanStart` and `--cleanEnd` only remove `Doctor`'s own pages, `--cleanStart` only removes the asset library files `Doctor` uploaded and keeps the publish state, and the site's own homepage is not replaced. Read more in [existingPages](https://getdoctor.io/docs/configuration/doctor-json/#existingpages)."
+      },
+      {
+        "id": null,
         "title": "New: the **Doctor — Markdown to SharePoint Pages** VS Code extension now lives in the `doctor` repository. It edits a page's front matter and your `doctor.json`, with pickers for your SharePoint columns, and runs `doctor` from the editor. Read more in [VS Code extension](https://getdoctor.io/docs/vscode-extension/)."
       },
       {

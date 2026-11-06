@@ -10,6 +10,7 @@ import {
   FileHelpers,
   FolderHelpers,
   HtmlPageHelper,
+  ExistingPagesHelper,
   ListHelpers,
   Logger,
   MermaidHelper,
@@ -124,5 +125,6 @@ export class Commands {
     ListHelpers.reset();
     FolderHelpers.reset();
     HtmlPageHelper.reset();
+    ExistingPagesHelper.reset();
   }
 }
