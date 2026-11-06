@@ -250,6 +250,14 @@ for (let i = 3; i < args.length; i++) {
   }
 }
 appendFileSync(process.env.FAKE_CLI_LOG, JSON.stringify({ command, options }) + "\\n");
+// Pages already in the root of Site Pages: adding one fails, looking it up works
+const rootPages = (process.env.FAKE_CLI_ROOT_PAGES || "").split(",").filter(Boolean);
+if (command === "spo page add" && rootPages.includes(options.name)) {
+  process.stderr.write("A file with this name already exists."); process.exit(1);
+}
+if (command === "spo page get" && rootPages.includes(options.name)) {
+  process.stdout.write(JSON.stringify({ ListItemAllFields: { Id: 3 } })); process.exit(0);
+}
 if (command === "spo page get") {
   process.stderr.write("File Not Found."); process.exit(1);
 }
@@ -281,6 +289,7 @@ const setupCli = async (t, config) => {
     FolderHelpers.reset?.();
     ListHelpers.reset?.();
     delete process.env.FAKE_CLI_LOG;
+    delete process.env.FAKE_CLI_ROOT_PAGES;
   });
 
   return async () =>
@@ -340,7 +349,8 @@ test("a new page in a folder never moves a root page with the same name", { skip
   const move = log.find((call) => call.command === "spo file move");
 
   // Created under a name of its own, as the site's Home.aspx may sit in the root
-  assert.match(add.options.name, /^home-[0-9a-f-]{36}\.aspx$/);
+  assert.match(add.options.name, /^home-doctor-[0-9a-f]{12}\.aspx$/);
+  assert.equal(add.options.name, PagesHelper.getTemporaryPageName("docs/home.aspx"));
   assert.equal(add.options.title, "Home");
   assert.equal(move.options.sourceUrl, `/sites/dept/SitePages/${add.options.name}`);
   assert.equal(move.options.targetUrl, "/sites/dept/SitePages/docs");
@@ -355,4 +365,38 @@ test("a new page in the root keeps its own name", { skip }, async (t) => {
   const log = await calls();
   assert.equal(log.find((call) => call.command === "spo page add").options.name, "home.aspx");
   assert.equal(log.some((call) => call.command === "spo file move"), false);
+});
+
+test("the temporary name is the same on every run, whatever the case", () => {
+  const name = PagesHelper.getTemporaryPageName("docs/home.aspx");
+  // SharePoint does not tell the two apart, so neither does the hash
+  assert.equal(PagesHelper.getTemporaryPageName("Docs/Home.aspx").toLowerCase(), name);
+  assert.notEqual(PagesHelper.getTemporaryPageName("other/home.aspx"), name);
+});
+
+test("a page left in the root by an earlier run is moved, not the root page with the real name", { skip }, async (t) => {
+  const temporary = PagesHelper.getTemporaryPageName("docs/home.aspx");
+  // The site's own Home.aspx and the leftover of a run that stopped before the move
+  process.env.FAKE_CLI_ROOT_PAGES = `home.aspx,${temporary}`;
+  const calls = await setupCli(t, { pagesFolder: "docs" });
+  FolderHelpers.checkedFolders = ["/sitepages/docs"];
+
+  const existed = await PagesHelper.createPageIfNotExists(webUrl, "docs/home.aspx", "Home");
+  assert.equal(existed, false);
+
+  const log = await calls();
+  assert.deepEqual(
+    log
+      .filter((call) => ["spo page add", "spo page get", "spo file move"].includes(call.command))
+      .map((call) => [call.command, call.options.name ?? call.options.sourceUrl]),
+    [
+      ["spo page get", "docs/home.aspx"],
+      ["spo page add", temporary],
+      ["spo page get", temporary],
+      ["spo file move", `/sites/dept/SitePages/${temporary}`],
+    ]
+  );
+  const move = log.find((call) => call.command === "spo file move");
+  assert.equal(move.options.targetUrl, "/sites/dept/SitePages/docs");
+  assert.equal(move.options.newName, "home.aspx");
 });

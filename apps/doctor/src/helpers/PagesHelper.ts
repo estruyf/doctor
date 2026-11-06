@@ -33,7 +33,7 @@ import { TermsHelper, ResolvedTerm } from "./TermsHelper.js";
 import { CapabilitiesHelper } from "./CapabilitiesHelper.js";
 import { isPermissionError } from "@utils";
 import { executeCommand } from "@pnp/cli-microsoft365";
-import { randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import { basename, dirname } from "path";
 
 /**
@@ -461,10 +461,13 @@ export class PagesHelper {
       // a folder is created there and moved. Under its own name it would meet
       // any root page called the same — a site's own `Home.aspx` when doctor
       // publishes `docs/home.aspx` — and that page would be the one moved into
-      // the folder and written over. A name nothing else has avoids that.
+      // the folder and written over. The name it gets instead is derived from
+      // the slug, so it is the same on every run: a page left in the root by a
+      // run that stopped before the move is found and moved by the next one,
+      // rather than every retry leaving another page in the site's root.
       const addName =
         slug !== pageName
-          ? `${pageName.replace(/\.aspx$/i, "")}-${randomUUID()}.aspx`
+          ? PagesHelper.getTemporaryPageName(slug)
           : pageName;
       try {
         await executeWithRetry(
@@ -522,6 +525,21 @@ export class PagesHelper {
 
       return false;
     }
+  }
+
+  /**
+   * The root name a page for a folder is created under before it is moved,
+   * like `home-doctor-1a2b3c4d5e6f.aspx` for `docs/home.aspx`. Hashed from the
+   * slug in lower case, as SharePoint does not tell `Docs/Home.aspx` and
+   * `docs/home.aspx` apart either.
+   * @param slug The page URL relative to Site Pages
+   */
+  public static getTemporaryPageName(slug: string): string {
+    const hash = createHash("sha256")
+      .update(slug.toLowerCase())
+      .digest("hex")
+      .slice(0, 12);
+    return `${basename(slug).replace(/\.aspx$/i, "")}-doctor-${hash}.aspx`;
   }
 
   private static async ensureFolderPath(

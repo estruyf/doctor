@@ -17,7 +17,7 @@
       },
       {
         "id": null,
-        "title": "Fix: creating a page in a folder no longer moves a page with the same name from the root of Site Pages into that folder. Publishing `docs/home.aspx` on a site with its own `Home.aspx` could move the site's homepage into the folder and write over it."
+        "title": "Fix: creating a page in a folder no longer moves a page with the same name from the root of Site Pages into that folder. Publishing `docs/home.aspx` on a site with its own `Home.aspx` could move the site's homepage into the folder and write over it. The page is now created under a name of its own, which stays the same between runs, so a run that stops half way leaves at most one page behind, and the next run finishes the move."
       },
       {
         "id": null,
