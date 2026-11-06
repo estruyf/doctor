@@ -46,6 +46,7 @@ export class OptionsHelper {
       "--pageTemplate": String,
       "--reapplyTemplates": Boolean,
       "--pageMode": String,
+      "--pagesFolder": String,
       "--provider": String,
       "--output": String,
 
@@ -206,6 +207,9 @@ export class OptionsHelper {
       pageMode: OptionsHelper.parsePageMode(
         args["--pageMode"] ?? options["pageMode"]
       ),
+      pagesFolder: OptionsHelper.parsePagesFolder(
+        args["--pagesFolder"] ?? options["pagesFolder"]
+      ),
       htmlTemplate: options["html"]?.["template"] || null,
       htmlStyles: options["html"]?.["styles"] || null,
       disableComments:
@@ -235,6 +239,34 @@ export class OptionsHelper {
         ", "
       )}, but received "${value}".`
     );
+  }
+
+  /**
+   * The folder in Site Pages the pages go in, as a path without leading or
+   * trailing slashes: `/docs/` and `docs` are the same folder. A `..` segment
+   * is refused rather than resolved, as it would point outside the folder the
+   * setting exists to keep doctor inside of.
+   * @param value
+   */
+  public static parsePagesFolder(value: unknown): string {
+    if (typeof value === "undefined" || value === null) {
+      return "";
+    }
+
+    const segments = `${value}`
+      .trim()
+      .replace(/\\/g, "/")
+      .split("/")
+      .map((segment) => segment.trim())
+      .filter((segment) => segment && segment !== ".");
+
+    if (segments.includes("..")) {
+      throw new Error(
+        `The "pagesFolder" option has to be a folder inside Site Pages, but received "${value}".`
+      );
+    }
+
+    return segments.join("/");
   }
 
   /**

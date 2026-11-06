@@ -82,6 +82,7 @@ Point `$schema` at the schema of the version you run to get autocompletion and t
 | `webPartTitle` | `doctor-placeholder` | [Site and content](#webparttitle) |
 | `auth`, `appId`, `tenant`, `certificate`, `password` | — | [Authentication](#authentication) |
 | `pageMode`, `html` | `webpart`, — | [Pages](#pagemode) |
+| `pagesFolder` | none | [Pages](#pagesfolder) |
 | `pageTemplate`, `reapplyTemplates` | none, `false` | [Pages](#pagetemplate) |
 | `skipExistingPages` | `false` | [Pages](#skipexistingpages) |
 | `overwriteImages` | `false` | [Pages](#overwriteimages) |
@@ -195,6 +196,33 @@ wrong mode. Changing the mode publishes every page again.
   [your own styles](../../content/html-pages/#your-own-styles).
 
 Both paths are relative to the `doctor.json` file. A change to either file publishes every page again.
+
+### `pagesFolder`
+
+`string` · default none · flag `--pagesFolder`
+
+A folder in Site Pages that every page goes in, in both page modes. Use it to publish into a site that
+has pages of its own, like its `Home.aspx`: `doctor` then never creates, writes over or cleans up a page
+outside that folder.
+
+```json
+{
+  "pagesFolder": "docs"
+}
+```
+
+- A folder in a folder works too: `docs/v2`. Leading and trailing slashes are ignored.
+- The folder goes in front of every slug, the ones `doctor` makes from the file path and the `slug` front
+  matter alike. A page at `guides/setup.md` is published as `docs/guides/setup.aspx`.
+- A `slug` that already starts with the folder is left as it is, so `slug: docs/setup.aspx` does not
+  become `docs/docs/setup.aspx`. A site which put the folder in its slugs by hand can switch to the
+  setting and drop it from the slugs later.
+- Links between pages, the menu, the homepage and the publish state follow the folder.
+- `--cleanStart` and `--cleanEnd` only remove pages inside the folder.
+
+Setting or changing the folder publishes every page again, at its new URL. The pages at the old URLs stay
+where they are: [`--removeDeleted`](../cli-options/#removing-deleted-pages) recycles the ones `doctor`
+published there.
 
 ### `pageTemplate`
 

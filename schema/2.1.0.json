@@ -178,6 +178,12 @@
       "enum": ["webpart", "html"],
       "default": "webpart"
     },
+    "pagesFolder": {
+      "$id": "#/properties/pagesFolder",
+      "type": "string",
+      "title": "pagesFolder",
+      "description": "A folder in Site Pages that every page goes in, like `docs` or `docs/v2`. Doctor then never creates, writes over or cleans up a page outside it. A `slug` that already starts with the folder is left as it is."
+    },
     "html": {
       "$id": "#/properties/html",
       "type": "object",
