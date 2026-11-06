@@ -34,3 +34,4 @@ export * from './TermsHelper.js';
 export * from './Translator.js';
 export * from './RunCommand.js';
 export * from './Logger.js';
+export * from './ExistingPagesHelper.js';

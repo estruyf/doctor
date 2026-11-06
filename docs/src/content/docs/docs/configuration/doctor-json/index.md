@@ -52,6 +52,7 @@ Point `$schema` at the schema of the version you run to get autocompletion and t
   "pageTemplate": "",
   "reapplyTemplates": false,
   "skipExistingPages": false,
+  "existingPages": "update",
   "overwriteImages": false,
   "disableComments": false,
   "continueOnError": false,
@@ -82,8 +83,10 @@ Point `$schema` at the schema of the version you run to get autocompletion and t
 | `webPartTitle` | `doctor-placeholder` | [Site and content](#webparttitle) |
 | `auth`, `appId`, `tenant`, `certificate`, `password` | — | [Authentication](#authentication) |
 | `pageMode`, `html` | `webpart`, — | [Pages](#pagemode) |
+| `pagesFolder` | none | [Pages](#pagesfolder) |
 | `pageTemplate`, `reapplyTemplates` | none, `false` | [Pages](#pagetemplate) |
 | `skipExistingPages` | `false` | [Pages](#skipexistingpages) |
+| `existingPages` | `update` | [Pages](#existingpages) |
 | `overwriteImages` | `false` | [Pages](#overwriteimages) |
 | `disableComments` | `false` | [Pages](#disablecomments) |
 | `continueOnError`, `retryWhenFailed`, `skipPrecheck` | `false` | [Running a publish](#running-a-publish) |
@@ -196,6 +199,33 @@ wrong mode. Changing the mode publishes every page again.
 
 Both paths are relative to the `doctor.json` file. A change to either file publishes every page again.
 
+### `pagesFolder`
+
+`string` · default none · flag `--pagesFolder`
+
+A folder in Site Pages that every page goes in, in both page modes. Use it to publish into a site that
+has pages of its own, like its `Home.aspx`: `doctor` then never creates, writes over or cleans up a page
+outside that folder.
+
+```json
+{
+  "pagesFolder": "docs"
+}
+```
+
+- A folder in a folder works too: `docs/v2`. Leading and trailing slashes are ignored.
+- The folder goes in front of every slug, the ones `doctor` makes from the file path and the `slug` front
+  matter alike. A page at `guides/setup.md` is published as `docs/guides/setup.aspx`.
+- A `slug` that already starts with the folder is left as it is, so `slug: docs/setup.aspx` does not
+  become `docs/docs/setup.aspx`. A site which put the folder in its slugs by hand can switch to the
+  setting and drop it from the slugs later.
+- Links between pages, the menu, the homepage and the publish state follow the folder.
+- `--cleanStart` and `--cleanEnd` only remove pages inside the folder.
+
+Setting or changing the folder publishes every page again, at its new URL. The pages at the old URLs stay
+where they are: [`--removeDeleted`](../cli-options/#removing-deleted-pages) recycles the ones `doctor`
+published there.
+
 ### `pageTemplate`
 
 `string` · default none · flag `--pageTemplate`
@@ -215,6 +245,29 @@ Also applies the page template to pages which already exist, not only to the one
 Only creates pages which do not exist yet. A page which is already on the site is not updated at all — not its content, its metadata nor its web parts — even when its markdown changed. Translations are still processed.
 
 Useful for seeding a site once and handing the pages over to their owners afterwards; for a site published from markdown on every change, leave it off.
+
+### `existingPages`
+
+`string` · default `update` · flag `--existingPages`
+
+What `doctor` does with a page on the site that has the name of a local page, but that `doctor` did not publish. Use it when you publish into a site that has pages of its own, like a department site. `doctor` knows its own pages from the [publish state](#change-detection): a page that isn't in it belongs to the site.
+
+| Value | A page on the site with the same name that isn't in the state |
+| --- | --- |
+| `update` | Written over, as before this option existed. |
+| `protect` | Left alone. The local page is skipped with a warning, and counted as skipped (`notOwned` in the [JSON output](../cli-options/#json-output)). Its translations are skipped as well. |
+| `fail` | The run stops before any page is written, and lists every such page. |
+
+Pages `doctor` did publish are updated as usual with all three. Translations are created by SharePoint, so they never count as someone else's page.
+
+With `protect` and `fail`, two more things leave the site's own pages alone:
+
+- `--cleanStart` and `--cleanEnd` only remove pages that are in the state. `--cleanStart` removes them one by one instead of emptying Site Pages, and leaves the folders. In the asset library it only removes the files `doctor` uploaded, as recorded in the state, and keeps the state file. A state written before `doctor` 2.3.0 records no uploads, so then no files are removed.
+- A page with `homepage: true` doesn't replace the current homepage when the state doesn't have it. `doctor` warns and leaves it.
+
+:::caution[Important]
+The state is the only record of what `doctor` published. When it is lost, every page on the site looks like the site's own, and `protect` skips them all. Run once with `--existingPages update` to adopt them again. For the same reason, `protect` and `fail` cannot be combined with [`disableStatePersistence`](#disablestatepersistence): the run stops with an error.
+:::
 
 ### `overwriteImages`
 

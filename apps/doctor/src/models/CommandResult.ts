@@ -79,6 +79,11 @@ export interface PublishResult extends CommandResult {
       created: number;
       updated: number;
       skipped: number;
+      /**
+       * Of the skipped pages, the ones left alone because a page by that name
+       * on the site was not published by doctor (`existingPages: protect`)
+       */
+      notOwned: number;
       removed: number;
     };
     images: {

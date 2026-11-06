@@ -3,7 +3,13 @@ import { join } from "path";
 import arg from "arg";
 import kleur from "kleur";
 import inquirer from "inquirer";
-import { CommandArguments, PAGE_MODES, PageMode } from "@models";
+import {
+  CommandArguments,
+  EXISTING_PAGES_MODES,
+  ExistingPagesMode,
+  PAGE_MODES,
+  PageMode,
+} from "@models";
 import { Command } from "@commands";
 import { existsAsync, readFileAsync } from "@utils";
 import { OutputHelper } from "./OutputHelper.js";
@@ -46,6 +52,7 @@ export class OptionsHelper {
       "--pageTemplate": String,
       "--reapplyTemplates": Boolean,
       "--pageMode": String,
+      "--pagesFolder": String,
       "--provider": String,
       "--output": String,
 
@@ -69,6 +76,7 @@ export class OptionsHelper {
 
       "--skipExistingPages": Boolean,
       "--skipExisting": Boolean,
+      "--existingPages": String,
       "--skipPages": Boolean,
       "--skipNavigation": Boolean,
       "--skipSiteDesign": Boolean,
@@ -149,6 +157,9 @@ export class OptionsHelper {
         (args["--skipExisting"] as any) ||
         options["skipExistingPages"] ||
         false,
+      existingPages: OptionsHelper.parseExistingPages(
+        args["--existingPages"] ?? options["existingPages"]
+      ),
       forceAll:
         (args[FORCE_ALL_OPTION] as any) ||
         options["forceAll"] ||
@@ -206,6 +217,9 @@ export class OptionsHelper {
       pageMode: OptionsHelper.parsePageMode(
         args["--pageMode"] ?? options["pageMode"]
       ),
+      pagesFolder: OptionsHelper.parsePagesFolder(
+        args["--pagesFolder"] ?? options["pagesFolder"]
+      ),
       htmlTemplate: options["html"]?.["template"] || null,
       htmlStyles: options["html"]?.["styles"] || null,
       disableComments:
@@ -232,6 +246,57 @@ export class OptionsHelper {
 
     throw new Error(
       `The "pageMode" option must be one of: ${PAGE_MODES.join(
+        ", "
+      )}, but received "${value}".`
+    );
+  }
+
+  /**
+   * The folder in Site Pages the pages go in, as a path without leading or
+   * trailing slashes: `/docs/` and `docs` are the same folder. A `..` segment
+   * is refused rather than resolved, as it would point outside the folder the
+   * setting exists to keep doctor inside of.
+   * @param value
+   */
+  public static parsePagesFolder(value: unknown): string {
+    if (typeof value === "undefined" || value === null) {
+      return "";
+    }
+
+    const segments = `${value}`
+      .trim()
+      .replace(/\\/g, "/")
+      .split("/")
+      .map((segment) => segment.trim())
+      .filter((segment) => segment && segment !== ".");
+
+    if (segments.includes("..")) {
+      throw new Error(
+        `The "pagesFolder" option has to be a folder inside Site Pages, but received "${value}".`
+      );
+    }
+
+    return segments.join("/");
+  }
+
+  /**
+   * What to do with a page on the site that doctor did not publish. An
+   * unknown value is refused rather than read as `update`: a typo in
+   * `protect` would otherwise write over the site's own pages.
+   * @param value
+   */
+  public static parseExistingPages(value: unknown): ExistingPagesMode {
+    if (typeof value === "undefined" || value === null || value === "") {
+      return "update";
+    }
+
+    const mode = `${value}`.trim().toLowerCase();
+    if (EXISTING_PAGES_MODES.includes(mode as ExistingPagesMode)) {
+      return mode as ExistingPagesMode;
+    }
+
+    throw new Error(
+      `The "existingPages" option must be one of: ${EXISTING_PAGES_MODES.join(
         ", "
       )}, but received "${value}".`
     );
@@ -279,7 +344,9 @@ export class OptionsHelper {
         type: "confirm",
         name: "confirm",
         message:
-          "Are you sure you want to clean up all pages which have not been touched?",
+          options.existingPages && options.existingPages !== "update"
+            ? "Are you sure you want to clean up the pages doctor published which have not been touched?"
+            : "Are you sure you want to clean up all pages which have not been touched?",
         default: false,
       });
     }
@@ -288,7 +355,10 @@ export class OptionsHelper {
       questions.push({
         type: "confirm",
         name: "confirm",
-        message: "Are you sure you want to clean up all pages and assets?",
+        message:
+          options.existingPages && options.existingPages !== "update"
+            ? "Are you sure you want to clean up the pages doctor published and all assets?"
+            : "Are you sure you want to clean up all pages and assets?",
         default: false,
       });
     }

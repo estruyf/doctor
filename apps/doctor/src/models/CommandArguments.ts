@@ -45,6 +45,22 @@ export interface AuthOptions {
   certificate?: string;
 }
 
+/**
+ * What doctor does with a page on the site that has the name of a page it is
+ * publishing, but is not in its publish state — a page the site owners made.
+ *
+ * - `update`: write over it, as doctor always did.
+ * - `protect`: leave it alone, skip the local page and warn.
+ * - `fail`: stop before any page is written, listing every such page.
+ */
+export type ExistingPagesMode = "update" | "protect" | "fail";
+
+export const EXISTING_PAGES_MODES: ExistingPagesMode[] = [
+  "update",
+  "protect",
+  "fail",
+];
+
 export interface PublishOptions {
   startFolder: string;
   startFolderRel: string;
@@ -57,6 +73,11 @@ export interface PublishOptions {
   overwriteImages: boolean;
   skipPrecheck: boolean;
   skipExistingPages: boolean;
+  /**
+   * How to treat a page on the site that doctor did not publish, see
+   * `ExistingPagesMode`.
+   */
+  existingPages: ExistingPagesMode;
   forceAll: boolean;
   removeDeleted: boolean;
   pageTemplate: string | null;
@@ -70,6 +91,11 @@ export interface PublishOptions {
    * self-contained HTML pages (`html`).
    */
   pageMode: PageMode;
+  /**
+   * The folder in Site Pages every page goes in, like `docs` or `docs/v2`,
+   * without leading or trailing slashes. Empty for the root of Site Pages.
+   */
+  pagesFolder: string;
 }
 
 export interface ContentOptions {

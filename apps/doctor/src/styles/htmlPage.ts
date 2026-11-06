@@ -6,6 +6,9 @@
  * system has, starting with the one SharePoint itself uses. The colours are
  * custom properties, so `html.styles` can rebrand a site by overriding a few of
  * them rather than restyling every element.
+ *
+ * The column is wide, for reference tables and code, while running text keeps
+ * a comfortable line length of its own (`--doctor-prose-width`).
  */
 export const htmlPageCss = `:root {
   --doctor-accent: #0f6cbd;
@@ -16,7 +19,8 @@ export const htmlPageCss = `:root {
   --doctor-surface: #f5f5f5;
   --doctor-background: #ffffff;
   --doctor-radius: 8px;
-  --doctor-width: 860px;
+  --doctor-width: 1200px;
+  --doctor-prose-width: 800px;
   --doctor-font: "Segoe UI", "Segoe UI Web (West European)", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
   --doctor-mono: "Cascadia Code", Consolas, "SFMono-Regular", Menlo, monospace;
 }
@@ -119,7 +123,15 @@ body {
 
 .doctor-content p, .doctor-content ul, .doctor-content ol,
 .doctor-content dl, .doctor-content table, .doctor-content blockquote,
-.doctor-content pre, .doctor-content details { margin: 0 0 1.1em; }
+.doctor-content pre, .doctor-content details,
+.doctor-content .doctor-table { margin: 0 0 1.1em; }
+
+/* Tables, code, diagrams and headings use the whole column. Running text
+   stays at a line length that reads well, which a column wide enough for a
+   reference table is not. Set to none, text uses the whole column too. */
+.doctor-content :is(p, ul, ol, dl, blockquote, .callout, .doctor__container__toc) {
+  max-width: var(--doctor-prose-width);
+}
 
 .doctor-content ul, .doctor-content ol { padding-left: 1.6em; }
 .doctor-content li + li { margin-top: 0.3em; }
@@ -169,11 +181,13 @@ body {
 }
 .doctor-content pre code { font-size: 0.85rem; }
 
+/* A table is as wide as its content, up to the column, and its cells wrap
+   (long words at the <wbr> doctor adds). Only a table that cannot
+   fit even then scrolls sideways, inside the doctor-table box doctor puts
+   around every table. */
+.doctor-content .doctor-table { overflow-x: auto; }
+.doctor-content .doctor-table > table { margin: 0; }
 .doctor-content table {
-  display: block;
-  width: max-content;
-  max-width: 100%;
-  overflow-x: auto;
   border-collapse: collapse;
   font-size: 0.95em;
 }
@@ -249,12 +263,21 @@ body {
 /* position="right". The web part floats it at a fifth of the canvas, which in
    this narrower column leaves it too thin to read. Here it is a block in the
    text, until the window is wide enough to give it the margin beside the
-   column, where it stays in view while the page scrolls. */
+   column, where it stays in view while the page scrolls. The column stays
+   centred and gives up the room the window lacks for it, so the table of
+   contents comes in at the same width whatever --doctor-width is. */
 .doctor-content .doctor__container__toc_right { float: none; position: static; width: auto; }
 /* The web part pads the text to make room for the float; here the table of
    contents sits above the text or in the margin, so the room is not needed */
 .doctor-content .doctor__container__markdown_right_padding { padding-right: 0; }
 @media screen and (min-width: 1400px) {
+  /* 2 x 280px: the table of contents on one side, the same margin on the other */
+  .doctor-page:has(.doctor__container__toc_right) {
+    max-width: min(var(--doctor-width), 100vw - 560px);
+  }
+  body:has(.doctor__container__toc_right) .doctor-hero__inner {
+    max-width: calc(min(var(--doctor-width), 100vw - 560px) - 48px);
+  }
   .doctor-content .doctor__container__toc_right {
     float: right;
     position: sticky;
@@ -277,5 +300,6 @@ body {
   .doctor-hero--image::before, .doctor-hero__image { display: none; }
   .doctor-page { max-width: none; padding: 16px 0 0; }
   .doctor-content pre { white-space: pre-wrap; }
+  .doctor-content .doctor-table { overflow: visible; }
 }
 `;

@@ -169,6 +169,29 @@ export class StateHelper {
     return !!(StateHelper.state && StateHelper.state.pages[slug]);
   }
 
+  /**
+   * Whether doctor published this page, by the publish state. Compared without
+   * case, as SharePoint does not tell `Home.aspx` from `home.aspx` and the
+   * slugs reach this from both the markdown and the site's list of pages.
+   */
+  public static isOwned(slug: string): boolean {
+    if (!StateHelper.state || !slug) {
+      return false;
+    }
+    if (StateHelper.state.pages[slug]) {
+      return true;
+    }
+    const wanted = slug.toLowerCase();
+    return Object.keys(StateHelper.state.pages).some(
+      (tracked) => tracked.toLowerCase() === wanted,
+    );
+  }
+
+  /** Whether the publish state was loaded in this run, see load() */
+  public static isLoaded(): boolean {
+    return StateHelper.loaded;
+  }
+
   /** Returns all slugs currently tracked in state. */
   public static getTrackedSlugs(): string[] {
     return StateHelper.state ? Object.keys(StateHelper.state.pages) : [];
@@ -363,6 +386,27 @@ export class StateHelper {
     const assets = (StateHelper.state.assets ??= {});
     if (assets[key] !== hash) {
       assets[key] = hash;
+      StateHelper.dirty = true;
+    }
+  }
+
+  /**
+   * The paths of the files doctor uploaded to the asset library, starting
+   * with the library and in lower case, as recorded by setAssetHash().
+   */
+  public static getAssetPaths(): string[] {
+    return Object.keys(StateHelper.state?.assets ?? {});
+  }
+
+  /**
+   * Forget a file in the asset library, for instance after it got removed.
+   * @param path the file's path in the library, starting with the library
+   */
+  public static removeAssetHash(path: string): void {
+    const assets = StateHelper.state?.assets;
+    const key = StateHelper.toAssetKey(path);
+    if (assets && key in assets) {
+      delete assets[key];
       StateHelper.dirty = true;
     }
   }

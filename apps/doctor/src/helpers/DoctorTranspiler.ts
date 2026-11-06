@@ -13,6 +13,7 @@ import {
 } from "@models";
 import { CapabilitiesHelper } from "./CapabilitiesHelper.js";
 import { DependencyHelper } from "./DependencyHelper.js";
+import { ExistingPagesHelper } from "./ExistingPagesHelper.js";
 import { FileHelpers } from "./FileHelpers.js";
 import { FolderHelpers } from "./FolderHelpers.js";
 import { FrontMatterHelper } from "./FrontMatterHelper.js";
@@ -282,6 +283,15 @@ export class DoctorTranspiler {
       // SharePoint creates a translation from its source page, so a source
       // page skipped before it was ever created has none to make. Its own skip
       // was reported already; the translations follow once it is published.
+      // The page on the site is the site's own, so its translations would be
+      // made from content that is not this markdown
+      if (ExistingPagesHelper.isProtected(slug)) {
+        StatusHelper.addWarning(
+          `The localizations of "${relativePath(file)}" were skipped, as the site's page "${slug}" is not doctor's and was left alone.`,
+        );
+        continue;
+      }
+
       if (PagesHelper.isMissing(slug)) {
         StatusHelper.addWarning(
           `The localizations of "${relativePath(file)}" were skipped, as the page itself was skipped and is not on the site yet. They are published on the run that publishes it.`,
@@ -650,6 +660,29 @@ export class DoctorTranspiler {
             this.skipPage(webUrl, output, markup.data as PageFrontMatter, slug, title);
             return;
           }
+        }
+
+        // A page by this name that doctor did not publish belongs to the
+        // site. Checked before anything is uploaded, in both page modes, so a
+        // protected page costs no images either. A translation is exempt: its
+        // page is made by SharePoint from a source page that passed this check.
+        if (
+          !languagePageSlug &&
+          ExistingPagesHelper.guards(options) &&
+          ExistingPagesHelper.isForeign(webUrl, slug)
+        ) {
+          // The run looks for these before it publishes and stops there, so
+          // this is the backstop for a page that check did not see
+          if (options.existingPages === "fail") {
+            throw new Error(ExistingPagesHelper.getConflictMessage([slug]));
+          }
+
+          ExistingPagesHelper.protect(slug, relPath);
+          setProgress(`Skipped (not doctor's): ${relPath}`);
+          StatusHelper.addPageSkipped();
+          // Not added to the navigation or made the homepage: the page on the
+          // site under this name is not the one in the markdown
+          return;
         }
 
         const isHtmlPage = options.pageMode === "html";

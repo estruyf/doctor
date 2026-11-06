@@ -5,6 +5,7 @@ import {
   CapabilitiesHelper,
   DependencyHelper,
   DoctorTranspiler,
+  ExistingPagesHelper,
   FileHelpers,
   Logger,
   MarkdownHelper,
@@ -66,6 +67,11 @@ export class Publish {
       );
     }
 
+    const existingPagesProblem = ExistingPagesHelper.validate(options);
+    if (existingPagesProblem) {
+      return Promise.reject(new Error(existingPagesProblem));
+    }
+
     // Said on every run rather than once, as the run is where someone decides
     // whether what was published can go to a production site
     if (options.pageMode === "html") {
@@ -99,7 +105,30 @@ export class Publish {
       [
         {
           title: `Clean up all the files`,
-          task: async () => {
+          task: async (_, task) => {
+            if (ExistingPagesHelper.guards(options)) {
+              // Site Pages and the asset library (by default the site's own
+              // Shared Documents) hold the site's files too, so only what the
+              // publish state lists goes, and the state file stays. This step
+              // runs before the state is normally loaded, so it reads it itself.
+              if (!StateHelper.isLoaded()) {
+                await StateHelper.load(
+                  webUrl,
+                  options.assetLibrary,
+                  options.stateFile
+                );
+              }
+              await ExistingPagesHelper.removeOwnedPages(webUrl, task, options);
+              await ExistingPagesHelper.removeOwnedAssets(webUrl, task, options);
+              if (StateHelper.isDirty()) {
+                await StateHelper.save(
+                  webUrl,
+                  options.assetLibrary,
+                  options.stateFile
+                );
+              }
+              return;
+            }
             await FileHelpers.cleanUp(options, "sitepages");
             await FileHelpers.cleanUp(options, options.assetLibrary);
           },
@@ -114,11 +143,16 @@ export class Publish {
         {
           title: `Load publish state`,
           task: async (_, task) => {
-            await StateHelper.load(
-              webUrl,
-              options.assetLibrary,
-              options.stateFile
-            );
+            // A clean start under existingPages loaded it already, and has
+            // dropped what it removed: reading it again would only bring
+            // those back, should the save of it have been refused
+            if (!StateHelper.isLoaded()) {
+              await StateHelper.load(
+                webUrl,
+                options.assetLibrary,
+                options.stateFile
+              );
+            }
 
             // The settings and the shortcodes decide what every page publishes
             // as, so a change to them counts as a change to all of them
@@ -175,6 +209,25 @@ export class Publish {
           task: async (ctx, task) =>
             await PrecheckHelper.validate(ctx, task, options),
           enabled: () => !options.skipPages && !options.skipPrecheck,
+          rendererOptions: { persistentOutput: true },
+        },
+        {
+          // One pass over every local page before any is written, so a run
+          // that has to stop does so with the full list, not half way through
+          title: `Check for pages doctor did not publish`,
+          task: async (ctx, task) => {
+            await PagesHelper.getAllPages(webUrl);
+            const { slugs } = await DoctorTranspiler.collectLocalSlugs(
+              ctx.files || [],
+              options,
+            );
+            const conflicts = ExistingPagesHelper.findConflicts(webUrl, slugs);
+            if (conflicts.length > 0) {
+              throw new Error(ExistingPagesHelper.getConflictMessage(conflicts));
+            }
+            task.output = `No page on the site conflicts with a local page`;
+          },
+          enabled: () => options.existingPages === "fail" && !options.skipPages,
           rendererOptions: { persistentOutput: true },
         },
         {
@@ -266,6 +319,19 @@ export class Publish {
             }
 
             try {
+              // A welcome page doctor did not publish is the site owners'
+              // choice, and not doctor's to replace
+              if (ExistingPagesHelper.guards(options)) {
+                const current =
+                  await ExistingPagesHelper.getForeignHomepage(webUrl);
+                if (current) {
+                  const message = `"${homepage}" did not become the homepage, as the site's current homepage "${current}" was not published by doctor ("existingPages": "${options.existingPages}"). Change the homepage in SharePoint, or run once with '--existingPages update' to let doctor replace it.`;
+                  StatusHelper.addWarning(message);
+                  task.skip(`The current homepage is not doctor's`);
+                  return;
+                }
+              }
+
               const changed = await PagesHelper.setHomepage(webUrl, homepage);
               task.output = changed
                 ? `${homepage} is the homepage now`
@@ -340,6 +406,7 @@ export class Publish {
     const updated = StatusHelper.getPagesUpdated();
     const skipped = StatusHelper.getPagesSkipped();
     const removed = StatusHelper.getPagesRemoved();
+    const notOwned = ExistingPagesHelper.getProtectedCount();
     const imagesUploaded = StatusHelper.getImages();
     const imagesSkipped = StatusHelper.getImagesSkipped();
     const retries = StatusHelper.getRetries();
@@ -361,6 +428,7 @@ export class Publish {
             created,
             updated,
             skipped,
+            notOwned,
             removed,
           },
           images: {
@@ -400,7 +468,9 @@ export class Publish {
     const pageDetail = [
       created > 0 ? `${created} created` : null,
       updated > 0 ? `${updated} updated` : null,
-      skipped > 0 ? `${skipped} skipped` : null,
+      skipped > 0
+        ? `${skipped} skipped${notOwned > 0 ? `, ${notOwned} not doctor's` : ""}`
+        : null,
     ]
       .filter(Boolean)
       .join(" · ");

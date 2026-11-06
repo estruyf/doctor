@@ -13,6 +13,32 @@ export class FrontMatterHelper {
   }
 
   /**
+   * The folder in Site Pages every page of this run goes in (`pagesFolder`),
+   * without leading or trailing slashes. Empty when pages go in the root.
+   */
+  public static getPagesFolder(): string {
+    return CliCommand.options?.pagesFolder || "";
+  }
+
+  /**
+   * Whether a slug sits inside the configured `pagesFolder`, compared without
+   * regard to case as SharePoint URLs are. Always true without a folder, as
+   * the whole of Site Pages is then doctor's to publish in.
+   * @param slug A page URL relative to Site Pages, like `docs/page.aspx`
+   */
+  public static isInPagesFolder(slug: string): boolean {
+    const folder = FrontMatterHelper.getPagesFolder();
+    if (!folder) {
+      return true;
+    }
+
+    return (slug || "")
+      .replace(/^\/+/, "")
+      .toLowerCase()
+      .startsWith(`${folder.toLowerCase()}/`);
+  }
+
+  /**
    * Retrieve the Slug for the page
    * @param data
    */
@@ -55,6 +81,19 @@ export class FrontMatterHelper {
     } else if (!(slug as string).endsWith(".aspx")) {
       slug = `${slug}.aspx`;
     }
+
+    // Applied here, so everything built from the slug — the page URL, links
+    // between pages, the state file, the menu, the homepage — moves with it.
+    // A front matter slug that already names the folder is left alone, so a
+    // site which prefixed its slugs by hand can switch to the setting without
+    // editing them all first. A path slug always gets it: there the folder is
+    // a content folder that happens to share the name, and leaving it out
+    // would give `docs/page.md` and `page.md` the same page.
+    const pagesFolder = FrontMatterHelper.getPagesFolder();
+    if (pagesFolder && !(data.slug && FrontMatterHelper.isInPagesFolder(slug))) {
+      slug = `${pagesFolder}/${(slug as string).replace(/^\/+/, "")}`;
+    }
+
     return slug;
   }
 }
