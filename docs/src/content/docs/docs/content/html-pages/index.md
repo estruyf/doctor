@@ -84,8 +84,16 @@ screenshots compressed.
 
 ## The page design
 
-Every page gets a clean default design: a banner with the page title and description, and a readable
-content column with styled code blocks, tables, quotes and callouts.
+Every page gets a clean default design: a banner with the page title and description, and a content
+column with styled code blocks, tables, quotes and callouts.
+
+The column is 1200px wide, so reference tables and code have room. Running text stays at 800px, a line
+length that reads comfortably. A table is as wide as its content, up to the column, and its text wraps.
+Long words in a table, such as option names, paths and addresses, wrap at their dots and slashes. Only a
+table that still does not fit, with many columns, scrolls sideways.
+
+A [table of contents](../shortcodes/toc/) with `position="right"` sits beside the column when the window
+is at least 1400px wide. The column then gives up the room the table of contents needs.
 
 The banner follows the page's [`header`](../pages/#optional-front-matter) front matter:
 
@@ -113,7 +121,8 @@ wins. The design is built on CSS custom properties, so a few lines are often eno
   --doctor-accent: #6b2c91;        /* links, the banner and the info callout */
   --doctor-accent-strong: #3d1a54; /* the dark end of the banner gradient */
   --doctor-font: Georgia, serif;
-  --doctor-width: 960px;           /* the width of the content column */
+  --doctor-width: 1400px;          /* the content column: tables, code and diagrams */
+  --doctor-prose-width: 900px;     /* running text, or none for the whole column */
 }
 ```
 

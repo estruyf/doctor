@@ -75,6 +75,18 @@ const REMOTE_IMAGE_TIMEOUT = 30000;
 /** The hosts the HTML viewer opens a link to, besides the tenant's own SharePoint */
 const LINK_ALLOWLIST = ["microsoft.ghe.com", "onedrive.cloud.microsoft", "1drv.ms"];
 
+/**
+ * Where a long word in a table cell may break: after a slash (not inside
+ * `//`), backslash, underscore, `&` or `=`, and before a dot, `?` or `#`.
+ */
+const TABLE_BREAK_POINTS = /(?<=[\/\\_&=])(?![\/\\]|$)|(?<=.)(?=[.?#])/;
+
+/** Shorter words are left whole, so a squeezed column does not split a type name or a version */
+const TABLE_BREAK_MIN_LENGTH = 20;
+
+/** Elements whose text is not wrapped like running text */
+const TABLE_BREAK_SKIP = ["pre", "script", "style", "svg", "math"];
+
 /** The byte order mark the viewer's contract asks a page to start with */
 const BOM = "\uFEFF";
 
@@ -121,10 +133,12 @@ export class HtmlPageHelper {
     file: string,
     options: CommandArguments,
   ): Promise<string> {
-    const body = await HtmlPageHelper.inlineImages(
-      await MarkdownHelper.getHtmlData(markdown, options, false),
-      file,
-      options.webUrl,
+    const body = HtmlPageHelper.prepareTables(
+      await HtmlPageHelper.inlineImages(
+        await MarkdownHelper.getHtmlData(markdown, options, false),
+        file,
+        options.webUrl,
+      ),
     );
 
     const template = await HtmlPageHelper.getTemplate(options);
@@ -283,6 +297,61 @@ export class HtmlPageHelper {
         $(img).attr("src", inlined);
       }
     }
+
+    return $.html();
+  }
+
+  /**
+   * Make the page's tables fit the column. Every table goes in a
+   * `<div class="doctor-table">`, the box that scrolls sideways when a table
+   * cannot fit. A table that scrolls itself has to be `display: block`, which
+   * stops it from sizing like a table: its cells no longer wrap, and any long
+   * cell turns it into a scroll box. With the wrapper, the table stays a table
+   * and only scrolls when even its narrowest layout is wider than the column.
+   *
+   * Long words in the cells, such as option names, paths and addresses, get
+   * `<wbr>` break opportunities at their dots and slashes, so they wrap at a
+   * sensible place rather than widening their column. CSS cannot do this
+   * alone: `overflow-wrap: anywhere` lets every word break, and the table then
+   * squeezes short code like `string` down to a letter or two per line.
+   *
+   * Done here rather than in `MarkdownHelper.getHtmlData`, which also renders
+   * the Markdown web part, so modern pages keep the markup they had.
+   * @param html the rendered page content
+   */
+  public static prepareTables(html: string): string {
+    const $ = load(html, null, false);
+    const tables = $("table");
+    if (tables.length === 0) {
+      return html;
+    }
+
+    tables
+      .filter((_, table) => !$(table).parent().is("div.doctor-table"))
+      .wrap(`<div class="doctor-table"></div>`);
+
+    const addBreaks = (node: any) => {
+      if (node.type === "text") {
+        let changed = false;
+        const words = node.data.split(/(\s+)/).map((word: string) => {
+          const parts =
+            word.length < TABLE_BREAK_MIN_LENGTH
+              ? [word]
+              : word.split(TABLE_BREAK_POINTS);
+          changed ||= parts.length > 1;
+          return parts.map((part) => encode(part)).join("<wbr>");
+        });
+        if (changed) {
+          $(node).replaceWith(words.join(""));
+        }
+      } else if (node.children && !TABLE_BREAK_SKIP.includes(node.name)) {
+        // A copy, as a replaced text node changes the list
+        [...node.children].forEach(addBreaks);
+      }
+    };
+    tables
+      .filter((_, table) => $(table).parents("table").length === 0)
+      .each((_, table) => addBreaks(table));
 
     return $.html();
   }
