@@ -107,9 +107,10 @@ export class Publish {
           title: `Clean up all the files`,
           task: async (_, task) => {
             if (ExistingPagesHelper.guards(options)) {
-              // Site Pages holds the site's own pages too, so only the ones in
-              // the publish state go. This step runs before the state is
-              // normally loaded, so it reads the state itself.
+              // Site Pages and the asset library (by default the site's own
+              // Shared Documents) hold the site's files too, so only what the
+              // publish state lists goes, and the state file stays. This step
+              // runs before the state is normally loaded, so it reads it itself.
               if (!StateHelper.isLoaded()) {
                 await StateHelper.load(
                   webUrl,
@@ -118,6 +119,7 @@ export class Publish {
                 );
               }
               await ExistingPagesHelper.removeOwnedPages(webUrl, task, options);
+              await ExistingPagesHelper.removeOwnedAssets(webUrl, task, options);
               if (StateHelper.isDirty()) {
                 await StateHelper.save(
                   webUrl,
@@ -125,9 +127,9 @@ export class Publish {
                   options.stateFile
                 );
               }
-            } else {
-              await FileHelpers.cleanUp(options, "sitepages");
+              return;
             }
+            await FileHelpers.cleanUp(options, "sitepages");
             await FileHelpers.cleanUp(options, options.assetLibrary);
           },
           enabled: () => options.cleanStart && options.confirm,
@@ -141,11 +143,16 @@ export class Publish {
         {
           title: `Load publish state`,
           task: async (_, task) => {
-            await StateHelper.load(
-              webUrl,
-              options.assetLibrary,
-              options.stateFile
-            );
+            // A clean start under existingPages loaded it already, and has
+            // dropped what it removed: reading it again would only bring
+            // those back, should the save of it have been refused
+            if (!StateHelper.isLoaded()) {
+              await StateHelper.load(
+                webUrl,
+                options.assetLibrary,
+                options.stateFile
+              );
+            }
 
             // The settings and the shortcodes decide what every page publishes
             // as, so a change to them counts as a change to all of them

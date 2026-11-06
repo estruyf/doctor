@@ -399,6 +399,42 @@ test("--cleanStart under protect removes the tracked pages only", { skip: skipFa
   assert.deepEqual(StateHelper.getTrackedSlugs(), []);
 });
 
+test("--cleanStart under protect removes only the assets doctor uploaded", { skip: skipFake }, async (t) => {
+  t.after(resetAll);
+  resetAll();
+  const calls = await setupCli(t);
+  tracked("guides/start.aspx");
+  StateHelper.state.assets = {
+    "shared documents/guides/diagram.png": "hash-1",
+    "shared documents/mermaid/flow.svg": "hash-2",
+  };
+
+  const removed = await ExistingPagesHelper.removeOwnedAssets(WEB_URL, task(), {});
+  assert.equal(removed, 2);
+  const log = await calls();
+  assert.equal(log.length, 2);
+  assert.ok(log.every((c) => c.startsWith("spo file remove")));
+  assert.match(log.join("\n"), /shared documents\/guides\/diagram\.png/);
+  assert.match(log.join("\n"), /shared documents\/mermaid\/flow\.svg/);
+  // Nothing else in the library, the state file included, is listed or removed
+  assert.doesNotMatch(log.join("\n"), /spo file list|spo folder|state\.json/);
+  assert.deepEqual(StateHelper.getAssetPaths(), []);
+  // The pages are a separate step and stay tracked here
+  assert.deepEqual(StateHelper.getTrackedSlugs(), ["guides/start.aspx"]);
+  assert.equal(StateHelper.isDirty(), true);
+});
+
+test("--cleanStart under protect removes no assets when the state tracks none", { skip: skipFake }, async (t) => {
+  t.after(resetAll);
+  resetAll();
+  const calls = await setupCli(t);
+  // State written before uploads were tracked
+  tracked("guides/start.aspx");
+
+  assert.equal(await ExistingPagesHelper.removeOwnedAssets(WEB_URL, task(), {}), 0);
+  assert.deepEqual(await calls(), []);
+});
+
 test("only a welcome page doctor published may be replaced", (t) => {
   t.after(resetAll);
   resetAll();

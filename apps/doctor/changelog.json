@@ -13,7 +13,7 @@
     "updates": [
       {
         "id": null,
-        "title": "New: the `existingPages` option (`--existingPages`) for publishing into a site that has pages of its own. `protect` leaves a page `Doctor` did not publish alone and skips the local page with a warning, `fail` stops the run before anything is written and lists every such page, and `update`, the default, writes over it as before. With `protect` and `fail`, `--cleanStart` and `--cleanEnd` only remove `Doctor`'s own pages, and the site's own homepage is not replaced. Read more in [existingPages](https://getdoctor.io/docs/configuration/doctor-json/#existingpages)."
+        "title": "New: the `existingPages` option (`--existingPages`) for publishing into a site that has pages of its own. `protect` leaves a page `Doctor` did not publish alone and skips the local page with a warning, `fail` stops the run before anything is written and lists every such page, and `update`, the default, writes over it as before. With `protect` and `fail`, `--cleanStart` and `--cleanEnd` only remove `Doctor`'s own pages, `--cleanStart` only removes the asset library files `Doctor` uploaded and keeps the publish state, and the site's own homepage is not replaced. Read more in [existingPages](https://getdoctor.io/docs/configuration/doctor-json/#existingpages)."
       },
       {
         "id": null,

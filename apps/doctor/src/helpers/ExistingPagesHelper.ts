@@ -177,9 +177,9 @@ export class ExistingPagesHelper {
    * state instead of emptying Site Pages. Folders are left, as the site's own
    * pages may live in them.
    *
-   * The removed pages are dropped from the state as well. The state file
-   * normally goes with the asset library cleanup that follows, but should it
-   * survive, the pages would otherwise count as unchanged and never come back.
+   * The removed pages are dropped from the state, which is kept: the next
+   * steps of the run read it, and saving it is what stops a removed page from
+   * counting as unchanged and never coming back.
    * @returns how many pages were removed
    */
   public static async removeOwnedPages(
@@ -187,32 +187,78 @@ export class ExistingPagesHelper {
     task: TaskOutput,
     options: CommandArguments,
   ): Promise<number> {
+    return await ExistingPagesHelper.removeFiles(
+      webUrl,
+      StateHelper.getTrackedSlugs().map((slug) => ({
+        name: slug,
+        path: `sitepages/${slug}`,
+        forget: () => StateHelper.removeTracked(slug),
+      })),
+      task,
+      options,
+    );
+  }
+
+  /**
+   * `--cleanStart` for a site doctor shares: removes the files doctor
+   * uploaded to the asset library, as recorded in the publish state, instead
+   * of emptying the library — which is often the site's own document library.
+   * A state written before uploads were tracked records none, so nothing is
+   * removed, which is the safe way to be wrong. The state file itself stays.
+   * @returns how many files were removed
+   */
+  public static async removeOwnedAssets(
+    webUrl: string,
+    task: TaskOutput,
+    options: CommandArguments,
+  ): Promise<number> {
+    return await ExistingPagesHelper.removeFiles(
+      webUrl,
+      StateHelper.getAssetPaths().map((path) => ({
+        name: path,
+        path,
+        forget: () => StateHelper.removeAssetHash(path),
+      })),
+      task,
+      options,
+    );
+  }
+
+  /**
+   * Remove files from the site and forget each one in the state, also when it
+   * was already gone, which is what a clean start wants.
+   */
+  private static async removeFiles(
+    webUrl: string,
+    files: { name: string; path: string; forget: () => void }[],
+    task: TaskOutput,
+    options: CommandArguments,
+  ): Promise<number> {
     let removed = 0;
-    for (const slug of StateHelper.getTrackedSlugs()) {
-      task.output = `Cleaning up page: ${slug}`;
+    for (const file of files) {
+      task.output = `Cleaning up: ${file.name}`;
       try {
         await executeWithRetry(
           "spo file remove",
           {
             webUrl,
-            url: FileHelpers.getRelUrl(webUrl, `sitepages/${slug}`),
+            url: FileHelpers.getRelUrl(webUrl, file.path),
             force: true,
           },
           CliCommand.getRetry(),
         );
         removed++;
-        StateHelper.removeTracked(slug);
+        file.forget();
       } catch (e) {
         const message =
           typeof e === "string" ? e : e instanceof Error ? e.message : JSON.stringify(e);
-        // Already gone is what a clean start wants
         if (/does not exist|not found|cannot be found|404/i.test(message)) {
-          Logger.debug(`Page ${slug} no longer exists on the site.`);
-          StateHelper.removeTracked(slug);
+          Logger.debug(`${file.name} no longer exists on the site.`);
+          file.forget();
           continue;
         }
         if (!options.continueOnError) {
-          throw new Error(`Failed to remove the page "${slug}". ${message}`);
+          throw new Error(`Failed to remove "${file.name}". ${message}`);
         }
         Logger.debug(message);
       }

@@ -234,7 +234,7 @@ Pages `doctor` did publish are updated as usual with all three. Translations are
 
 With `protect` and `fail`, two more things leave the site's own pages alone:
 
-- `--cleanStart` and `--cleanEnd` only remove pages that are in the state. `--cleanStart` removes them one by one instead of emptying Site Pages, and leaves the folders. The asset library is still emptied.
+- `--cleanStart` and `--cleanEnd` only remove pages that are in the state. `--cleanStart` removes them one by one instead of emptying Site Pages, and leaves the folders. In the asset library it only removes the files `doctor` uploaded, as recorded in the state, and keeps the state file. A state written before `doctor` 2.3.0 records no uploads, so then no files are removed.
 - A page with `homepage: true` doesn't replace the current homepage when the state doesn't have it. `doctor` warns and leaves it.
 
 :::caution[Important]

@@ -390,6 +390,27 @@ export class StateHelper {
     }
   }
 
+  /**
+   * The paths of the files doctor uploaded to the asset library, starting
+   * with the library and in lower case, as recorded by setAssetHash().
+   */
+  public static getAssetPaths(): string[] {
+    return Object.keys(StateHelper.state?.assets ?? {});
+  }
+
+  /**
+   * Forget a file in the asset library, for instance after it got removed.
+   * @param path the file's path in the library, starting with the library
+   */
+  public static removeAssetHash(path: string): void {
+    const assets = StateHelper.state?.assets;
+    const key = StateHelper.toAssetKey(path);
+    if (assets && key in assets) {
+      delete assets[key];
+      StateHelper.dirty = true;
+    }
+  }
+
   private static toAssetKey(path: string): string {
     return path
       .replace(/\\/g, "/")

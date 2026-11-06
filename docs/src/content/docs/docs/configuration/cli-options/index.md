@@ -247,7 +247,7 @@ This flag can only be added to the command execution. Using it in the `doctor.js
 :::
 
 `--cleanStart`
-: Removes all pages before creation. This ensures that you that all changes made to your documentation get removed. With [`--existingPages`](../doctor-json/#existingpages) `protect` or `fail`, only pages `doctor` published are removed.
+: Removes all pages before creation. This ensures that you that all changes made to your documentation get removed. With [`--existingPages`](../doctor-json/#existingpages) `protect` or `fail`, it only removes the pages and asset library files `doctor` published, as recorded in the publish state, and keeps the state file. The rest of Site Pages and the asset library is left alone.
 
 :::caution[Important]
 This flag can only be added to the command execution. Using it in the `doctor.json` file has no effect.
@@ -267,7 +267,7 @@ This flag can only be added to the command execution. Using it in the `doctor.js
 : What to do with a page on the site that has the name of a local page, but that `doctor` did not publish (it isn't in
   the publish state). `update` (the default) writes over it. `protect` leaves it alone and skips the local page with a
   warning. `fail` stops the run before any page is written and lists every such page. With `protect` and `fail`,
-  `--cleanStart` and `--cleanEnd` only remove `doctor`'s own pages, and a homepage `doctor` did not publish is not
+  `--cleanStart` and `--cleanEnd` only remove `doctor`'s own pages and uploaded files, and a homepage `doctor` did not publish is not
   replaced. It needs the publish state, so it cannot be combined with `--disableStatePersistence`. An unknown value
   stops the run. Check [`existingPages`](../doctor-json/#existingpages) for more information.
 
