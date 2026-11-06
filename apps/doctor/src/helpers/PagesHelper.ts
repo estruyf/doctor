@@ -33,7 +33,7 @@ import { TermsHelper, ResolvedTerm } from "./TermsHelper.js";
 import { CapabilitiesHelper } from "./CapabilitiesHelper.js";
 import { isPermissionError } from "@utils";
 import { executeCommand } from "@pnp/cli-microsoft365";
-import { randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import { basename, dirname } from "path";
 
 /**
@@ -152,11 +152,13 @@ export class PagesHelper {
     // Only the kind of page this run publishes: the other kind is not doctor's
     // to judge, as this run never had a chance to touch it
     const extension = `.${FrontMatterHelper.getPageExtension()}`;
+    // With a `pagesFolder`, the rest of Site Pages belongs to the site, like
+    // its own homepage, and is never doctor's to remove
     const untouched = this.getUntouchedPages().filter(
       (slug) =>
         !slug.toLowerCase().startsWith("templates") &&
         slug.endsWith(extension)
-    );
+    ).filter((slug) => FrontMatterHelper.isInPagesFolder(slug));
     Logger.debug(`Removing the following files`);
     Logger.debug(untouched);
     for (const slug of untouched) {
@@ -455,12 +457,24 @@ export class PagesHelper {
 
       // File doesn't exist
       const pageName = basename(slug);
+      // SharePoint only creates a page in the root of Site Pages, so a page for
+      // a folder is created there and moved. Under its own name it would meet
+      // any root page called the same — a site's own `Home.aspx` when doctor
+      // publishes `docs/home.aspx` — and that page would be the one moved into
+      // the folder and written over. The name it gets instead is derived from
+      // the slug, so it is the same on every run: a page left in the root by a
+      // run that stopped before the move is found and moved by the next one,
+      // rather than every retry leaving another page in the site's root.
+      const addName =
+        slug !== pageName
+          ? PagesHelper.getTemporaryPageName(slug)
+          : pageName;
       try {
         await executeWithRetry(
           "spo page add",
           {
             webUrl,
-            name: pageName,
+            name: addName,
             title,
             layoutType: layout,
             commentsEnabled: !commentsDisabled,
@@ -471,12 +485,12 @@ export class PagesHelper {
       } catch (e: any) {
         // The error text is in the site's language, so whether the page was
         // already there is checked on the site instead — see `FolderHelpers.add`
-        if (!(await this.pageExists(webUrl, pageName))) {
+        if (!(await this.pageExists(webUrl, addName))) {
           throw e;
         }
 
         Logger.debug(
-          `Page ${pageName} already exists at Site Pages root. Continuing with move/update flow.`
+          `Page ${addName} already exists at Site Pages root. Continuing with move/update flow.`
         );
       }
 
@@ -489,7 +503,7 @@ export class PagesHelper {
 
         await this.ensureFolderPath(webUrl, sitePagesRoot, targetFolder);
 
-        const sourceUrl = `${sitePagesRoot}/${pageName}`;
+        const sourceUrl = `${sitePagesRoot}/${addName}`;
         const targetUrl = `${sitePagesRoot}/${targetFolder}`;
 
         Logger.debug(
@@ -511,6 +525,21 @@ export class PagesHelper {
 
       return false;
     }
+  }
+
+  /**
+   * The root name a page for a folder is created under before it is moved,
+   * like `home-doctor-1a2b3c4d5e6f.aspx` for `docs/home.aspx`. Hashed from the
+   * slug in lower case, as SharePoint does not tell `Docs/Home.aspx` and
+   * `docs/home.aspx` apart either.
+   * @param slug The page URL relative to Site Pages
+   */
+  public static getTemporaryPageName(slug: string): string {
+    const hash = createHash("sha256")
+      .update(slug.toLowerCase())
+      .digest("hex")
+      .slice(0, 12);
+    return `${basename(slug).replace(/\.aspx$/i, "")}-doctor-${hash}.aspx`;
   }
 
   private static async ensureFolderPath(

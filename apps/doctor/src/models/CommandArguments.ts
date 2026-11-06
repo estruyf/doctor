@@ -70,6 +70,11 @@ export interface PublishOptions {
    * self-contained HTML pages (`html`).
    */
   pageMode: PageMode;
+  /**
+   * The folder in Site Pages every page goes in, like `docs` or `docs/v2`,
+   * without leading or trailing slashes. Empty for the root of Site Pages.
+   */
+  pagesFolder: string;
 }
 
 export interface ContentOptions {

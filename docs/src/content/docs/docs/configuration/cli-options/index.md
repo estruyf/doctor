@@ -318,6 +318,11 @@ This flag can only be added to the command execution. Using it in the `doctor.js
   own. An unknown value stops the run. Check [HTML pages](../../content/html-pages/) for more
   information.
 
+`--pagesFolder <pagesFolder>`
+: A folder in Site Pages that every page goes in, like `docs` or `docs/v2`. `doctor` then never creates,
+  writes over or cleans up a page outside it. Check [`pagesFolder`](../doctor-json/#pagesfolder) for more
+  information.
+
 `--pageTemplate`
 : Name of the default page template to use for all the pages which will be created. It accepts the
   template's page title, its file name or its page id. A page can override it with the `template`
