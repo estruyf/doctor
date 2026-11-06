@@ -238,6 +238,14 @@
       "description": "Will not overwrite pages if they already existed on the site.",
       "default": false
     },
+    "existingPages": {
+      "$id": "#/properties/existingPages",
+      "type": "string",
+      "title": "existingPages",
+      "description": "What to do with a page on the site that has the name of a local page, but that doctor did not publish (it is not in the publish state). `update` writes over it, `protect` leaves it alone and skips the local page with a warning, `fail` stops the run before any page is written and lists every such page. With `protect` and `fail`, `--cleanStart` and `--cleanEnd` only remove doctor's own pages, and a homepage doctor did not publish is not replaced. Needs the publish state, so it cannot be combined with `disableStatePersistence`.",
+      "enum": ["update", "protect", "fail"],
+      "default": "update"
+    },
     "skipPrecheck": {
       "$id": "#/properties/skipPrecheck",
       "type": "boolean",

@@ -6,6 +6,7 @@ description: The changelog of Doctor
 ## [2.3.1]
 
 
+- New: the `existingPages` option (`--existingPages`) for publishing into a site that has pages of its own. `protect` leaves a page `Doctor` did not publish alone and skips the local page with a warning, `fail` stops the run before anything is written and lists every such page, and `update`, the default, writes over it as before. With `protect` and `fail`, `--cleanStart` and `--cleanEnd` only remove `Doctor`'s own pages, and the site's own homepage is not replaced. Read more in [existingPages](https://getdoctor.io/docs/configuration/doctor-json/#existingpages).
 - New: the **Doctor — Markdown to SharePoint Pages** VS Code extension now lives in the `doctor` repository. It edits a page's front matter and your `doctor.json`, with pickers for your SharePoint columns, and runs `doctor` from the editor. Read more in [VS Code extension](https://getdoctor.io/docs/vscode-extension/).
 - Fix: the npm package only ships what `Doctor` runs on. It no longer includes the test suites, a scratch file and the repository's AI tooling instructions.
 - Fix: a multilingual page that is skipped before it was ever created, for example over a metadata problem, no longer fails the publish when its translations are processed. Its translations are skipped with a warning, and published on the run that publishes the page.

@@ -52,6 +52,7 @@ Point `$schema` at the schema of the version you run to get autocompletion and t
   "pageTemplate": "",
   "reapplyTemplates": false,
   "skipExistingPages": false,
+  "existingPages": "update",
   "overwriteImages": false,
   "disableComments": false,
   "continueOnError": false,
@@ -84,6 +85,7 @@ Point `$schema` at the schema of the version you run to get autocompletion and t
 | `pageMode`, `html` | `webpart`, — | [Pages](#pagemode) |
 | `pageTemplate`, `reapplyTemplates` | none, `false` | [Pages](#pagetemplate) |
 | `skipExistingPages` | `false` | [Pages](#skipexistingpages) |
+| `existingPages` | `update` | [Pages](#existingpages) |
 | `overwriteImages` | `false` | [Pages](#overwriteimages) |
 | `disableComments` | `false` | [Pages](#disablecomments) |
 | `continueOnError`, `retryWhenFailed`, `skipPrecheck` | `false` | [Running a publish](#running-a-publish) |
@@ -215,6 +217,29 @@ Also applies the page template to pages which already exist, not only to the one
 Only creates pages which do not exist yet. A page which is already on the site is not updated at all — not its content, its metadata nor its web parts — even when its markdown changed. Translations are still processed.
 
 Useful for seeding a site once and handing the pages over to their owners afterwards; for a site published from markdown on every change, leave it off.
+
+### `existingPages`
+
+`string` · default `update` · flag `--existingPages`
+
+What `doctor` does with a page on the site that has the name of a local page, but that `doctor` did not publish. Use it when you publish into a site that has pages of its own, like a department site. `doctor` knows its own pages from the [publish state](#change-detection): a page that isn't in it belongs to the site.
+
+| Value | A page on the site with the same name that isn't in the state |
+| --- | --- |
+| `update` | Written over, as before this option existed. |
+| `protect` | Left alone. The local page is skipped with a warning, and counted as skipped (`notOwned` in the [JSON output](../cli-options/#json-output)). Its translations are skipped as well. |
+| `fail` | The run stops before any page is written, and lists every such page. |
+
+Pages `doctor` did publish are updated as usual with all three. Translations are created by SharePoint, so they never count as someone else's page.
+
+With `protect` and `fail`, two more things leave the site's own pages alone:
+
+- `--cleanStart` and `--cleanEnd` only remove pages that are in the state. `--cleanStart` removes them one by one instead of emptying Site Pages, and leaves the folders. The asset library is still emptied.
+- A page with `homepage: true` doesn't replace the current homepage when the state doesn't have it. `doctor` warns and leaves it.
+
+:::caution[Important]
+The state is the only record of what `doctor` published. When it is lost, every page on the site looks like the site's own, and `protect` skips them all. Run once with `--existingPages update` to adopt them again. For the same reason, `protect` and `fail` cannot be combined with [`disableStatePersistence`](#disablestatepersistence): the run stops with an error.
+:::
 
 ### `overwriteImages`
 

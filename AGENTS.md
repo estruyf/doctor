@@ -113,7 +113,7 @@ Commands are the `Command` enum in [src/commands/Command.ts](apps/doctor/src/com
 3. Long-running commands (`publish`, `status`) render as a `listr2` task list. Each publish step is a task
    with an `enabled:` predicate driven by the options — that list in [publish.ts](apps/doctor/src/commands/publish.ts) is
    the clearest description of the pipeline: clean → multilingual config → load state → collect markdown →
-   precheck → pages → localized pages → remove deleted → navigation → site design → post cleanup → save state.
+   precheck → existing pages check (`existingPages: fail`) → pages → localized pages → remove deleted → navigation → site design → post cleanup → save state.
 
 ### Adding an option — three places, always
 
@@ -161,7 +161,10 @@ shortcodes, which marks every page changed when it moves.
 unchanged pages, the `status` command's new/modified/unchanged/deleted/orphaned report, and `--removeDeleted`
 (recycles pages present in state but absent locally — only with `--confirm`, and never when slugs cannot be
 resolved for every file). `--forceAll` bypasses the hash check; `--disableStatePersistence` turns the whole
-mechanism off. Anything that changes what a page renders from must feed the hash, or pages stop re-publishing.
+mechanism off. The state is also the ownership test for `existingPages`
+([ExistingPagesHelper](apps/doctor/src/helpers/ExistingPagesHelper.ts)): with `protect` or `fail`, a page in Site
+Pages that is not in the state is the site's own, so it is not written over, not cleaned up by `--cleanStart`/`--cleanEnd`,
+and not replaced as the homepage. That is why those two modes refuse `--disableStatePersistence`. Anything that changes what a page renders from must feed the hash, or pages stop re-publishing.
 
 ### Multilingual
 

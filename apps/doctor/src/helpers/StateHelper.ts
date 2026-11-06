@@ -169,6 +169,29 @@ export class StateHelper {
     return !!(StateHelper.state && StateHelper.state.pages[slug]);
   }
 
+  /**
+   * Whether doctor published this page, by the publish state. Compared without
+   * case, as SharePoint does not tell `Home.aspx` from `home.aspx` and the
+   * slugs reach this from both the markdown and the site's list of pages.
+   */
+  public static isOwned(slug: string): boolean {
+    if (!StateHelper.state || !slug) {
+      return false;
+    }
+    if (StateHelper.state.pages[slug]) {
+      return true;
+    }
+    const wanted = slug.toLowerCase();
+    return Object.keys(StateHelper.state.pages).some(
+      (tracked) => tracked.toLowerCase() === wanted,
+    );
+  }
+
+  /** Whether the publish state was loaded in this run, see load() */
+  public static isLoaded(): boolean {
+    return StateHelper.loaded;
+  }
+
   /** Returns all slugs currently tracked in state. */
   public static getTrackedSlugs(): string[] {
     return StateHelper.state ? Object.keys(StateHelper.state.pages) : [];
