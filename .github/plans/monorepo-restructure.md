@@ -4,9 +4,9 @@ Status: steps 2 to 5 are done on `refactor/monorepo`, as one commit per step in 
 What is left: a Marketplace `publisher` and its `VSCE_PAT` secret, a PNG icon, and `packages/common`.
 Audited against both repositories on 2026-11-02
 Context: @estruyf asked for the **Doctor Metadata** VS Code extension
-([involv-intranet/sharepoint-front-matter-vscode](https://github.com/involv-intranet/sharepoint-front-matter-vscode))
-to be merged into this repository. The code comes over as a clean copy; its history stays in the
-original repo.
+(`involv-intranet/sharepoint-front-matter-vscode`) to be merged into this repository. The code came
+over as a clean copy, without its history. The original repository was deleted on 2026-11-02, after a
+file by file check that nothing in it was missing here.
 Related: the metadata, `author` and page template work in 2.3.0 is what the extension exists to
 drive — see [webpart-shortcodes.md](webpart-shortcodes.md) for the other half of that release.
 
@@ -173,6 +173,8 @@ Two more only break once the extension is in, so they belong to PR B:
   the workflow a gate on its own prefix.
 - **`release.yml` and `test-run.yml` run on every push to `dev`.** That is four real publishes against
   the sample site for a change that only touches the extension. Both need a `paths` filter.
+  (`test-run.yml` was dropped later: it repeated `release.yml`'s Ubuntu job against the same site, at
+  the same time.)
 
 ## Packaging the extension
 
@@ -293,5 +295,5 @@ commit by commit.
 
 ## Not in scope
 
-Preserving the extension's git history. It comes over as a clean copy by decision; the original
-repository keeps its own history.
+Preserving the extension's git history. It came over as a clean copy by decision, and went with the
+original repository when that was deleted.

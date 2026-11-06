@@ -14,6 +14,12 @@ on:
   #   - cron: "0 0 */7 * *"
   workflow_dispatch:
 
+# Every job publishes to a real sample site. Two runs at once would check out and rewrite the same
+# pages and state file, so a new run waits for the one in progress instead.
+concurrency:
+  group: sample-sites
+  cancel-in-progress: false
+
 jobs:
   #####################################
   ### Publishing on macOS and Linux ###

@@ -1,2 +1,12 @@
 node ./apps/doctor/scripts/prepare-changelog.js
 node ./apps/doctor/scripts/reset-debug.js
+
+# Both scripts rewrite files in the working tree only. Stage what they changed, or the commit holds
+# the old version: the changelog would need a commit of its own, and a staged debug shebang would
+# be committed anyway. Only when the source was part of this commit, so a partial commit stays partial.
+if ! git diff --cached --quiet -- apps/doctor/changelog.json; then
+  git add apps/doctor/CHANGELOG.md docs/src/content/docs/changelog/index.md
+fi
+if ! git diff --cached --quiet -- apps/doctor/bin/doctor; then
+  git add apps/doctor/bin/doctor
+fi
