@@ -382,6 +382,83 @@ test("render draws Mermaid diagrams as inline SVG", async () => {
   assert.doesNotMatch(html, /<img src="data:image\/svg/);
 });
 
+const TABLE_MARKDOWN = [
+  `| Option | Default |`,
+  `| --- | --- |`,
+  "| `markdown.shortcodesFolder` | `null` |",
+  ``,
+  `<callout type="info">`,
+  ``,
+  `| Inside | A callout |`,
+  `| --- | --- |`,
+  `| a | b |`,
+  ``,
+  `</callout>`,
+].join("\n");
+
+test("render puts every table in its own scroll box", async () => {
+  const html = await htmlRun({}, (options) =>
+    HtmlPageHelper.render(TABLE_MARKDOWN, { title: "Options" }, "page.md", options),
+  );
+
+  assert.equal((html.match(/<table>/g) ?? []).length, 2);
+  assert.equal(
+    (html.match(/<div class="doctor-table"><table>/g) ?? []).length,
+    2,
+    "both tables, the one in the callout too",
+  );
+  assert.match(html, /<\/table><\/div>/);
+  assert.deepEqual(HtmlPageHelper.getSandboxIssues(html), []);
+});
+
+test("the Markdown web part's tables get no scroll box", async () => {
+  CliCommand.reset();
+  CliCommand.init({ commandName: "m365", markdown: { allowHtml: true } });
+  const html = await MarkdownHelper.getHtmlData(TABLE_MARKDOWN, { tocLevels: [1, 2] });
+  CliCommand.reset();
+
+  assert.match(html, /<table>/);
+  assert.doesNotMatch(html, /doctor-table/);
+});
+
+test("prepareTables wraps a table once, and leaves a page without tables as it is", () => {
+  const once = HtmlPageHelper.prepareTables(`<p>Text</p><table><tr><td>1</td></tr></table>`);
+  assert.equal(once, `<p>Text</p><div class="doctor-table"><table><tbody><tr><td>1</td></tr></tbody></table></div>`);
+  assert.equal(HtmlPageHelper.prepareTables(once), once);
+
+  const noTables = `<p>Text &amp; <code>markdown.shortcodesFolder</code></p>`;
+  assert.equal(HtmlPageHelper.prepareTables(noTables), noTables);
+});
+
+test("prepareTables lets long words in a table break at dots and slashes", () => {
+  const html = HtmlPageHelper.prepareTables(
+    [
+      `<table><tr>`,
+      `<td><code>markdown.shortcodesFolder</code></td>`,
+      `<td><code>string</code></td>`,
+      `<td><a href="https://contoso.sharepoint.com/sites/docs">https://contoso.sharepoint.com/sites/docs</a></td>`,
+      `<td><code>MY_LONG_SETTING&lt;name&gt;</code></td>`,
+      `<td>See https://contoso.sharepoint.com/sites/docs/SitePages for more</td>`,
+      `<td><pre><code>keep.this.code.block.as.it.is</code></pre></td>`,
+      `</tr></table>`,
+      `<p><code>outside.of.a.table.stays.whole</code></p>`,
+    ].join(""),
+  );
+
+  assert.match(html, /<code>markdown<wbr>\.shortcodesFolder<\/code>/);
+  assert.match(html, /<code>string<\/code>/, "short code stays whole");
+  assert.match(
+    html,
+    /<a href="https:\/\/contoso\.sharepoint\.com\/sites\/docs">https:\/\/<wbr>contoso<wbr>\.sharepoint<wbr>\.com\/<wbr>sites\/<wbr>docs<\/a>/,
+    "the address breaks, its href does not change",
+  );
+  assert.match(html, /<code>MY_<wbr>LONG_<wbr>SETTING&lt;name&gt;<\/code>/, "the text stays escaped");
+  assert.match(html, /<td>See https:\/\/<wbr>contoso<wbr>\.sharepoint<wbr>\.com\/<wbr>sites\/<wbr>docs\/<wbr>SitePages for more<\/td>/, "a bare address too");
+  assert.match(html, /<pre><code>keep\.this\.code\.block\.as\.it\.is<\/code><\/pre>/);
+  assert.match(html, /<code>outside\.of\.a\.table\.stays\.whole<\/code>/);
+  assert.equal(HtmlPageHelper.prepareTables(html), html);
+});
+
 test("render uses a custom template and adds custom styles", async () => {
   await withContent(async (dir) => {
     const template = join(dir, "layout.html");

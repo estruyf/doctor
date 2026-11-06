@@ -38,6 +38,10 @@
       {
         "id": 205,
         "title": "Fix: an HTML page's title shows its accents and symbols correctly in the browser tab, instead of `Home Â· Doctor docs` for `Home · Doctor docs`. SharePoint reads the tab title out of the page with its own parser, which takes the text in the wrong encoding, so `Doctor` now writes the page title and description with character references. Republish with `--forceAll` to fix pages that are already published."
+      },
+      {
+        "id": null,
+        "title": "Fix: tables on HTML pages wrap their text instead of scrolling sideways. A table is as wide as its content, up to the content column, and long option names, paths and addresses in it wrap at their dots and slashes. Only a table that still does not fit scrolls. The column is wider too, 1200px instead of 860px, while running text keeps a readable 800px line length (`--doctor-prose-width`). A table of contents with `position=\"right\"` still sits beside the column from a 1400px wide window. If your `html.styles` overrides the table styles or `--doctor-width`, check whether you still need it. Republish with `--forceAll` to update pages that are already published. Read more in [HTML pages](https://getdoctor.io/docs/content/html-pages/#the-page-design)."
       }
     ]
   },
